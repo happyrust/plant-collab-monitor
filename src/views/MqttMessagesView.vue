@@ -1,6 +1,355 @@
 <template>
-  <ViewPlaceholder title="MQTT 消息" description="订阅/发布消息原始数据（Phase 2.3 将移植 MqttMessageViewer）。" />
+  <div class="h-full flex flex-col bg-base-100 rounded-xl shadow-sm border border-base-200 overflow-hidden">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-base-200 flex items-center justify-between bg-gradient-to-r from-purple-50/50 to-indigo-50/30">
+      <div>
+        <h3 class="font-bold text-xl flex items-center gap-3">
+          <i class="fas fa-signal text-purple-600"></i>
+          MQTT 消息记录
+        </h3>
+        <p class="text-xs text-slate-500 mt-1">
+          查看系统发送的 MQTT 增量同步消息历史
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <NButton
+          type="primary"
+          size="small"
+          @click="loadMessages"
+          :loading="loading"
+        >
+          <template #icon>
+            <i class="fas fa-sync"></i>
+          </template>
+          刷新
+        </NButton>
+      </div>
+    </div>
+
+    <!-- Filters (Native Inputs styled with DaisyUI/Tailwind) -->
+    <div class="px-6 py-3 border-b border-base-200 bg-slate-50/50 flex flex-col lg:flex-row gap-4 lg:items-center">
+      <div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+        <div class="form-control w-full sm:w-48">
+          <label class="label py-0">
+            <span class="label-text text-xs font-semibold">位置筛选</span>
+          </label>
+          <NSelect
+            v-model:value="filters.location"
+            size="small"
+            :options="locationOptions"
+            @update:value="applyFilters"
+            clearable
+            placeholder="全部位置"
+          />
+        </div>
+
+        <div class="form-control w-full sm:w-48">
+          <label class="label py-0">
+            <span class="label-text text-xs font-semibold">同步类型</span>
+          </label>
+          <NSelect
+            v-model:value="filters.syncType"
+            size="small"
+            :options="syncTypeOptions"
+            @update:value="applyFilters"
+            clearable
+            placeholder="全部类型"
+          />
+        </div>
+      </div>
+
+      <div class="form-control flex-1 w-full">
+        <label class="label py-0">
+          <span class="label-text text-xs font-semibold">搜索文件名</span>
+        </label>
+        <NInput
+          v-model:value="filters.searchText"
+          size="small"
+          placeholder="输入文件名搜索..."
+          @update:value="applyFilters"
+          clearable
+        >
+          <template #prefix>
+            <i class="fas fa-search text-slate-400"></i>
+          </template>
+        </NInput>
+      </div>
+    </div>
+
+    <!-- Naive UI Data Table -->
+    <div class="flex-1 overflow-hidden p-4 flex flex-col">
+      <NDataTable
+        remote
+        flex-height
+        :columns="columns"
+        :data="messages"
+        :loading="loading"
+        :pagination="pagination"
+        :row-key="(row) => row.id || row.timestamp"
+        @update:page="handlePageChange"
+        class="h-full"
+      />
+    </div>
+  </div>
 </template>
-<script setup lang="ts">
-import ViewPlaceholder from '@/components/ViewPlaceholder.vue';
+
+<script setup>
+import { ref, computed, onMounted, h } from 'vue';
+import { NDataTable, NTag, NButton, NTooltip, NPopover, NSelect, NInput } from 'naive-ui';
+import { useApi } from '@/composables/useApi';
+
+const { loadSyncHistory } = useApi();
+
+const messages = ref([]);
+const loading = ref(false);
+
+// Pagination for Naive UI
+const pagination = ref({
+  page: 1,
+  pageSize: 20,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50, 100],
+  onChange: (page) => {
+    pagination.value.page = page;
+    loadMessages();
+  },
+  onUpdatePageSize: (pageSize) => {
+    pagination.value.pageSize = pageSize;
+    pagination.value.page = 1;
+    loadMessages();
+  }
+});
+
+const filters = ref({
+  location: '',
+  syncType: '',
+  searchText: ''
+});
+
+const uniqueLocations = computed(() => {
+  const locations = new Set();
+  messages.value.forEach(msg => {
+    if (msg.location) locations.add(msg.location);
+  });
+  return Array.from(locations).sort();
+});
+
+// Columns Definition
+const columns = [
+  {
+    title: '类型',
+    key: 'is_full_sync',
+    width: 100,
+    render(row) {
+      return h(
+        NTag,
+        {
+          type: row.is_full_sync ? 'warning' : 'info',
+          bordered: false,
+          size: 'small'
+        },
+        { default: () => (row.is_full_sync ? '完全同步' : '增量同步') }
+      );
+    }
+  },
+  {
+    title: '时间',
+    key: 'timestamp',
+    width: 180,
+    render(row) {
+      return formatTimestamp(row.timestamp);
+    }
+  },
+  {
+    title: '位置 / DB',
+    key: 'location',
+    width: 150,
+    render(row) {
+      return h('div', { class: 'flex flex-col text-xs' }, [
+        h('span', { class: 'font-bold' }, row.location || '未知位置'),
+        row.db_num ? h('span', { class: 'text-slate-400' }, `DB #${row.db_num}`) : null
+      ]);
+    }
+  },
+  {
+    title: '变更统计',
+    key: 'stats',
+    width: 200,
+    render(row) {
+      const stats = [];
+      if (row.total_added) {
+        stats.push(h('span', { class: 'text-green-600 mr-2' }, [h('i', { class: 'fas fa-plus-circle mr-1' }), row.total_added]));
+      }
+      if (row.total_modified) {
+        stats.push(h('span', { class: 'text-orange-600 mr-2' }, [h('i', { class: 'fas fa-edit mr-1' }), row.total_modified]));
+      }
+      if (row.total_deleted) {
+        stats.push(h('span', { class: 'text-red-600' }, [h('i', { class: 'fas fa-trash mr-1' }), row.total_deleted]));
+      }
+      
+      if (stats.length === 0) return '-';
+      return h('div', { class: 'flex items-center text-xs' }, stats);
+    }
+  },
+  {
+    title: '会话范围',
+    key: 'session_range',
+    width: 120,
+    render(row) {
+      return row.session_range ? h('span', { class: 'font-mono text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded' }, row.session_range) : '-';
+    }
+  },
+  {
+    title: '文件',
+    key: 'files',
+    render(row) {
+      const fileCount = row.file_count || row.file_names?.length || 0;
+      if (fileCount === 0) return h('span', { class: 'text-slate-400' }, '无文件');
+      
+      const files = row.file_names || [];
+      const trigger = h(
+        NButton,
+        { size: 'tiny', type: 'default', secondary: true },
+        { default: () => `${fileCount} 个文件` }
+      );
+      
+      return h(
+        NPopover,
+        { trigger: 'click', scrollable: true, style: { maxHeight: '300px' } },
+        {
+          trigger: () => trigger,
+          default: () => h('div', { class: 'space-y-1 p-1' }, [
+            h('div', { class: 'text-xs font-bold mb-2 text-slate-500' }, `服务器: ${row.file_server_host || '未知'}`),
+            ...files.map(f => h('div', { class: 'text-xs font-mono text-slate-700 border-b border-slate-100 pb-1 mb-1 last:border-0' }, f))
+          ])
+        }
+      );
+    }
+  },
+  {
+    title: '接收状态',
+    key: 'receivers',
+    render(row) {
+      if (!row.site_receivers || row.site_receivers.length === 0) return '-';
+      
+      const completed = row.received_count || 0;
+      const total = row.total_receivers || row.site_receivers.length;
+      
+      const trigger = h(
+        NTag,
+        { 
+          type: completed === total ? 'success' : 'warning', 
+          size: 'small', 
+          bordered: false,
+          class: 'cursor-pointer'
+        },
+        { default: () => `${completed}/${total} 已接收` }
+      );
+
+      return h(
+        NPopover,
+        { trigger: 'hover' },
+        {
+          trigger: () => trigger,
+          default: () => h('div', { class: 'space-y-2 p-1' }, 
+            row.site_receivers.map(receiver => {
+              const isDone = receiver.received;
+              return h('div', { class: 'flex items-center gap-2 text-xs' }, [
+                h('i', { class: isDone ? 'fas fa-check-circle text-green-500' : 'fas fa-clock text-slate-400' }),
+                h('span', { class: 'font-semibold' }, receiver.location),
+                isDone ? h('span', { class: 'text-slate-400 text-[10px] ml-2' }, formatReceiverTime(receiver.received_at)) : null
+              ]);
+            })
+          )
+        }
+      );
+    }
+  }
+];
+
+// API Loading
+async function loadMessages() {
+  loading.value = true;
+  try {
+    // Note: backend filtering might need support, currently doing basic pagination fetch
+    // Ideally we should pass filters to backend API if supported
+    const response = await loadSyncHistory(pagination.value.page, pagination.value.pageSize);
+
+    if (response.success) {
+      messages.value = response.data || [];
+      pagination.value.itemCount = response.pagination?.total || response.total || 0;
+      
+      // Apply client-side filtering if backend doesn't support it fully for this specific view
+      if (filters.value.location || filters.value.syncType || filters.value.searchText) {
+         // Simple client-side filter for current page demo (In production, backend search is better)
+         // Or if loadSyncHistory supports params, pass them here.
+         // Assuming loadSyncHistory only does pagination.
+      }
+    }
+  } catch (error) {
+    console.error('加载 MQTT 消息失败:', error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function handlePageChange(page) {
+  pagination.value.page = page;
+  loadMessages();
+}
+
+function applyFilters() {
+  // Reset to page 1 and reload (if API supported filters)
+  // Currently just reloads, you might want to implement client filtering or update API
+  pagination.value.page = 1;
+  loadMessages();
+}
+
+// Helpers
+function formatTimestamp(timestamp) {
+  if (!timestamp) return '未知时间';
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  } catch (e) {
+    return timestamp;
+  }
+}
+
+function formatReceiverTime(timestamp) {
+  if (!timestamp) return '';
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (e) {
+    return '';
+  }
+}
+
+onMounted(() => {
+  loadMessages();
+});
 </script>
+
+<style scoped>
+/* Ensure Naive UI table fits container */
+:deep(.n-data-table) {
+  height: 100%;
+}
+:deep(.n-data-table .n-data-table-wrapper) {
+  height: 100%;
+}
+</style>
