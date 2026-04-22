@@ -47,5 +47,16 @@ coverage/
 # Type check cache
 *.tsbuildinfo
 
+# vue-tsc compiled artifacts (不要把编译产物入库)
+src/**/*.vue.js
+src/**/*.vue.d.ts
+src/**/*.vue.d.ts.map
+src/**/*.js
+src/**/*.d.ts
+!src/env.d.ts
+vite.config.js
+vite.config.d.ts
+vite.config.d.ts.map
+
 # OS
 Thumbs.db

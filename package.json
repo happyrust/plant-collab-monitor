@@ -1,0 +1,33 @@
+{
+  "name": "plant-collab-monitor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "异地协同站点管理专业监控台 (从 web-server/frontend 剥离)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview --port 3200",
+    "type-check": "vue-tsc -b"
+  },
+  "dependencies": {
+    "@vueuse/core": "^11.2.0",
+    "axios": "^1.7.7",
+    "naive-ui": "^2.40.1",
+    "pinia": "^2.2.6",
+    "vfonts": "^0.0.3",
+    "vue": "^3.5.12",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.20",
+    "daisyui": "^4.12.14",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vue-tsc": "^2.1.10"
+  }
+}
