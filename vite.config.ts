@@ -34,6 +34,17 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       emptyOutDir: true,
       sourcemap: true,
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          // 手工分块: 把体积较大的第三方库拆到独立 chunk, 降低主 bundle 尺寸
+          manualChunks: {
+            'vendor-vue': ['vue', 'vue-router', 'pinia'],
+            'vendor-naive': ['naive-ui'],
+            'vendor-http': ['axios', '@vueuse/core'],
+          },
+        },
+      },
     },
   };
 });
