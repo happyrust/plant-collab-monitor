@@ -6,6 +6,7 @@ import App from './App.vue';
 
 import 'vfonts/Lato.css';
 import 'vfonts/FiraCode.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import './styles/main.css';
 
 const app = createApp(App);

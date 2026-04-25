@@ -82,8 +82,23 @@
             </RouterLink>
           </nav>
 
-          <div class="px-4 py-3 border-t border-slate-200 text-xs text-slate-500">
-            v0.1.0 · Phase 2
+          <div class="px-4 py-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
+            <span>v0.1.0 · Phase 2</span>
+            <button
+              v-if="adminAuth.isLoggedIn"
+              class="text-emerald-600 hover:text-emerald-700"
+              :title="`已登录: ${adminAuth.username}, 角色: ${adminAuth.role}`"
+              @click="handleLogout"
+            >
+              {{ adminAuth.username }} ⏎
+            </button>
+            <button
+              v-else
+              class="text-blue-600 hover:text-blue-700"
+              @click="adminAuth.promptLogin()"
+            >
+              登录
+            </button>
           </div>
         </aside>
 
@@ -91,13 +106,15 @@
         <main class="flex-1 overflow-auto">
           <RouterView />
         </main>
+
+        <LoginDialog />
       </div>
     </NMessageProvider>
   </NConfigProvider>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
 import {
   NConfigProvider,
@@ -106,8 +123,55 @@ import {
   zhCN,
   dateZhCN,
 } from 'naive-ui';
+import LoginDialog from '@/components/LoginDialog.vue';
+import {
+  adminAuthApi,
+  registerAuthTokenProvider,
+  registerUnauthorizedHandler,
+} from '@/api';
+import { useAdminAuthStore } from '@/stores/adminAuth';
 
 const isDark = ref(false);
+const adminAuth = useAdminAuthStore();
+
+registerAuthTokenProvider(() => adminAuth.token);
+
+registerUnauthorizedHandler(({ status, message }) => {
+  if (status === 503 && message.includes('管理员凭据未配置')) {
+    adminAuth.markBackendUnconfigured();
+    return;
+  }
+  if (status === 401 || status === 403) {
+    if (adminAuth.isLoggedIn) {
+      adminAuth.clearSession();
+    }
+    adminAuth.promptLogin('登录已过期，请重新登录');
+    return;
+  }
+  if (status === 503) {
+    adminAuth.promptLogin('该操作需要管理员权限，请登录');
+  }
+});
+
+async function handleLogout(): Promise<void> {
+  try {
+    await adminAuthApi.logout();
+  } catch {
+    // 即使后端 logout 失败，也清本地
+  }
+  adminAuth.clearSession();
+}
+
+onMounted(async () => {
+  if (adminAuth.token) {
+    try {
+      const session = await adminAuthApi.me();
+      adminAuth.setSession(session);
+    } catch {
+      adminAuth.clearSession();
+    }
+  }
+});
 
 const navMonitor = [
   { name: 'dashboard', path: '/dashboard', icon: '◉', label: '全局概览' },
