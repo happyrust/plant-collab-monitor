@@ -6,7 +6,20 @@
         <h1 class="text-3xl font-semibold tracking-tight text-slate-900">系统日志</h1>
         <p class="mt-2 text-slate-600">异地同步运行期日志（SSE 实时订阅 + 轮询兜底）。</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex items-center gap-3">
+        <span
+          v-if="sse.status.value === 'error'"
+          class="text-xs text-rose-600"
+          :title="`重连尝试 #${sse.reconnectAttempt.value}`"
+        >● 实时连接断开</span>
+        <span
+          v-else-if="sse.status.value === 'open'"
+          class="text-xs text-emerald-600"
+        >● 实时</span>
+        <span
+          v-else-if="sse.status.value === 'connecting'"
+          class="text-xs text-amber-600"
+        >● 正在连接</span>
         <NButton :loading="loading" @click="refresh">刷新</NButton>
         <NButton type="error" ghost @click="logs = []">清空</NButton>
       </div>
@@ -19,15 +32,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { NButton } from 'naive-ui';
 import LogViewer from '@/components/LogViewer.vue';
 import { remoteSyncApi } from '@/api';
+import { useSse } from '@/composables/useSse';
 
 const logs = ref([]);
 const loading = ref(false);
 const errorMsg = ref('');
-let sseSource = null;
 
 async function refresh() {
   loading.value = true;
@@ -43,27 +56,18 @@ async function refresh() {
   }
 }
 
-onMounted(() => {
-  refresh();
-  try {
-    sseSource = new EventSource('/api/sync/events/stream');
-    sseSource.onmessage = (e) => {
-      try {
-        const event = JSON.parse(e.data);
-        logs.value = [event, ...logs.value].slice(0, 500);
-      } catch {
-        // ignore non-JSON
-      }
-    };
-    sseSource.onerror = () => {
-      // 静默降级到轮询即可
-    };
-  } catch {
-    // 老浏览器或后端不可达时忽略
-  }
+const sse = useSse('/api/sync/events/stream', {
+  onMessage(e) {
+    try {
+      const event = JSON.parse(e.data);
+      logs.value = [event, ...logs.value].slice(0, 500);
+    } catch {
+      // ignore non-JSON heartbeat
+    }
+  },
 });
 
-onUnmounted(() => {
-  if (sseSource) sseSource.close();
+onMounted(() => {
+  refresh();
 });
 </script>
