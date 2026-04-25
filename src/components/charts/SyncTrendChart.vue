@@ -10,6 +10,22 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+import * as echarts from 'echarts/core';
+import { LineChart } from 'echarts/charts';
+import {
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
+
+echarts.use([
+  LineChart,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  CanvasRenderer,
+]);
 
 const props = defineProps({
   data: {
@@ -26,7 +42,7 @@ const chartContainer = ref(null);
 let chartInstance = null;
 
 const initChart = () => {
-  if (!chartContainer.value || typeof echarts === 'undefined') return;
+  if (!chartContainer.value) return;
 
   chartInstance = echarts.init(chartContainer.value);
 
