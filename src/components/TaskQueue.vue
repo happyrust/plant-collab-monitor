@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { useFormatters } from '../composables/useFormatters';
+import { useFormatters } from '@/composables/useFormatters';
 
 defineProps({
   tasks: {

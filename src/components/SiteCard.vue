@@ -135,7 +135,7 @@
 <script setup>
 import { computed } from 'vue';
 import { NButton } from 'naive-ui';
-import { useFormatters } from '../composables/useFormatters';
+import { useFormatters } from '@/composables/useFormatters';
 
 const props = defineProps({
   site: {

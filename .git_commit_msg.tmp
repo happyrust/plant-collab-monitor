@@ -1,0 +1,18 @@
+feat(collab-monitor): Sprint C Phase 6 frontend wrap-up
+
+Closes Gap-G10 (JS/TS mix), Gap-G11 (DetailModal orphan), Gap-G14 partial (deploy.sh)
+
+- src/composables/useFormatters.ts (new, replaces .js)
+  - full type signatures: SyncStatus, ChangeType, Formatters interface
+  - safer formatTime (NaN guard), formatSize (clamp index), formatDuration (toNumber)
+  - readonly maps as Record<string, string>
+- delete src/composables/useFormatters.js
+- delete src/components/DetailModal.vue (orphan, no view import; legacy of NModal usage)
+- src/components/{SiteCard,TaskQueue,SyncHistory}.vue: import path '../composables/...' -> '@/composables/...'
+- new scripts/deploy.sh
+  - default target = AGENTS.md server (root@123.57.182.243:/var/www/plant-collab-monitor)
+  - type-check + build + rsync + nginx reload (best-effort)
+  - DRY_RUN=1 for build-only verification
+- new docs/plans/2026-04-26-sprint-bc-plan.md (Sprint B/C roadmap)
+
+type-check 0 errors
