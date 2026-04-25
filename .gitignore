@@ -60,3 +60,7 @@ vite.config.d.ts.map
 
 # OS
 Thumbs.db
+
+# Git scratch / commit message tmp files
+.git_commit_msg.tmp
+*.commit_msg.tmp
