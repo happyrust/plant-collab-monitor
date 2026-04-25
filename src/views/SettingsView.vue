@@ -168,12 +168,26 @@
           </div>
         </div>
 
+        <!-- Status banners -->
+        <div v-if="loadError" class="rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+          加载失败：{{ loadError }}
+        </div>
+        <div v-if="saveError" class="rounded-md bg-rose-50 p-3 text-sm text-rose-700">
+          保存失败：{{ saveError }}
+        </div>
+        <div v-if="saveSuccess" class="rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+          配置已保存
+        </div>
+
         <!-- Actions -->
         <div class="flex justify-end gap-3 pt-4 border-t border-base-200">
-          <button type="button" @click="handleReset" class="btn btn-ghost">
+          <button type="button" @click="loadConfig" class="btn btn-ghost" :disabled="loading || saving">
+            <i class="fas fa-sync mr-2" :class="{ 'fa-spin': loading }"></i>重新加载
+          </button>
+          <button type="button" @click="handleReset" class="btn btn-ghost" :disabled="saving">
             <i class="fas fa-undo mr-2"></i>重置更改
           </button>
-          <button type="submit" class="btn btn-primary min-w-[120px]" :disabled="saving">
+          <button type="submit" class="btn btn-primary min-w-[120px]" :disabled="saving || loading">
             <i v-if="!saving" class="fas fa-save mr-2"></i>
             <span v-if="saving" class="loading loading-spinner loading-sm mr-2"></span>
             {{ saving ? '正在保存...' : '保存配置' }}
@@ -185,82 +199,120 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
-import { useApi } from '@/composables/useApi';
+import { ref, onMounted } from 'vue';
+import { syncApi } from '@/api';
 
-// We might accept initial config via props, but ideally we fetch it here or in App.vue and pass it down.
-// For a View component, it's often better to fetch its own data or rely on a store.
-// Assuming App.vue passes the current config via v-model or props.
-const props = defineProps({
-  initialConfig: {
-    type: Object,
-    default: () => ({
-      // env_id 已移除，统一使用 DbOption.location 作为站点标识
-      autoDetect: false,
-      detectionInterval: 30,
-      autoSync: false,
-      batchSyncSize: 10,
-      enableNotifications: false,
-      logRetentionDays: 30,
-      maxConcurrentSyncs: 3
-    })
-  }
+const DEFAULTS = Object.freeze({
+  autoDetect: false,
+  detectionInterval: 30,
+  autoSync: false,
+  batchSyncSize: 10,
+  enableNotifications: false,
+  logRetentionDays: 30,
+  maxConcurrentSyncs: 3,
 });
 
-const emit = defineEmits(['save', 'update:config']);
-
-const formData = ref({ ...props.initialConfig });
+const formData = ref({ ...DEFAULTS });
+const lastLoadedSnapshot = ref({ ...DEFAULTS });
 const errors = ref({});
-const saving = ref(false);
 
-// If prop changes (e.g. loaded from API in parent), update local state
-watch(() => props.initialConfig, (newConfig) => {
-  // Only update if we are not currently editing? Or just overwrite? 
-  // Usually overwrite if upstream changes.
-  formData.value = { ...newConfig };
-}, { deep: true });
+const loading = ref(false);
+const saving = ref(false);
+const loadError = ref('');
+const saveError = ref('');
+const saveSuccess = ref(false);
+
+// 后端字段（snake_case）↔ 前端字段（camelCase）映射
+const FIELD_MAP = {
+  autoDetect: 'auto_detect',
+  detectionInterval: 'detection_interval_minutes',
+  autoSync: 'auto_sync',
+  batchSyncSize: 'batch_sync_size',
+  enableNotifications: 'enable_notifications',
+  logRetentionDays: 'log_retention_days',
+  maxConcurrentSyncs: 'max_concurrent_syncs',
+};
+
+function fromBackend(raw) {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULTS };
+  // 后端返回可能直接是 config 对象，也可能套一层 { config: {...} }
+  const src = raw.config && typeof raw.config === 'object' ? raw.config : raw;
+  const out = { ...DEFAULTS };
+  for (const [uiKey, beKey] of Object.entries(FIELD_MAP)) {
+    if (src[uiKey] !== undefined) out[uiKey] = src[uiKey];
+    else if (src[beKey] !== undefined) out[uiKey] = src[beKey];
+  }
+  return out;
+}
+
+function toBackend(form) {
+  // 同时发送 snake_case + camelCase，向后端兼容（后端忽略多余字段）
+  const out = {};
+  for (const [uiKey, beKey] of Object.entries(FIELD_MAP)) {
+    out[beKey] = form[uiKey];
+    out[uiKey] = form[uiKey];
+  }
+  return out;
+}
+
+async function loadConfig() {
+  loading.value = true;
+  loadError.value = '';
+  saveSuccess.value = false;
+  try {
+    const data = await syncApi.config();
+    const normalized = fromBackend(data);
+    formData.value = normalized;
+    lastLoadedSnapshot.value = { ...normalized };
+  } catch (err) {
+    loadError.value = err?.message || String(err);
+  } finally {
+    loading.value = false;
+  }
+}
 
 const validate = () => {
   errors.value = {};
   let isValid = true;
-
   if (formData.value.batchSyncSize < 1 || formData.value.batchSyncSize > 100) {
     errors.value.batchSyncSize = '批量大小必须在 1-100 之间';
     isValid = false;
   }
-
   if (formData.value.maxConcurrentSyncs < 1 || formData.value.maxConcurrentSyncs > 10) {
     errors.value.maxConcurrentSyncs = '并发数必须在 1-10 之间';
     isValid = false;
   }
-
   return isValid;
 };
 
 const handleSave = async () => {
-  if (!validate()) {
-    return;
-  }
+  saveSuccess.value = false;
+  saveError.value = '';
+  if (!validate()) return;
 
   saving.value = true;
   try {
-    // Request notification permission if enabled
     if (formData.value.enableNotifications && 'Notification' in window) {
       if (Notification.permission === 'default') {
         await Notification.requestPermission();
       }
     }
-
-    emit('save', { ...formData.value });
+    await syncApi.updateConfig(toBackend(formData.value));
+    lastLoadedSnapshot.value = { ...formData.value };
+    saveSuccess.value = true;
+  } catch (err) {
+    saveError.value = err?.message || String(err);
   } finally {
     saving.value = false;
   }
 };
 
 const handleReset = () => {
-  // Reset to default values or initial prop values? 
-  // Let's reset to default values for now, or we could reset to props.initialConfig
-  formData.value = { ...props.initialConfig };
+  formData.value = { ...lastLoadedSnapshot.value };
   errors.value = {};
+  saveSuccess.value = false;
+  saveError.value = '';
 };
+
+onMounted(loadConfig);
 </script>
