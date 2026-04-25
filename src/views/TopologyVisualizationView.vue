@@ -508,6 +508,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { mqttApi, remoteSyncApi } from '@/api';
 
 const nodes = ref([]);
 const messages = ref([]);
@@ -852,44 +853,64 @@ function getRecentMessages(location) {
 async function loadData() {
   loading.value = true;
   try {
-    // 并行加载所有数据
-    const [nodesRes, messagesRes, topologyRes] = await Promise.all([
-      fetch('/api/mqtt/nodes'),
-      fetch('/api/mqtt/messages?limit=50'),
-      fetch('/api/remote-sync/topology')  // 修正路由
+    // 并行加载所有数据（每路独立 settle，避免一路失败拖垮整个视图）
+    const [nodesResult, messagesResult, topologyResult] = await Promise.allSettled([
+      mqttApi.nodes(),
+      mqttApi.messages(),
+      remoteSyncApi.topology(),
     ]);
 
     // 加载节点状态
-    const nodesData = await nodesRes.json();
-    if (nodesData.success) {
-      nodes.value = nodesData.nodes || [];
+    if (nodesResult.status === 'fulfilled') {
+      const nodesData = nodesResult.value || {};
+      if (nodesData.success || Array.isArray(nodesData.nodes)) {
+        nodes.value = nodesData.nodes || [];
+      } else if (Array.isArray(nodesData)) {
+        nodes.value = nodesData;
+      }
       console.log('📡 加载 MQTT 节点:', nodes.value.length, '个节点');
+    } else {
+      console.warn('⚠️ 加载 MQTT 节点失败:', nodesResult.reason);
     }
 
     // 加载消息投递状态
-    const messagesData = await messagesRes.json();
-    if (messagesData.success) {
-      messages.value = messagesData.messages || [];
+    if (messagesResult.status === 'fulfilled') {
+      const messagesData = messagesResult.value || {};
+      if (messagesData.success || Array.isArray(messagesData.messages)) {
+        messages.value = (messagesData.messages || []).slice(0, 50);
+      } else if (Array.isArray(messagesData)) {
+        messages.value = messagesData.slice(0, 50);
+      }
       console.log('📨 加载消息记录:', messages.value.length, '条消息');
+    } else {
+      console.warn('⚠️ 加载消息记录失败:', messagesResult.reason);
     }
 
     // 加载拓扑配置
-    const topologyData = await topologyRes.json();
-    if (topologyData.status === 'success' && topologyData.data) {
-      topology.value = topologyData.data;
-      console.log('🗺️ 加载拓扑配置:', {
-        environments: topology.value.environments.length,
-        sites: topology.value.sites.length,
-        connections: topology.value.connections.length
-      });
+    if (topologyResult.status === 'fulfilled') {
+      const topologyData = topologyResult.value || {};
+      const data = topologyData.data || topologyData;
+      if (data && (data.environments || data.sites || data.connections)) {
+        topology.value = {
+          environments: data.environments || [],
+          sites: data.sites || [],
+          connections: data.connections || [],
+        };
+        console.log('🗺️ 加载拓扑配置:', {
+          environments: topology.value.environments.length,
+          sites: topology.value.sites.length,
+          connections: topology.value.connections.length,
+        });
+      } else {
+        topology.value = { environments: [], sites: [], connections: [] };
+        console.warn('⚠️ 未找到拓扑配置，将仅显示 MQTT 节点');
+      }
     } else {
-      // 如果没有拓扑配置，使用空对象
       topology.value = { environments: [], sites: [], connections: [] };
-      console.warn('⚠️ 未找到拓扑配置，将仅显示 MQTT 节点');
+      console.warn('⚠️ 加载拓扑配置失败:', topologyResult.reason);
     }
   } catch (error) {
     console.error('❌ 加载拓扑数据失败:', error);
-    // 确保有默认值
     topology.value = { environments: [], sites: [], connections: [] };
   } finally {
     loading.value = false;

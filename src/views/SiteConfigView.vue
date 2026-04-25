@@ -534,6 +534,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { siteConfigApi, http } from '@/api';
 
 const loading = ref(false);
 const saving = ref(false);
@@ -664,21 +665,18 @@ function normalizePathForSave(path) {
 async function loadConfig() {
   loading.value = true;
   try {
-    const res = await fetch('/api/site-config');
-    const data = await res.json();
-
-    if (data.status === 'success') {
+    const data = await siteConfigApi.get();
+    if (data?.status === 'success' || data?.config) {
       config.value = data.config;
-      // 将 project_path 中的反斜杠转换为正斜杠，以便在输入框中正常显示
-      if (config.value.project_path) {
+      if (config.value?.project_path) {
         config.value.project_path = normalizePathForDisplay(config.value.project_path);
       }
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + (data?.message || '未返回有效配置'));
     }
   } catch (error) {
     console.error('加载配置失败:', error);
-    alert('❌ 加载配置失败: ' + error.message);
+    alert('❌ 加载配置失败: ' + (error?.message || error));
   } finally {
     loading.value = false;
   }
@@ -690,27 +688,20 @@ async function validateConfig() {
   validationErrors.value = [];
 
   try {
-    // 验证时也需要使用 Windows 路径格式
     const configToValidate = {
       ...config.value,
       project_path: normalizePathForSave(config.value.project_path)
     };
 
-    const res = await fetch('/api/site-config/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(configToValidate)
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await siteConfigApi.validate(configToValidate);
+    if (data?.status === 'success') {
+      alert('✅ ' + (data.message || '校验通过'));
     } else {
-      validationErrors.value = data.errors || [data.message];
+      validationErrors.value = data?.errors || [data?.message || '校验失败'];
     }
   } catch (error) {
     console.error('验证配置失败:', error);
-    alert('❌ 验证失败: ' + error.message);
+    alert('❌ 验证失败: ' + (error?.message || error));
   } finally {
     validating.value = false;
   }
@@ -724,29 +715,21 @@ async function saveConfig() {
 
   saving.value = true;
   try {
-    // 准备保存的数据，将 project_path 转换为 Windows 路径格式
     const configToSave = {
       ...config.value,
       project_path: normalizePathForSave(config.value.project_path)
     };
 
-    const res = await fetch('/api/site-config/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(configToSave)
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
-      // 保存成功后，更新本地显示的路径格式（转换回显示格式）
+    const data = await siteConfigApi.save(configToSave);
+    if (data?.status === 'success') {
+      alert('✅ ' + (data.message || '保存成功'));
       config.value.project_path = normalizePathForDisplay(configToSave.project_path);
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + (data?.message || '保存失败'));
     }
   } catch (error) {
     console.error('保存配置失败:', error);
-    alert('❌ 保存失败: ' + error.message);
+    alert('❌ 保存失败: ' + (error?.message || error));
   } finally {
     saving.value = false;
   }
@@ -755,9 +738,8 @@ async function saveConfig() {
 // 获取服务器IP地址（从后端API）
 const getServerIP = async () => {
   try {
-    const res = await fetch('/api/site-config/server-ip');
-    const data = await res.json();
-    if (data.status === 'success' && data.ip) {
+    const data = await siteConfigApi.serverIp();
+    if (data?.status === 'success' && data?.ip) {
       return data.ip;
     }
   } catch (error) {
@@ -842,15 +824,11 @@ const toggleDbnoDropdown = async () => {
 const loadAvailableDbnos = async () => {
   loadingDbnos.value = true;
   try {
-    const res = await fetch('/api/databases');
-    if (res.ok) {
-      const data = await res.json();
-      availableDbnos.value = Array.isArray(data) ? data : [];
-      // 按数据库编号排序
-      availableDbnos.value.sort((a, b) => a.db_num - b.db_num);
-    } else {
-      console.error('获取数据库列表失败:', res.statusText);
-    }
+    // /api/databases 暂未纳入 site-config api 模块，临时用 http 直调；
+    // 后续若纳入异地协同领域，应迁入 incrementalApi 或新建 databasesApi。
+    const data = await http.get('/api/databases');
+    availableDbnos.value = Array.isArray(data) ? data : [];
+    availableDbnos.value.sort((a, b) => a.db_num - b.db_num);
   } catch (error) {
     console.error('获取数据库列表失败:', error);
   } finally {

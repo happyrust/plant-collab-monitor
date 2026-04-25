@@ -427,6 +427,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { mqttApi, syncApi } from '@/api';
 
 const nodes = ref([]);
 const messages = ref([]);
@@ -468,35 +469,47 @@ const filteredMessages = computed(() => {
 async function loadData() {
   loading.value = true;
   try {
-    const statusRes = await fetch('/api/mqtt/subscription/status');
-    const statusData = await statusRes.json();
+    const [statusResult, nodesResult, messagesResult] = await Promise.allSettled([
+      mqttApi.subscriptionStatus(),
+      mqttApi.nodes(),
+      mqttApi.messages(),
+    ]);
 
-    if (statusData.status === 'success') {
-      mqttStatus.value = {
-        is_subscription_running: statusData.is_subscription_running || false,
-        is_server_running: statusData.is_server_running || false,
-        mqtt_server_port: statusData.mqtt_server_port || null,
-        location: statusData.location || '',
-        is_master_node: statusData.is_master_node || false,
-        node_role: statusData.node_role || 'client',
-        connection_status: statusData.connection_status || null,
-        master_info: statusData.master_info || null
-      };
+    if (statusResult.status === 'fulfilled') {
+      const statusData = statusResult.value || {};
+      if (statusData.status === 'success') {
+        mqttStatus.value = {
+          is_subscription_running: statusData.is_subscription_running || false,
+          is_server_running: statusData.is_server_running || false,
+          mqtt_server_port: statusData.mqtt_server_port || null,
+          location: statusData.location || '',
+          is_master_node: statusData.is_master_node || false,
+          node_role: statusData.node_role || 'client',
+          connection_status: statusData.connection_status || null,
+          master_info: statusData.master_info || null,
+        };
+      }
+    } else {
+      console.warn('加载订阅状态失败:', statusResult.reason);
     }
 
-    const nodesRes = await fetch('/api/mqtt/nodes');
-    const nodesData = await nodesRes.json();
-
-    if (nodesData.success) {
-      nodes.value = nodesData.nodes || [];
-      summary.value = nodesData.summary || { total: 0, online: 0, offline: 0 };
+    if (nodesResult.status === 'fulfilled') {
+      const nodesData = nodesResult.value || {};
+      if (nodesData.success || Array.isArray(nodesData.nodes)) {
+        nodes.value = nodesData.nodes || [];
+        summary.value = nodesData.summary || { total: nodes.value.length, online: 0, offline: 0 };
+      }
+    } else {
+      console.warn('加载 MQTT 节点失败:', nodesResult.reason);
     }
 
-    const messagesRes = await fetch('/api/mqtt/messages?limit=100');
-    const messagesData = await messagesRes.json();
-
-    if (messagesData.success) {
-      messages.value = messagesData.messages || [];
+    if (messagesResult.status === 'fulfilled') {
+      const messagesData = messagesResult.value || {};
+      if (messagesData.success || Array.isArray(messagesData.messages)) {
+        messages.value = (messagesData.messages || []).slice(0, 100);
+      }
+    } else {
+      console.warn('加载 MQTT 消息失败:', messagesResult.reason);
     }
   } catch (error) {
     console.error('加载 MQTT 监控数据失败:', error);
@@ -508,24 +521,22 @@ async function loadData() {
 async function loadLogs() {
   logsLoading.value = true;
   try {
-    const res = await fetch('/api/mqtt/broker/logs');
-    const data = await res.json();
+    const data = await mqttApi.brokerLogs();
 
-    if (data.status === 'success' && data.logs) {
+    if (data?.status === 'success' && Array.isArray(data?.logs)) {
       logs.value = data.logs;
     } else {
-      // 模拟日志（后端未实现时）
+      // 后端 stub 时降级为占位日志（Gap-G6）
       logs.value = [
         { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'MQTT Broker 已启动在端口 1883' },
-        { time: new Date().toLocaleTimeString(), level: 'INFO', message: '等待客户端连接...' }
+        { time: new Date().toLocaleTimeString(), level: 'INFO', message: '等待客户端连接...' },
       ];
     }
   } catch (error) {
     console.error('加载日志失败:', error);
-    // 模拟日志
     logs.value = [
       { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'MQTT Broker 运行中' },
-      { time: new Date().toLocaleTimeString(), level: 'WARN', message: '日志API未实现，显示模拟数据' }
+      { time: new Date().toLocaleTimeString(), level: 'WARN', message: '日志API未实现或调用失败' },
     ];
   } finally {
     logsLoading.value = false;
@@ -550,33 +561,27 @@ function getLogLevelClass(level) {
   return 'text-slate-400 font-bold';
 }
 
+function isOk(data) {
+  return data && (data.status === 'success' || data.success === true);
+}
+
+function pickMessage(data, fallback) {
+  return (data && (data.message || data.error)) || fallback;
+}
+
 async function startMqttSubscription() {
   mqttLoading.value = true;
-  let rawResponse = '';
   try {
-    const res = await fetch('/api/mqtt/subscription/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    rawResponse = await res.text();
-    let data = {};
-    try {
-      data = rawResponse ? JSON.parse(rawResponse) : {};
-    } catch (err) {
-      throw new Error(rawResponse || err.message);
-    }
-
-    if (res.ok && data.status === 'success') {
-      alert('✅ ' + (data.message || '订阅已启动'));
+    const data = await mqttApi.subscriptionStart({});
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, '订阅已启动'));
       await loadData();
     } else {
-      const message = data.message || rawResponse || '启动失败';
-      alert('❌ ' + message);
+      alert('❌ ' + pickMessage(data, '启动失败'));
     }
   } catch (error) {
     console.error('启动 MQTT 订阅失败:', error);
-    alert('❌ 启动失败: ' + error.message);
+    alert('❌ 启动失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
@@ -589,21 +594,16 @@ async function stopMqttSubscription() {
 
   mqttLoading.value = true;
   try {
-    const res = await fetch('/api/mqtt/subscription/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await mqttApi.subscriptionStop();
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, '订阅已停止'));
       await loadData();
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '停止失败'));
     }
   } catch (error) {
     console.error('停止 MQTT 订阅失败:', error);
-    alert('❌ 停止失败: ' + error.message);
+    alert('❌ 停止失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
@@ -617,23 +617,16 @@ async function startMqttServer() {
 
   mqttLoading.value = true;
   try {
-    const res = await fetch('/api/sync/mqtt/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ port: 1883 })
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await syncApi.mqttStart({ port: 1883 });
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, 'Broker 已启动'));
       await loadData();
-      // 不自动显示日志，用户需要点击查看日志按钮才会显示
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '启动失败'));
     }
   } catch (error) {
     console.error('启动 MQTT Broker 失败:', error);
-    alert('❌ 启动失败: ' + error.message);
+    alert('❌ 启动失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
@@ -646,22 +639,17 @@ async function stopMqttServer() {
 
   mqttLoading.value = true;
   try {
-    const res = await fetch('/api/sync/mqtt/stop', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await syncApi.mqttStop();
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, 'Broker 已停止'));
       showLogs.value = false;
       await loadData();
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '停止失败'));
     }
   } catch (error) {
     console.error('停止 MQTT Broker 失败:', error);
-    alert('❌ 停止失败: ' + error.message);
+    alert('❌ 停止失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
@@ -674,21 +662,16 @@ async function setAsMasterNode() {
 
   roleLoading.value = true;
   try {
-    const res = await fetch('/api/mqtt/node/set-master', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await mqttApi.setMaster({});
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, '已设为主节点'));
       await loadData();
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '设置失败'));
     }
   } catch (error) {
     console.error('设置主节点失败:', error);
-    alert('❌ 设置失败: ' + error.message);
+    alert('❌ 设置失败: ' + (error?.message || error));
   } finally {
     roleLoading.value = false;
   }
@@ -701,56 +684,45 @@ async function setAsClientNode() {
 
   roleLoading.value = true;
   try {
-    const res = await fetch('/api/mqtt/node/set-client', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
+    const data = await mqttApi.setClient({});
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, '已设为从节点'));
       await loadData();
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '设置失败'));
     }
   } catch (error) {
     console.error('设置从节点失败:', error);
-    alert('❌ 设置失败: ' + error.message);
+    alert('❌ 设置失败: ' + (error?.message || error));
   } finally {
     roleLoading.value = false;
   }
 }
 
 async function removeNode(node) {
-  const confirmMsg = mqttStatus.value.is_master_node 
+  const confirmMsg = mqttStatus.value.is_master_node
     ? `确定要从监控列表中移除节点 "${node.node_name}" 吗？`
     : `确定要取消订阅主节点 "${node.node_name}" 吗？取消后将不再接收该主节点的消息。`;
-  
+
   if (!confirm(confirmMsg)) {
     return;
   }
 
   removeLoading.value = true;
   try {
-    const res = await fetch(`/api/mqtt/nodes/${encodeURIComponent(node.location)}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-
-    if (data.status === 'success') {
-      alert('✅ ' + data.message);
-      // 如果删除的是当前选中的节点，清除选中状态
+    const data = await mqttApi.removeNode(node.location);
+    if (isOk(data)) {
+      alert('✅ ' + pickMessage(data, '已移除节点'));
       if (selectedNode.value?.location === node.location) {
         selectedNode.value = null;
       }
       await loadData();
     } else {
-      alert('❌ ' + data.message);
+      alert('❌ ' + pickMessage(data, '移除失败'));
     }
   } catch (error) {
     console.error('移除节点失败:', error);
-    alert('❌ 移除失败: ' + error.message);
+    alert('❌ 移除失败: ' + (error?.message || error));
   } finally {
     removeLoading.value = false;
   }

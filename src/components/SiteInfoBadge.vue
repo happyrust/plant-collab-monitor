@@ -49,6 +49,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { siteConfigApi } from '@/api';
 
 const siteName = ref('加载中...');
 const location = ref('');
@@ -73,9 +74,8 @@ const roleClass = computed(() => {
 // 加载站点配置
 async function loadSiteConfig() {
   try {
-    const response = await fetch('/api/site-config', { cache: 'no-store' });
-    const data = await response.json();
-    const config = data.config || {};
+    const data = await siteConfigApi.get();
+    const config = data?.config || data || {};
 
     siteName.value = config.project_name || config.project_code || '未命名站点';
     location.value = config.location || '未配置地区';

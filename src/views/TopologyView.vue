@@ -715,10 +715,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useApi } from '@/composables/useApi';
+import { remoteSyncApi, siteConfigApi } from '@/api';
 
 const emit = defineEmits(['site-added']);
-const { fetchRemoteEnvs, createRemoteEnv, deleteRemoteEnv, fetchRemoteSites, createRemoteSite, deleteRemoteSite } = useApi();
+// 后端 admin-gated remote-sync API 由 axios interceptor 自动注入 admin token
+const fetchRemoteEnvs = () => remoteSyncApi.listEnvs();
+const createRemoteEnv = (payload) => remoteSyncApi.createEnv(payload);
+const deleteRemoteEnv = (id) => remoteSyncApi.deleteEnv(id);
+const fetchRemoteSites = (envId) => remoteSyncApi.listSites(envId);
+const createRemoteSite = (envId, payload) => remoteSyncApi.createSite(envId, payload);
+const deleteRemoteSite = (id) => remoteSyncApi.deleteSite(id);
 
 const envs = ref([]);
 const sites = ref([]);
@@ -764,17 +770,13 @@ const normalizeDbList = (value) => {
 const loadCurrentSiteConfig = async () => {
   try {
     // 获取站点配置
-    const configResponse = await fetch('/api/site-config', { cache: 'no-store' });
-    const configData = await configResponse.json();
-    const config = configData.config || {};
+    const configData = await siteConfigApi.get();
+    const config = configData?.config || configData || {};
 
     // 尝试获取站点详细信息（包含 file_server_host 和 mqtt 配置）
     let siteInfo = null;
     try {
-      const infoResponse = await fetch('/api/site/info', { cache: 'no-store' });
-      if (infoResponse.ok) {
-        siteInfo = await infoResponse.json();
-      }
+      siteInfo = await siteConfigApi.info();
     } catch (e) {
       // 如果 /api/site/info 不存在或失败，使用默认值
       console.warn('无法获取站点详细信息:', e);
@@ -837,9 +839,10 @@ const checkSiteOnlineStatus = async (site) => {
   }
 
   site.online_status = 'checking';
-  
+
   try {
-    // 使用站点的HTTP地址进行健康检查
+    // 站点 healthcheck 是直接打到对端站点（跨域 / 跨主机），
+    // 不能走 axios baseURL，必须用原生 fetch 保留绝对 URL
     const healthUrl = site.http_host.replace(/\/$/, '') + '/api/health';
     const response = await fetch(healthUrl, {
       method: 'GET',
@@ -855,7 +858,7 @@ const checkSiteOnlineStatus = async (site) => {
       site.online_status = 'offline';
     }
   } catch (error) {
-    // 如果健康检查失败，尝试直接访问HTTP地址
+    // 如果健康检查失败，尝试直接访问HTTP地址（同样是跨站点直连）
     try {
       const response = await fetch(site.http_host, {
         method: 'HEAD',
@@ -913,9 +916,8 @@ const selectEnv = async (env) => {
 // 获取服务器IP地址（从后端API）
 const getServerIP = async () => {
   try {
-    const res = await fetch('/api/site-config/server-ip');
-    const data = await res.json();
-    if (data.status === 'success' && data.ip) {
+    const data = await siteConfigApi.serverIp();
+    if (data?.status === 'success' && data?.ip) {
       return data.ip;
     }
   } catch (error) {
@@ -1107,7 +1109,7 @@ const handleImportSiteConfig = async () => {
     // 移除尾部斜杠
     baseUrl = baseUrl.replace(/\/$/, '');
 
-    // 尝试从远程站点获取配置
+    // 远程站点导入：跨站点直连（绝对 URL），保留 fetch
     const configResponse = await fetch(`${baseUrl}/api/site-config`, {
       method: 'GET',
       headers: {
@@ -1239,11 +1241,10 @@ const handleViewSiteDetails = async (site) => {
   siteDetails.value = null;
 
   try {
-    // 尝试从站点的 API 获取信息
-    // 假设站点提供 /api/site/info 端点
+    // 跨站点查询对端 site/info：绝对 URL，保留 fetch
     const apiUrl = `${site.http_host}/api/site/info`;
     console.log('正在请求站点信息:', apiUrl);
-    
+
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
