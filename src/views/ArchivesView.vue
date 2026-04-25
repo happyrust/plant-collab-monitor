@@ -114,10 +114,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useApi } from '@/composables/useApi';
+import { incrementalApi, siteConfigApi } from '@/api';
 import { useFormatters } from '@/composables/useFormatters';
 
-const { loadArchives } = useApi();
 const { formatTime } = useFormatters();
 
 const files = ref([]);
@@ -162,9 +161,8 @@ const parseUpdateCount = (fileName) => {
 // 加载当前站点配置
 const loadCurrentSiteConfig = async () => {
   try {
-    const response = await fetch('/api/site-config', { cache: 'no-store' });
-    const data = await response.json();
-    const config = data.config || {};
+    const data = await siteConfigApi.get();
+    const config = data?.config || data || {};
     currentSiteConfig.value = {
       location: config.location || '',
       location_dbs: config.location_dbs || []
@@ -252,8 +250,8 @@ const loadData = async () => {
       await loadCurrentSiteConfig();
     }
     
-    const res = await loadArchives();
-    if (res.success && res.files) {
+    const res = await incrementalApi.archives();
+    if (res?.success && Array.isArray(res?.files)) {
       // 保存所有文件
       // 优先使用 API 返回的 dbnum（来自数据库），如果没有则从文件名提取
       allFiles.value = res.files.map(f => ({
@@ -261,7 +259,7 @@ const loadData = async () => {
         update_count: parseUpdateCount(f.name),
         dbnum: f.dbnum !== null && f.dbnum !== undefined ? f.dbnum : extractDbnumFromFileName(f.name)
       }));
-      
+
       // 应用筛选条件
       applyFilter();
     }

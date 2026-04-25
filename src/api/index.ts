@@ -10,6 +10,11 @@ export { remoteSyncApi } from './remoteSyncApi';
 export { mqttApi } from './mqttApi';
 export { siteConfigApi, type SiteConfig } from './siteConfigApi';
 export {
+  incrementalApi,
+  type IncrementalArchiveFile,
+  type IncrementalArchivesResponse,
+} from './incrementalApi';
+export {
   deploymentSitesApi,
   type DeploymentSiteSummary,
   type DeploymentSiteCreatePayload,

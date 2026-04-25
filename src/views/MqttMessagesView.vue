@@ -76,6 +76,11 @@
       </div>
     </div>
 
+    <!-- Error banner -->
+    <div v-if="errorMsg" class="px-6 pt-3">
+      <div class="rounded-md bg-rose-50 px-4 py-2 text-sm text-rose-700">{{ errorMsg }}</div>
+    </div>
+
     <!-- Naive UI Data Table -->
     <div class="flex-1 overflow-hidden p-4 flex flex-col">
       <NDataTable
@@ -96,12 +101,12 @@
 <script setup>
 import { ref, computed, onMounted, h } from 'vue';
 import { NDataTable, NTag, NButton, NTooltip, NPopover, NSelect, NInput } from 'naive-ui';
-import { useApi } from '@/composables/useApi';
-
-const { loadSyncHistory } = useApi();
+import { mqttApi } from '@/api';
 
 const messages = ref([]);
+const allMessages = ref([]);
 const loading = ref(false);
+const errorMsg = ref('');
 
 // Pagination for Naive UI
 const pagination = ref({
@@ -112,12 +117,12 @@ const pagination = ref({
   pageSizes: [10, 20, 50, 100],
   onChange: (page) => {
     pagination.value.page = page;
-    loadMessages();
+    applyFiltersInPlace();
   },
   onUpdatePageSize: (pageSize) => {
     pagination.value.pageSize = pageSize;
     pagination.value.page = 1;
-    loadMessages();
+    applyFiltersInPlace();
   }
 });
 
@@ -127,13 +132,20 @@ const filters = ref({
   searchText: ''
 });
 
-const uniqueLocations = computed(() => {
-  const locations = new Set();
-  messages.value.forEach(msg => {
-    if (msg.location) locations.add(msg.location);
+const locationOptions = computed(() => {
+  const set = new Set();
+  allMessages.value.forEach((msg) => {
+    if (msg?.location) set.add(msg.location);
   });
-  return Array.from(locations).sort();
+  return Array.from(set)
+    .sort()
+    .map((loc) => ({ label: loc, value: loc }));
 });
+
+const syncTypeOptions = [
+  { label: '完全同步', value: 'full' },
+  { label: '增量同步', value: 'incr' },
+];
 
 // Columns Definition
 const columns = [
@@ -268,26 +280,49 @@ const columns = [
   }
 ];
 
-// API Loading
+// 后端 /api/mqtt/messages 当前不支持分页查询参数，
+// 一次性拉取全量后在前端做 filter + slice 分页；
+// 待后端补 query params 后切换为 server-side pagination。
+function normalizeMessages(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.messages)) return payload.messages;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function applyFiltersInPlace() {
+  const { location, syncType, searchText } = filters.value;
+  let list = allMessages.value.slice();
+  if (location) {
+    list = list.filter((m) => m.location === location);
+  }
+  if (syncType === 'full') {
+    list = list.filter((m) => m.is_full_sync);
+  } else if (syncType === 'incr') {
+    list = list.filter((m) => !m.is_full_sync);
+  }
+  if (searchText) {
+    const kw = String(searchText).toLowerCase();
+    list = list.filter((m) => {
+      const names = Array.isArray(m.file_names) ? m.file_names : [];
+      return names.some((f) => String(f).toLowerCase().includes(kw));
+    });
+  }
+
+  pagination.value.itemCount = list.length;
+  const start = (pagination.value.page - 1) * pagination.value.pageSize;
+  messages.value = list.slice(start, start + pagination.value.pageSize);
+}
+
 async function loadMessages() {
   loading.value = true;
+  errorMsg.value = '';
   try {
-    // Note: backend filtering might need support, currently doing basic pagination fetch
-    // Ideally we should pass filters to backend API if supported
-    const response = await loadSyncHistory(pagination.value.page, pagination.value.pageSize);
-
-    if (response.success) {
-      messages.value = response.data || [];
-      pagination.value.itemCount = response.pagination?.total || response.total || 0;
-      
-      // Apply client-side filtering if backend doesn't support it fully for this specific view
-      if (filters.value.location || filters.value.syncType || filters.value.searchText) {
-         // Simple client-side filter for current page demo (In production, backend search is better)
-         // Or if loadSyncHistory supports params, pass them here.
-         // Assuming loadSyncHistory only does pagination.
-      }
-    }
+    const response = await mqttApi.messages();
+    allMessages.value = normalizeMessages(response);
+    applyFiltersInPlace();
   } catch (error) {
+    errorMsg.value = `加载 MQTT 消息失败: ${error?.message || error}`;
     console.error('加载 MQTT 消息失败:', error);
   } finally {
     loading.value = false;
@@ -296,14 +331,12 @@ async function loadMessages() {
 
 function handlePageChange(page) {
   pagination.value.page = page;
-  loadMessages();
+  applyFiltersInPlace();
 }
 
 function applyFilters() {
-  // Reset to page 1 and reload (if API supported filters)
-  // Currently just reloads, you might want to implement client filtering or update API
   pagination.value.page = 1;
-  loadMessages();
+  applyFiltersInPlace();
 }
 
 // Helpers
