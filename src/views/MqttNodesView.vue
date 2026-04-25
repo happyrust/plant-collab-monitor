@@ -13,14 +13,30 @@
             追踪各站点的 MQTT 订阅状态和消息接收情况
           </p>
         </div>
-        <button
-          @click="loadData"
-          class="btn btn-sm btn-primary gap-2"
-          :disabled="loading"
-        >
-          <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
-          刷新
-        </button>
+        <div class="flex items-center gap-3">
+          <span
+            v-if="sse.status.value === 'open'"
+            class="text-xs text-emerald-600"
+            title="SSE 实时通道已连接：订阅启停/主从切换变更秒级到达"
+          >● 实时</span>
+          <span
+            v-else-if="sse.status.value === 'connecting'"
+            class="text-xs text-amber-600"
+          >● 连接中</span>
+          <span
+            v-else-if="sse.status.value === 'error'"
+            class="text-xs text-rose-600"
+            :title="`SSE 重连尝试 #${sse.reconnectAttempt.value}（兜底轮询 30s 仍在）`"
+          >● 重连中</span>
+          <button
+            @click="loadData"
+            class="btn btn-sm btn-primary gap-2"
+            :disabled="loading"
+          >
+            <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
+            刷新
+          </button>
+        </div>
       </div>
 
       <!-- 控制区域：分成两行，清晰分组 -->
@@ -428,6 +444,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { mqttApi, syncApi } from '@/api';
+import { useSse } from '@/composables/useSse';
 
 const nodes = ref([]);
 const messages = ref([]);
@@ -797,7 +814,22 @@ function formatShortTime(timestamp) {
 let refreshInterval = null;
 let logsInterval = null;
 
-// 当用户点击查看日志时，自动加载日志
+// SSE 实时通道：订阅 plant-model-gen 后端 commit 5463e41 推送的
+// MqttSubscriptionStatusChanged 事件，触发后立即 reload，避免等下一次轮询
+// 字段口径与 GET /api/mqtt/subscription/status 完全一致，无需差量解析
+const sse = useSse('/api/sync/events/stream', {
+  onMessage(e) {
+    try {
+      const event = JSON.parse(e.data);
+      if (event?.type === 'MqttSubscriptionStatusChanged') {
+        loadData();
+      }
+    } catch {
+      // ignore non-JSON heartbeat
+    }
+  },
+});
+
 watch(showLogs, (newValue) => {
   if (newValue && mqttStatus.value.is_server_running) {
     loadLogs();
@@ -806,8 +838,7 @@ watch(showLogs, (newValue) => {
 
 onMounted(() => {
   loadData();
-  refreshInterval = setInterval(loadData, 5000);
-  // 如果日志面板打开，定期刷新日志
+  refreshInterval = setInterval(loadData, 30000);
   logsInterval = setInterval(() => {
     if (showLogs.value && mqttStatus.value.is_server_running) {
       loadLogs();
