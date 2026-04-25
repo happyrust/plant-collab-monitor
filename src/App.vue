@@ -103,8 +103,11 @@
         </aside>
 
         <!-- 主内容区 -->
-        <main class="flex-1 overflow-auto">
-          <RouterView />
+        <main class="flex-1 flex flex-col overflow-hidden">
+          <AppStatusBar />
+          <div class="flex-1 overflow-auto">
+            <RouterView />
+          </div>
         </main>
 
         <LoginDialog />
@@ -124,6 +127,7 @@ import {
   dateZhCN,
 } from 'naive-ui';
 import LoginDialog from '@/components/LoginDialog.vue';
+import AppStatusBar from '@/components/AppStatusBar.vue';
 import {
   adminAuthApi,
   registerAuthTokenProvider,
