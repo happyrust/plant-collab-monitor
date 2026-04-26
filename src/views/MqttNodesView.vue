@@ -37,6 +37,7 @@
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
             重连中
             <span v-if="sse.reconnectAttempt.value > 0" class="text-rose-500/70">#{{ sse.reconnectAttempt.value }}</span>
+            <span v-if="retrySeconds > 0" class="text-rose-500/70">· {{ retrySeconds }}s 后重试</span>
           </span>
           <button
             @click="loadData"
@@ -453,7 +454,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useDialog, useMessage } from 'naive-ui';
 import { mqttApi, syncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
 import { useAdminAuthStore } from '@/stores/adminAuth';
@@ -461,24 +461,6 @@ import { useAppStatusStore } from '@/stores/appStatus';
 
 const adminAuth = useAdminAuthStore();
 const appStatus = useAppStatusStore();
-const dialog = useDialog();
-const message = useMessage();
-
-function confirmDialog(title, content, type = 'warning') {
-  return new Promise((resolve) => {
-    dialog[type]({
-      title,
-      content,
-      positiveText: '确定',
-      negativeText: '取消',
-      onPositiveClick: () => { resolve(true); },
-      onNegativeClick: () => { resolve(false); },
-      onClose: () => { resolve(false); },
-      onMaskClick: () => { resolve(false); },
-    });
-  });
-}
-
 const nodes = ref([]);
 const messages = ref([]);
 const selectedNode = ref(null);
@@ -618,38 +600,36 @@ async function startMqttSubscription() {
   try {
     const data = await mqttApi.subscriptionStart({});
     if (isOk(data)) {
-      message.success(pickMessage(data, '订阅已启动'));
+      alert('✅ ' + pickMessage(data, '订阅已启动'));
       await loadData();
     } else {
-      message.error(pickMessage(data, '启动失败'));
+      alert('❌ ' + pickMessage(data, '启动失败'));
     }
   } catch (error) {
     console.error('启动 MQTT 订阅失败:', error?.message || error);
-    message.error('启动失败: ' + (error?.message || String(error)));
+    alert('❌ 启动失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function stopMqttSubscription() {
-  const ok = await confirmDialog(
-    '确认停止 MQTT 订阅',
-    '停止后将不再接收远程消息。',
-  );
-  if (!ok) return;
+  if (!confirm('确定要停止 MQTT 订阅吗？停止后将不再接收远程消息。')) {
+    return;
+  }
 
   mqttLoading.value = true;
   try {
     const data = await mqttApi.subscriptionStop();
     if (isOk(data)) {
-      message.success(pickMessage(data, '订阅已停止'));
+      alert('✅ ' + pickMessage(data, '订阅已停止'));
       await loadData();
     } else {
-      message.error(pickMessage(data, '停止失败'));
+      alert('❌ ' + pickMessage(data, '停止失败'));
     }
   } catch (error) {
     console.error('停止 MQTT 订阅失败:', error?.message || error);
-    message.error('停止失败: ' + (error?.message || String(error)));
+    alert('❌ 停止失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
@@ -657,7 +637,7 @@ async function stopMqttSubscription() {
 
 async function startMqttServer() {
   if (!mqttStatus.value.is_master_node) {
-    message.error('只有主节点可以启动 MQTT Broker，请先设置为主节点。');
+    alert('❌ 只有主节点可以启动 MQTT Broker！请先设置为主节点。');
     return;
   }
 
@@ -665,116 +645,110 @@ async function startMqttServer() {
   try {
     const data = await syncApi.mqttStart({ port: 1883 });
     if (isOk(data)) {
-      message.success(pickMessage(data, 'Broker 已启动'));
+      alert('✅ ' + pickMessage(data, 'Broker 已启动'));
       await loadData();
     } else {
-      message.error(pickMessage(data, '启动失败'));
+      alert('❌ ' + pickMessage(data, '启动失败'));
     }
   } catch (error) {
     console.error('启动 MQTT Broker 失败:', error?.message || error);
-    message.error('启动失败: ' + (error?.message || String(error)));
+    alert('❌ 启动失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function stopMqttServer() {
-  const ok = await confirmDialog(
-    '确认停止 MQTT Broker',
-    '停止后所有从节点都将断开订阅。',
-  );
-  if (!ok) return;
+  if (!confirm('确定要停止 MQTT Broker 吗？')) {
+    return;
+  }
 
   mqttLoading.value = true;
   try {
     const data = await syncApi.mqttStop();
     if (isOk(data)) {
-      message.success(pickMessage(data, 'Broker 已停止'));
+      alert('✅ ' + pickMessage(data, 'Broker 已停止'));
       showLogs.value = false;
       await loadData();
     } else {
-      message.error(pickMessage(data, '停止失败'));
+      alert('❌ ' + pickMessage(data, '停止失败'));
     }
   } catch (error) {
     console.error('停止 MQTT Broker 失败:', error?.message || error);
-    message.error('停止失败: ' + (error?.message || String(error)));
+    alert('❌ 停止失败: ' + (error?.message || error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function setAsMasterNode() {
-  const ok = await confirmDialog(
-    '确认设为主节点',
-    '主节点可以启动 MQTT Broker，是否切换？',
-  );
-  if (!ok) return;
+  if (!confirm('确定要将当前节点设为主节点吗？主节点可以启动 MQTT Broker。')) {
+    return;
+  }
 
   roleLoading.value = true;
   try {
     const data = await mqttApi.setMaster({});
     if (isOk(data)) {
-      message.success(pickMessage(data, '已设为主节点'));
+      alert('✅ ' + pickMessage(data, '已设为主节点'));
       await loadData();
     } else {
-      message.error(pickMessage(data, '设置失败'));
+      alert('❌ ' + pickMessage(data, '设置失败'));
     }
   } catch (error) {
     console.error('设置主节点失败:', error?.message || error);
-    message.error('设置失败: ' + (error?.message || String(error)));
+    alert('❌ 设置失败: ' + (error?.message || error));
   } finally {
     roleLoading.value = false;
   }
 }
 
 async function setAsClientNode() {
-  const ok = await confirmDialog(
-    '确认设为从节点',
-    '从节点只能作为 MQTT 客户端订阅消息，是否切换？',
-  );
-  if (!ok) return;
+  if (!confirm('确定要将当前节点设为从节点吗？从节点只能作为 MQTT 客户端订阅消息。')) {
+    return;
+  }
 
   roleLoading.value = true;
   try {
     const data = await mqttApi.setClient({});
     if (isOk(data)) {
-      message.success(pickMessage(data, '已设为从节点'));
+      alert('✅ ' + pickMessage(data, '已设为从节点'));
       await loadData();
     } else {
-      message.error(pickMessage(data, '设置失败'));
+      alert('❌ ' + pickMessage(data, '设置失败'));
     }
   } catch (error) {
     console.error('设置从节点失败:', error?.message || error);
-    message.error('设置失败: ' + (error?.message || String(error)));
+    alert('❌ 设置失败: ' + (error?.message || error));
   } finally {
     roleLoading.value = false;
   }
 }
 
 async function removeNode(node) {
-  const ok = await confirmDialog(
-    '确认移除节点',
-    mqttStatus.value.is_master_node
-      ? `将从监控列表移除节点 "${node.node_name}"。`
-      : `将取消订阅主节点 "${node.node_name}"，之后不再接收该节点的消息。`,
-  );
-  if (!ok) return;
+  const confirmMsg = mqttStatus.value.is_master_node
+    ? `确定要从监控列表中移除节点 "${node.node_name}" 吗？`
+    : `确定要取消订阅主节点 "${node.node_name}" 吗？取消后将不再接收该主节点的消息。`;
+
+  if (!confirm(confirmMsg)) {
+    return;
+  }
 
   removeLoading.value = true;
   try {
     const data = await mqttApi.removeNode(node.location);
     if (isOk(data)) {
-      message.success(pickMessage(data, '已移除节点'));
+      alert('✅ ' + pickMessage(data, '已移除节点'));
       if (selectedNode.value?.location === node.location) {
         selectedNode.value = null;
       }
       await loadData();
     } else {
-      message.error(pickMessage(data, '移除失败'));
+      alert('❌ ' + pickMessage(data, '移除失败'));
     }
   } catch (error) {
     console.error('移除节点失败:', error?.message || error);
-    message.error('移除失败: ' + (error?.message || String(error)));
+    alert('❌ 移除失败: ' + (error?.message || error));
   } finally {
     removeLoading.value = false;
   }
@@ -867,6 +841,14 @@ const sse = useSse('/api/sync/events/stream', {
   },
 });
 
+const nowMs = ref(Date.now());
+let nowTicker = null;
+const retrySeconds = computed(() => {
+  const t = sse.nextRetryAt.value;
+  if (!t) return 0;
+  return Math.max(0, Math.ceil((t - nowMs.value) / 1000));
+});
+
 watch(showLogs, (newValue) => {
   if (newValue && mqttStatus.value.is_server_running) {
     loadLogs();
@@ -881,6 +863,7 @@ onMounted(() => {
       loadLogs();
     }
   }, 3000);
+  nowTicker = window.setInterval(() => { nowMs.value = Date.now(); }, 1000);
 });
 
 onUnmounted(() => {
@@ -889,6 +872,10 @@ onUnmounted(() => {
   }
   if (logsInterval) {
     clearInterval(logsInterval);
+  }
+  if (nowTicker) {
+    clearInterval(nowTicker);
+    nowTicker = null;
   }
 });
 </script>

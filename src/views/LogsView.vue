@@ -15,6 +15,7 @@
           <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
           重连中
           <span v-if="sse.reconnectAttempt.value > 0" class="text-rose-500/70">#{{ sse.reconnectAttempt.value }}</span>
+          <span v-if="retrySeconds > 0" class="text-rose-500/70">· {{ retrySeconds }}s 后重试</span>
         </span>
         <span
           v-else-if="sse.status.value === 'open'"
@@ -43,8 +44,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { NButton } from 'naive-ui';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import LogViewer from '@/components/LogViewer.vue';
 import { remoteSyncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
@@ -84,7 +84,23 @@ const sse = useSse('/api/sync/events/stream', {
   },
 });
 
+const nowMs = ref(Date.now());
+let nowTicker = null;
+const retrySeconds = computed(() => {
+  const t = sse.nextRetryAt.value;
+  if (!t) return 0;
+  return Math.max(0, Math.ceil((t - nowMs.value) / 1000));
+});
+
 onMounted(() => {
   refresh();
+  nowTicker = window.setInterval(() => { nowMs.value = Date.now(); }, 1000);
+});
+
+onUnmounted(() => {
+  if (nowTicker) {
+    clearInterval(nowTicker);
+    nowTicker = null;
+  }
 });
 </script>

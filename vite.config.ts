@@ -1,5 +1,8 @@
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import AutoImport from 'unplugin-auto-import/vite';
+import Components from 'unplugin-vue-components/vite';
+import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
 import { fileURLToPath, URL } from 'node:url';
 
 // plant-collab-monitor · Vite 配置
@@ -17,7 +20,36 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      // 自动导入 naive-ui 的 hooks（useDialog/useMessage/useNotification/useLoadingBar）
+      // 以及 vue / vue-router 常用 composition API；省去手写 import 并配合 tree-shaking
+      AutoImport({
+        imports: [
+          'vue',
+          'vue-router',
+          {
+            'naive-ui': [
+              'useDialog',
+              'useMessage',
+              'useNotification',
+              'useLoadingBar',
+              'useThemeVars',
+              'useOsTheme',
+            ],
+          },
+        ],
+        dts: 'auto-imports.d.ts',
+        eslintrc: { enabled: false },
+      }),
+      // 自动注册并 tree-shake naive-ui 组件，模板中使用的 N* 组件无需手写 import
+      Components({
+        resolvers: [NaiveUiResolver()],
+        dts: 'components.d.ts',
+        // 监控台没有自定义组件目录需要自动注册 → 关闭以避免误注册
+        dirs: [],
+      }),
+    ],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

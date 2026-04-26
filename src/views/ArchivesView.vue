@@ -112,163 +112,151 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { incrementalApi, siteConfigApi } from '@/api';
 import { useFormatters } from '@/composables/useFormatters';
 
+interface ArchiveFile {
+  name: string;
+  size?: number;
+  modified?: string | number;
+  path?: string;
+  dbnum?: number | null;
+  sesno?: number | null;
+  update_count?: number;
+  [key: string]: unknown;
+}
+
+interface SiteConfigSnapshot {
+  location: string;
+  location_dbs: number[];
+}
+
 const { formatTime } = useFormatters();
 
-const files = ref([]);
-const allFiles = ref([]); // 存储所有文件
+const files = ref<ArchiveFile[]>([]);
+const allFiles = ref<ArchiveFile[]>([]);
 const loading = ref(false);
-const filterByCurrentSite = ref(true); // 默认只显示当前站点
-const currentSiteConfig = ref(null); // 当前站点配置
+const filterByCurrentSite = ref(true);
+const currentSiteConfig = ref<SiteConfigSnapshot | null>(null);
 
-const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B';
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+function formatSize(bytes: number | undefined): string {
+  if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
+}
 
-// 尝试解析更新次数（假设从文件名中提取，例如 session range 的跨度）
-const parseUpdateCount = (fileName) => {
-    // 示例格式：update_1112_100-105.cba
-    // 提取 100-105，计算 105-100+1 = 6
-    try {
-        const match = fileName.match(/(\d+)-(\d+)/);
-        if (match) {
-            const start = parseInt(match[1]);
-            const end = parseInt(match[2]);
-            if (!isNaN(start) && !isNaN(end) && end >= start) {
-                return end - start + 1; // 包含 start 和 end
-            }
-        }
-        
-        // 或者如果文件名包含版本号 v5
-        const verMatch = fileName.match(/v(\d+)/);
-        if (verMatch) {
-             return parseInt(verMatch[1]);
-        }
-    } catch (e) {
-        return undefined;
-    }
-    return undefined;
-};
-
-// 加载当前站点配置
-const loadCurrentSiteConfig = async () => {
+// 尝试解析更新次数（从文件名 session range 跨度，或 v<num> 版本号提取）
+function parseUpdateCount(fileName: string): number | undefined {
   try {
-    const data = await siteConfigApi.get();
-    const config = data?.config || data || {};
+    const match = fileName.match(/(\d+)-(\d+)/);
+    if (match) {
+      const start = parseInt(match[1]);
+      const end = parseInt(match[2]);
+      if (!isNaN(start) && !isNaN(end) && end >= start) {
+        return end - start + 1;
+      }
+    }
+    const verMatch = fileName.match(/v(\d+)/);
+    if (verMatch) {
+      return parseInt(verMatch[1]);
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+async function loadCurrentSiteConfig(): Promise<void> {
+  try {
+    const data: unknown = await siteConfigApi.get();
+    const obj = (data && typeof data === 'object' ? (data as Record<string, unknown>) : {});
+    const cfgRaw = (obj.config && typeof obj.config === 'object' ? obj.config : obj) as Record<string, unknown>;
+    const dbs = Array.isArray(cfgRaw.location_dbs)
+      ? (cfgRaw.location_dbs.filter((v) => typeof v === 'number') as number[])
+      : [];
     currentSiteConfig.value = {
-      location: config.location || '',
-      location_dbs: config.location_dbs || []
+      location: typeof cfgRaw.location === 'string' ? cfgRaw.location : '',
+      location_dbs: dbs,
     };
   } catch (err) {
-    console.error('加载站点配置失败:', err?.message || err);
-    currentSiteConfig.value = {
-      location: '',
-      location_dbs: []
-    };
+    console.error('加载站点配置失败:', errorMessage(err));
+    currentSiteConfig.value = { location: '', location_dbs: [] };
   }
-};
+}
 
 // 从文件名提取 dbnum（例如：ams1112_0001.cba -> 1112）
-// 文件名格式通常是：项目名 + dbnum + 其他信息，例如 ams1112_0001.cba
-const extractDbnumFromFileName = (fileName) => {
-  // 移除 .cba 扩展名
-  let name = fileName.replace(/\.cba$/i, '');
-  
-  // 尝试多种模式匹配 dbnum
-  // 1. 匹配项目名后的4位数字（最常见）：ams1112_0001 -> 1112
-  const pattern1 = /[a-zA-Z]+(\d{4,})/;
-  let match = name.match(pattern1);
-  if (match) {
-    const dbnum = parseInt(match[1]);
-    if (!isNaN(dbnum) && dbnum > 0 && dbnum < 100000) {
-      return dbnum;
+function extractDbnumFromFileName(fileName: string): number | null {
+  const name = fileName.replace(/\.cba$/i, '');
+  const patterns = [/[a-zA-Z]+(\d{4,})/, /_(\d{4,})/, /^(\d{4,})/];
+  for (const p of patterns) {
+    const match = name.match(p);
+    if (match) {
+      const n = parseInt(match[1]);
+      if (!isNaN(n) && n > 0 && n < 100000) return n;
     }
   }
-  
-  // 2. 匹配下划线后的4位数字：xxx_1112_xxx -> 1112
-  const pattern2 = /_(\d{4,})/;
-  match = name.match(pattern2);
-  if (match) {
-    const dbnum = parseInt(match[1]);
-    if (!isNaN(dbnum) && dbnum > 0 && dbnum < 100000) {
-      return dbnum;
-    }
-  }
-  
-  // 3. 匹配文件名开头的4位数字：1112_xxx -> 1112
-  const pattern3 = /^(\d{4,})/;
-  match = name.match(pattern3);
-  if (match) {
-    const dbnum = parseInt(match[1]);
-    if (!isNaN(dbnum) && dbnum > 0 && dbnum < 100000) {
-      return dbnum;
-    }
-  }
-  
   return null;
-};
+}
 
-// 判断文件是否属于当前站点
-const isFileBelongsToCurrentSite = (fileName) => {
-  if (!currentSiteConfig.value || !currentSiteConfig.value.location_dbs || currentSiteConfig.value.location_dbs.length === 0) {
-    // 如果没有配置 location_dbs，显示所有文件
-    return true;
-  }
-  
+function isFileBelongsToCurrentSite(fileName: string): boolean {
+  const cfg = currentSiteConfig.value;
+  if (!cfg || cfg.location_dbs.length === 0) return true;
   const dbnum = extractDbnumFromFileName(fileName);
-  if (dbnum === null) {
-    // 如果无法提取 dbnum，默认显示
-    return true;
-  }
-  
-  // 检查 dbnum 是否在 location_dbs 中
-  return currentSiteConfig.value.location_dbs.includes(dbnum);
-};
+  if (dbnum === null) return true;
+  return cfg.location_dbs.includes(dbnum);
+}
 
-// 应用筛选条件
-const applyFilter = () => {
-  if (filterByCurrentSite.value) {
-    files.value = allFiles.value.filter(f => isFileBelongsToCurrentSite(f.name));
-  } else {
-    files.value = allFiles.value;
-  }
-};
+function applyFilter(): void {
+  files.value = filterByCurrentSite.value
+    ? allFiles.value.filter((f) => isFileBelongsToCurrentSite(f.name))
+    : allFiles.value;
+}
 
-const loadData = async () => {
+async function loadData(): Promise<void> {
   loading.value = true;
   try {
-    // 先加载站点配置
     if (!currentSiteConfig.value) {
       await loadCurrentSiteConfig();
     }
-    
-    const res = await incrementalApi.archives();
-    if (res?.success && Array.isArray(res?.files)) {
-      // 保存所有文件
-      // 优先使用 API 返回的 dbnum（来自数据库），如果没有则从文件名提取
-      allFiles.value = res.files.map(f => ({
-        ...f,
-        update_count: parseUpdateCount(f.name),
-        dbnum: f.dbnum !== null && f.dbnum !== undefined ? f.dbnum : extractDbnumFromFileName(f.name)
-      }));
 
-      // 应用筛选条件
+    const res: unknown = await incrementalApi.archives();
+    if (
+      res &&
+      typeof res === 'object' &&
+      (res as { success?: unknown }).success &&
+      Array.isArray((res as { files?: unknown }).files)
+    ) {
+      const rawFiles = (res as { files: unknown[] }).files as Array<Record<string, unknown>>;
+      allFiles.value = rawFiles.map((f) => {
+        const name = typeof f.name === 'string' ? f.name : '';
+        return {
+          ...(f as ArchiveFile),
+          update_count: parseUpdateCount(name),
+          dbnum:
+            f.dbnum !== null && f.dbnum !== undefined && typeof f.dbnum === 'number'
+              ? f.dbnum
+              : extractDbnumFromFileName(name),
+        } as ArchiveFile;
+      });
       applyFilter();
     }
   } catch (e) {
-    console.error('加载归档失败:', e?.message || e);
+    console.error('加载归档失败:', errorMessage(e));
   } finally {
     loading.value = false;
   }
-};
+}
 
 onMounted(() => {
   loadData();

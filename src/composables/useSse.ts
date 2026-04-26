@@ -22,6 +22,13 @@ export interface UseSseReturn {
   status: Ref<SseStatus>;
   lastEvent: Ref<MessageEvent | null>;
   reconnectAttempt: Ref<number>;
+  /**
+   * 下次重连尝试的时间戳（ms · Date.now() 风格）。
+   * - 调度中：number（具体目标时刻）
+   * - 已连上 / 未在重连等待：null
+   * UI 可结合 setInterval(1000) 每秒计算 `Math.max(0, Math.ceil((nextRetryAt - Date.now()) / 1000))` 显示倒计时。
+   */
+  nextRetryAt: Ref<number | null>;
   close: () => void;
   reconnectNow: () => void;
 }
@@ -92,6 +99,7 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
   const status = ref<SseStatus>('idle');
   const lastEvent = ref<MessageEvent | null>(null);
   const reconnectAttempt = ref(0);
+  const nextRetryAt = ref<number | null>(null);
 
   let source: EventSource | null = null;
   let abortController: AbortController | null = null;
@@ -108,7 +116,9 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
   const scheduleReconnect = () => {
     if (!reconnect || manualClose) return;
     const delay = computeBackoff();
+    nextRetryAt.value = Date.now() + delay;
     reconnectTimer = setTimeout(() => {
+      nextRetryAt.value = null;
       reconnectAttempt.value += 1;
       connect();
     }, delay);
@@ -158,6 +168,7 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
     source.onopen = (event) => {
       status.value = 'open';
       reconnectAttempt.value = 0;
+      nextRetryAt.value = null;
       resetHeartbeat();
       onOpen?.(event);
     };
@@ -205,6 +216,7 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
 
       status.value = 'open';
       reconnectAttempt.value = 0;
+      nextRetryAt.value = null;
       resetHeartbeat();
       onOpen?.(new Event('open'));
 
@@ -260,6 +272,7 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
   const reconnectNow = () => {
     manualClose = false;
     reconnectAttempt.value = 0;
+    nextRetryAt.value = null;
     connect();
   };
 
@@ -273,6 +286,7 @@ export function useSse(url: string, options: UseSseOptions = {}): UseSseReturn {
     status,
     lastEvent,
     reconnectAttempt,
+    nextRetryAt,
     close,
     reconnectNow,
   };

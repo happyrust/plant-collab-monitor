@@ -78,19 +78,25 @@ src/
 ├── styles/main.css            # tailwind + 全局样式
 ├── router/index.ts            # 11 条路由 + afterEach 标题
 ├── api/                       # axios 层（全类型化）
-│   ├── http.ts                # 基础 axios + 统一错误格式
+│   ├── http.ts                # 基础 axios + admin token interceptor
+│   ├── adminAuthApi.ts        # /api/admin/auth/* (login/logout/me)
 │   ├── syncApi.ts             # /api/sync/*
 │   ├── remoteSyncApi.ts       # /api/remote-sync/* (admin-gated)
 │   ├── mqttApi.ts             # /api/mqtt/*
 │   ├── siteConfigApi.ts       # /api/site-config/*
+│   ├── deploymentSitesApi.ts  # /api/deployment-sites/*（9 endpoint）
+│   ├── incrementalApi.ts      # /api/incremental/*（11 endpoint）
 │   └── index.ts
-├── composables/               # 5 个沿用 web-server 的 composable
-│   ├── useApi.js
-│   ├── useFormatters.js
-│   ├── useNotification.js
-│   ├── useTheme.js
-│   └── useWebSocket.js
-├── components/                # 7 核心 + 2 charts + 1 ViewPlaceholder
+├── stores/                    # Pinia stores（全 ts）
+│   ├── adminAuth.ts           # admin token + LoginDialog 状态
+│   └── appStatus.ts           # AppStatusBar 数据源（site/sync/queue + 1min events）
+├── composables/               # 全部 .ts，无遗留 .js
+│   ├── useDashboardSummary.ts # Dashboard 6 卡片并发调度
+│   ├── useFormatters.ts       # formatNumber / formatTime / formatSize 等
+│   └── useSse.ts              # SSE 双路径（原生 EventSource / fetch+ReadableStream + Bearer）
+├── components/                # 业务组件
+│   ├── AppStatusBar.vue       # 顶部固定 4 项徽标
+│   ├── LoginDialog.vue        # naive-ui Modal + admin login flow
 │   ├── DetailModal.vue
 │   ├── IncrementalUpdateMonitor.vue
 │   ├── LogViewer.vue
@@ -99,21 +105,21 @@ src/
 │   ├── SyncHistory.vue
 │   ├── TaskQueue.vue
 │   ├── ViewPlaceholder.vue
-│   └── charts/
+│   └── charts/                # 全 ts + 空状态 echarts graphic
 │       ├── SiteStatusChart.vue
 │       └── SyncTrendChart.vue
-└── views/                     # 11 个一级视图
-    ├── DashboardView.vue       (health demo + API playground)
-    ├── TopologyView.vue        (原 TopologyManager 实体移植)
-    ├── TopologyVisualizationView.vue
-    ├── TasksView.vue           (壳 · 包装 TaskQueue + syncApi.queue)
-    ├── SyncHistoryView.vue     (壳 · 包装 SyncHistory + syncApi.history)
-    ├── LogsView.vue            (壳 · 包装 LogViewer + SSE /api/sync/events/stream)
-    ├── MqttMessagesView.vue    (原 MqttMessageViewer)
-    ├── MqttNodesView.vue       (原 MqttNodeMonitorEnhanced)
-    ├── ArchivesView.vue        (原 ArchivesManager)
-    ├── SiteConfigView.vue      (原 SiteConfig)
-    └── SettingsView.vue        (原 SettingsManager)
+└── views/                     # 11 个一级视图（全部接入真 API，无 placeholder 壳）
+    ├── DashboardView.vue          # 6 卡片 + 2 chart + 最近事件 · useDashboardSummary
+    ├── TopologyView.vue           # 异地拓扑 CRUD · NMessage/NDialog · meta.requiresAdmin
+    ├── TopologyVisualizationView.vue  # SVG 节点拓扑可视化 · meta.requiresAdmin
+    ├── TasksView.vue              # 任务队列 · syncApi.queue
+    ├── SyncHistoryView.vue        # 同步历史时间线 · ts
+    ├── LogsView.vue               # SSE /api/sync/events/stream（带 token + 重连倒计时）
+    ├── MqttMessagesView.vue       # MQTT 消息表
+    ├── MqttNodesView.vue          # MQTT 节点 · SSE 自动 reload · meta.requiresAdmin
+    ├── ArchivesView.vue           # CBA 归档 · meta.requiresAdmin
+    ├── SiteConfigView.vue         # 站点配置（inline banner + NDialog · meta.requiresAdmin）
+    └── SettingsView.vue           # 全局参数 · ts · meta.requiresAdmin
 ```
 
 ## 生产部署

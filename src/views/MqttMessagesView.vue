@@ -98,44 +98,77 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue';
-import { NDataTable, NTag, NButton, NTooltip, NPopover, NSelect, NInput } from 'naive-ui';
+import type { DataTableColumns, PaginationProps } from 'naive-ui';
+import { NTag, NButton, NPopover } from 'naive-ui';
 import { mqttApi } from '@/api';
 
-const messages = ref([]);
-const allMessages = ref([]);
+interface SiteReceiver {
+  location?: string;
+  received?: boolean;
+  received_at?: string | number;
+}
+
+interface MqttMessage {
+  id?: string | number;
+  timestamp?: string | number;
+  location?: string;
+  db_num?: number;
+  is_full_sync?: boolean;
+  total_added?: number;
+  total_modified?: number;
+  total_deleted?: number;
+  session_range?: string;
+  file_count?: number;
+  file_names?: string[];
+  file_server_host?: string;
+  site_receivers?: SiteReceiver[];
+  received_count?: number;
+  total_receivers?: number;
+  [key: string]: unknown;
+}
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+const messages = ref<MqttMessage[]>([]);
+const allMessages = ref<MqttMessage[]>([]);
 const loading = ref(false);
 const errorMsg = ref('');
 
 // Pagination for Naive UI
-const pagination = ref({
+const pagination = ref<PaginationProps & { page: number; pageSize: number; itemCount: number }>({
   page: 1,
   pageSize: 20,
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50, 100],
-  onChange: (page) => {
+  onChange: (page: number) => {
     pagination.value.page = page;
     applyFiltersInPlace();
   },
-  onUpdatePageSize: (pageSize) => {
+  onUpdatePageSize: (pageSize: number) => {
     pagination.value.pageSize = pageSize;
     pagination.value.page = 1;
     applyFiltersInPlace();
-  }
+  },
 });
 
 const filters = ref({
   location: '',
   syncType: '',
-  searchText: ''
+  searchText: '',
 });
 
-const locationOptions = computed(() => {
-  const set = new Set();
+const locationOptions = computed<{ label: string; value: string }[]>(() => {
+  const set = new Set<string>();
   allMessages.value.forEach((msg) => {
-    if (msg?.location) set.add(msg.location);
+    if (typeof msg.location === 'string' && msg.location) set.add(msg.location);
   });
   return Array.from(set)
     .sort()
@@ -148,7 +181,7 @@ const syncTypeOptions = [
 ];
 
 // Columns Definition
-const columns = [
+const columns: DataTableColumns<MqttMessage> = [
   {
     title: '类型',
     key: 'is_full_sync',
@@ -159,11 +192,11 @@ const columns = [
         {
           type: row.is_full_sync ? 'warning' : 'info',
           bordered: false,
-          size: 'small'
+          size: 'small',
         },
-        { default: () => (row.is_full_sync ? '完全同步' : '增量同步') }
+        { default: () => (row.is_full_sync ? '完全同步' : '增量同步') },
       );
-    }
+    },
   },
   {
     title: '时间',
@@ -171,7 +204,7 @@ const columns = [
     width: 180,
     render(row) {
       return formatTimestamp(row.timestamp);
-    }
+    },
   },
   {
     title: '位置 / DB',
@@ -180,83 +213,92 @@ const columns = [
     render(row) {
       return h('div', { class: 'flex flex-col text-xs' }, [
         h('span', { class: 'font-bold' }, row.location || '未知位置'),
-        row.db_num ? h('span', { class: 'text-slate-400' }, `DB #${row.db_num}`) : null
+        row.db_num ? h('span', { class: 'text-slate-400' }, `DB #${row.db_num}`) : null,
       ]);
-    }
+    },
   },
   {
     title: '变更统计',
     key: 'stats',
     width: 200,
     render(row) {
-      const stats = [];
+      const stats: ReturnType<typeof h>[] = [];
       if (row.total_added) {
-        stats.push(h('span', { class: 'text-green-600 mr-2' }, [h('i', { class: 'fas fa-plus-circle mr-1' }), row.total_added]));
+        stats.push(h('span', { class: 'text-green-600 mr-2' }, [h('i', { class: 'fas fa-plus-circle mr-1' }), String(row.total_added)]));
       }
       if (row.total_modified) {
-        stats.push(h('span', { class: 'text-orange-600 mr-2' }, [h('i', { class: 'fas fa-edit mr-1' }), row.total_modified]));
+        stats.push(h('span', { class: 'text-orange-600 mr-2' }, [h('i', { class: 'fas fa-edit mr-1' }), String(row.total_modified)]));
       }
       if (row.total_deleted) {
-        stats.push(h('span', { class: 'text-red-600' }, [h('i', { class: 'fas fa-trash mr-1' }), row.total_deleted]));
+        stats.push(h('span', { class: 'text-red-600' }, [h('i', { class: 'fas fa-trash mr-1' }), String(row.total_deleted)]));
       }
-      
       if (stats.length === 0) return '-';
       return h('div', { class: 'flex items-center text-xs' }, stats);
-    }
+    },
   },
   {
     title: '会话范围',
     key: 'session_range',
     width: 120,
     render(row) {
-      return row.session_range ? h('span', { class: 'font-mono text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded' }, row.session_range) : '-';
-    }
+      return row.session_range
+        ? h('span', { class: 'font-mono text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded' }, row.session_range)
+        : '-';
+    },
   },
   {
     title: '文件',
     key: 'files',
     render(row) {
-      const fileCount = row.file_count || row.file_names?.length || 0;
+      const files = row.file_names ?? [];
+      const fileCount = row.file_count ?? files.length;
       if (fileCount === 0) return h('span', { class: 'text-slate-400' }, '无文件');
-      
-      const files = row.file_names || [];
+
       const trigger = h(
         NButton,
         { size: 'tiny', type: 'default', secondary: true },
-        { default: () => `${fileCount} 个文件` }
+        { default: () => `${fileCount} 个文件` },
       );
-      
+
       return h(
         NPopover,
         { trigger: 'click', scrollable: true, style: { maxHeight: '300px' } },
         {
           trigger: () => trigger,
-          default: () => h('div', { class: 'space-y-1 p-1' }, [
-            h('div', { class: 'text-xs font-bold mb-2 text-slate-500' }, `服务器: ${row.file_server_host || '未知'}`),
-            ...files.map(f => h('div', { class: 'text-xs font-mono text-slate-700 border-b border-slate-100 pb-1 mb-1 last:border-0' }, f))
-          ])
-        }
+          default: () =>
+            h('div', { class: 'space-y-1 p-1' }, [
+              h('div', { class: 'text-xs font-bold mb-2 text-slate-500' }, `服务器: ${row.file_server_host || '未知'}`),
+              ...files.map((f) =>
+                h(
+                  'div',
+                  { class: 'text-xs font-mono text-slate-700 border-b border-slate-100 pb-1 mb-1 last:border-0' },
+                  f,
+                ),
+              ),
+            ]),
+        },
       );
-    }
+    },
   },
   {
     title: '接收状态',
     key: 'receivers',
     render(row) {
-      if (!row.site_receivers || row.site_receivers.length === 0) return '-';
-      
-      const completed = row.received_count || 0;
-      const total = row.total_receivers || row.site_receivers.length;
-      
+      const receivers = row.site_receivers ?? [];
+      if (receivers.length === 0) return '-';
+
+      const completed = row.received_count ?? 0;
+      const total = row.total_receivers ?? receivers.length;
+
       const trigger = h(
         NTag,
-        { 
-          type: completed === total ? 'success' : 'warning', 
-          size: 'small', 
+        {
+          type: completed === total ? 'success' : 'warning',
+          size: 'small',
           bordered: false,
-          class: 'cursor-pointer'
+          class: 'cursor-pointer',
         },
-        { default: () => `${completed}/${total} 已接收` }
+        { default: () => `${completed}/${total} 已接收` },
       );
 
       return h(
@@ -264,40 +306,46 @@ const columns = [
         { trigger: 'hover' },
         {
           trigger: () => trigger,
-          default: () => h('div', { class: 'space-y-2 p-1' }, 
-            row.site_receivers.map(receiver => {
-              const isDone = receiver.received;
-              return h('div', { class: 'flex items-center gap-2 text-xs' }, [
-                h('i', { class: isDone ? 'fas fa-check-circle text-green-500' : 'fas fa-clock text-slate-400' }),
-                h('span', { class: 'font-semibold' }, receiver.location),
-                isDone ? h('span', { class: 'text-slate-400 text-[10px] ml-2' }, formatReceiverTime(receiver.received_at)) : null
-              ]);
-            })
-          )
-        }
+          default: () =>
+            h(
+              'div',
+              { class: 'space-y-2 p-1' },
+              receivers.map((receiver) => {
+                const isDone = !!receiver.received;
+                return h('div', { class: 'flex items-center gap-2 text-xs' }, [
+                  h('i', { class: isDone ? 'fas fa-check-circle text-green-500' : 'fas fa-clock text-slate-400' }),
+                  h('span', { class: 'font-semibold' }, receiver.location ?? ''),
+                  isDone ? h('span', { class: 'text-slate-400 text-[10px] ml-2' }, formatReceiverTime(receiver.received_at)) : null,
+                ]);
+              }),
+            ),
+        },
       );
-    }
-  }
+    },
+  },
 ];
 
 // 后端 /api/mqtt/messages 当前不支持分页查询参数，
 // 一次性拉取全量后在前端做 filter + slice 分页；
 // 待后端补 query params 后切换为 server-side pagination。
-function normalizeMessages(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.messages)) return payload.messages;
-  if (Array.isArray(payload?.data)) return payload.data;
+function normalizeMessages(payload: unknown): MqttMessage[] {
+  if (Array.isArray(payload)) return payload as MqttMessage[];
+  if (payload && typeof payload === 'object') {
+    const obj = payload as Record<string, unknown>;
+    if (Array.isArray(obj.messages)) return obj.messages as MqttMessage[];
+    if (Array.isArray(obj.data)) return obj.data as MqttMessage[];
+  }
   return [];
 }
 
-function applyFiltersInPlace() {
+function applyFiltersInPlace(): void {
   const { location, syncType, searchText } = filters.value;
-  let list = allMessages.value.slice();
+  let list: MqttMessage[] = allMessages.value.slice();
   if (location) {
     list = list.filter((m) => m.location === location);
   }
   if (syncType === 'full') {
-    list = list.filter((m) => m.is_full_sync);
+    list = list.filter((m) => !!m.is_full_sync);
   } else if (syncType === 'incr') {
     list = list.filter((m) => !m.is_full_sync);
   }
@@ -314,33 +362,34 @@ function applyFiltersInPlace() {
   messages.value = list.slice(start, start + pagination.value.pageSize);
 }
 
-async function loadMessages() {
+async function loadMessages(): Promise<void> {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const response = await mqttApi.messages();
+    const response: unknown = await mqttApi.messages();
     allMessages.value = normalizeMessages(response);
     applyFiltersInPlace();
   } catch (error) {
-    errorMsg.value = `加载 MQTT 消息失败: ${error?.message || error}`;
-    console.error('加载 MQTT 消息失败:', error?.message || error);
+    const msg = errorMessage(error);
+    errorMsg.value = `加载 MQTT 消息失败: ${msg}`;
+    console.error('加载 MQTT 消息失败:', msg);
   } finally {
     loading.value = false;
   }
 }
 
-function handlePageChange(page) {
+function handlePageChange(page: number): void {
   pagination.value.page = page;
   applyFiltersInPlace();
 }
 
-function applyFilters() {
+function applyFilters(): void {
   pagination.value.page = 1;
   applyFiltersInPlace();
 }
 
 // Helpers
-function formatTimestamp(timestamp) {
+function formatTimestamp(timestamp: string | number | undefined): string {
   if (!timestamp) return '未知时间';
   try {
     const date = new Date(timestamp);
@@ -350,14 +399,14 @@ function formatTimestamp(timestamp) {
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
-  } catch (e) {
-    return timestamp;
+  } catch {
+    return String(timestamp);
   }
 }
 
-function formatReceiverTime(timestamp) {
+function formatReceiverTime(timestamp: string | number | undefined): string {
   if (!timestamp) return '';
   try {
     const date = new Date(timestamp);
@@ -365,9 +414,9 @@ function formatReceiverTime(timestamp) {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
-  } catch (e) {
+  } catch {
     return '';
   }
 }

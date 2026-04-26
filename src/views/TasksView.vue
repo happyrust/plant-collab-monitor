@@ -15,24 +15,41 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { NButton } from 'naive-ui';
 import TaskQueue from '@/components/TaskQueue.vue';
 import { syncApi } from '@/api';
 
-const tasks = ref([]);
+type TaskItem = Record<string, unknown>;
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+const tasks = ref<TaskItem[]>([]);
 const loading = ref(false);
 const errorMsg = ref('');
 
-async function refresh() {
+async function refresh(): Promise<void> {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const data = await syncApi.queue();
-    tasks.value = Array.isArray(data?.tasks) ? data.tasks : Array.isArray(data) ? data : [];
+    const data: unknown = await syncApi.queue();
+    const list: TaskItem[] = (() => {
+      if (data && typeof data === 'object' && 'tasks' in data) {
+        const t = (data as { tasks?: unknown }).tasks;
+        if (Array.isArray(t)) return t as TaskItem[];
+      }
+      if (Array.isArray(data)) return data as TaskItem[];
+      return [];
+    })();
+    tasks.value = list;
   } catch (err) {
-    errorMsg.value = `加载任务队列失败: ${err?.message || err}`;
+    errorMsg.value = `加载任务队列失败: ${errorMessage(err)}`;
   } finally {
     loading.value = false;
   }

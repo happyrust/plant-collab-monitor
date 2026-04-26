@@ -47,6 +47,10 @@ coverage/
 # Type check cache
 *.tsbuildinfo
 
+# unplugin-auto-import / unplugin-vue-components 生成的全局类型
+auto-imports.d.ts
+components.d.ts
+
 # vue-tsc compiled artifacts (不要把编译产物入库)
 src/**/*.vue.js
 src/**/*.vue.d.ts
