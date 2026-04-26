@@ -64,7 +64,6 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 | `vue-router` | 5.0.6 | 5.0.6 | 5.0.6 | major | 中 ✅ 已应用 |
 | `vite` | 8.0.10 | 8.0.10 | 8.0.10 | major × 3 | 高 ✅ 已应用 |
 | `@vitejs/plugin-vue` | 6.0.6 | 6.0.6 | 6.0.6 | major | 中 ✅ 已应用 |
-| `@vueuse/core` | 11.3.0 | 11.3.0 | 14.2.1 | major × 3 | 低-中（API 兼容性需测试）|
 | `daisyui` | 4.12.24 | 4.12.24 | 5.5.19 | major | **高**（与 tailwind 4 配套）|
 | `tailwindcss` | 3.4.19 | 3.4.19 | 4.2.4 | major | **高**（rewrite，配置格式大改）|
 
@@ -74,14 +73,11 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 - **S1 类型工具链升级完成**：`@types/node` 22 → 25、`typescript` 5 → 6、`vue-tsc` 2 → 3。TS 6 对 `baseUrl` 发出弃用诊断后，同步把 `tsconfig.json` 的 `paths` 迁移为无 `baseUrl` 写法（`@/*` → `./src/*`），`type-check` + `build` 全绿。
 - **S2 路由 + 状态升级完成**：`vue-router` 4 → 5、`pinia` 2 → 3。现有 `router.beforeEach` admin guard、RouteMeta 扩展、`adminAuth` / `appStatus` setup store 均无需代码改动；`type-check` + `build` 全绿。
 - **S3 Vite 安全修复完成**：`vite` 5 → 8、`@vitejs/plugin-vue` 5 → 6。现有 `base`、proxy、manualChunks、auto-import / components 插件配置无需代码改动；`type-check` + `build` + `npm audit` 全绿。
+- **未使用 direct dependency 清理完成**：业务源码与 `vite.config.ts` 均未直接使用 `@vueuse/core`，移除 direct dependency 后仍由 `unplugin-auto-import` 保留传递依赖；`type-check` + `build` + `npm audit` 全绿。
 
 ### 暂不升级（待独立 sprint 评估）
 
 按 risk 排序：
-
-#### 低风险 backlog（可单独 PR）
-
-- `@vueuse/core` 11 → 14：检查项目使用了哪些 hook，逐个对照 changelog。
 
 #### 高风险 backlog（成套升级）
 
@@ -128,8 +124,8 @@ S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
 | 当前是否有 critical / high 漏洞？ | **否**（npm audit 0 vulnerabilities） |
 | 生产产物是否受影响？ | **否** |
 | 必须立即升级？ | **否**（S3 已关闭 audit 漏洞） |
-| 推荐何时升级？ | 剩余 `@vueuse/core` 可单独评估；Tailwind/daisyUI 需独立样式 rewrite sprint |
-| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级 + S3 Vite 安全修复完成 |
+| 推荐何时升级？ | 剩余 Tailwind/daisyUI 需独立样式 rewrite sprint |
+| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级 + S3 Vite 安全修复 + 未使用 direct dependency 清理完成 |
 
 ---
 

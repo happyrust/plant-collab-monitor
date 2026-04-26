@@ -8,6 +8,27 @@
 
 ## 2026-04-26
 
+### Maintenance Cleanup · 移除未使用 VueUse direct dependency（本次提交）
+
+> 继续处理 S3 后剩余的低风险项：确认业务源码未直接使用 `@vueuse/core` 后，移除 direct dependency，而不是升级未使用 API。
+
+#### Dependencies
+
+- **移除 `@vueuse/core` direct dependency**：全仓精确搜索仅命中文档与 package 元数据；`src/` 与 `vite.config.ts` 无直接 import / auto-import 配置。`unplugin-auto-import` 仍保留其传递依赖，不影响构建工具链。
+
+#### Docs
+
+- **同步技术栈**：`README.md` 更新到 Vite 8 / TypeScript 6 / Pinia 3 / vue-router 5，移除 `@vueuse/core` 直接依赖描述，并把 Node 要求同步为 ≥20.19。
+
+#### Verification
+
+- `npm run type-check` PASS。
+- `npm run build` PASS（vite 8.0.10，3487 modules transformed，built in 1.97s）。
+- `npm audit --registry=https://registry.npmjs.org/` PASS：0 vulnerabilities。
+- `npm outdated` 剩余：`tailwindcss` / `daisyui`。
+
+---
+
 ### Maintenance S3 · Vite 安全修复（1 commit · `0deb43d`）
 
 > 按维护 backlog 完成 Vite/esbuild moderate 漏洞闭环：升级 Vite 主链路，保留现有构建配置语义。
@@ -220,4 +241,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`0deb43d`（Maintenance S3 Vite 安全修复）
+- 最新记录到：Maintenance Cleanup 移除未使用 VueUse direct dependency（提交见 git log）

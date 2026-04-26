@@ -22,17 +22,17 @@
 ## 技术栈
 
 - Vue 3.5 (Composition API · `<script setup lang="ts">`)
-- Vite 5.4 · TypeScript 5.6 · vue-tsc strict
+- Vite 8.0 · TypeScript 6.0 · vue-tsc strict
 - Naive UI 2.40 + Tailwind 3.4 + DaisyUI 4（完全继承自 web-server 旧栈）
-- Pinia 2.2 + vue-router 4.4
-- axios 1.7 · @vueuse/core 11
+- Pinia 3.0 + vue-router 5.0
+- axios 1.7
 - echarts 6（独立 vendor chunk · 按需 import）
-- `unplugin-auto-import` + `unplugin-vue-components`（NaiveUiResolver · 组件 + hooks 自动注册并 tree-shake · vendor-naive 1.36MB → 573KB）
+- `unplugin-auto-import` + `unplugin-vue-components`（NaiveUiResolver · 组件 + hooks 自动注册并 tree-shake · vendor-naive 1.36MB → 633.81KB）
 - vfonts（Lato + FiraCode）
 
 ## 环境要求
 
-- Node ≥ 20
+- Node ≥ 20.19
 - 可访问 `plant-model-gen` 后端（默认 `http://127.0.0.1:3100`）
 
 ## 快速开始
