@@ -80,6 +80,7 @@
 - **Dark mode 深度精修**（Phase 38-40）：DashCard 标题 + 事件列表 divider + text-slate-600/700 70+ 处 + SiteConfigView 38 处 + border-slate-200 11 处零残留
 - **Dark mode 截图测试**（Phase 41）：smoke 扩展 dark 截图轮，4 张基线截图
 - **NTooltip 侧栏**（Phase 42）：折叠态导航从 native title 升级为 NTooltip 秒显
+- **移动端响应式**（Phase 43）：`md` 以下隐藏侧栏 + ☰ 汉堡菜单 + overlay 弹出 + 自动关闭
 
 #### 验证
 
