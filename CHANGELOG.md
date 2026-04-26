@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance S4 · Tailwind / DaisyUI 样式系统升级（本次提交）
+### Maintenance S4 · Tailwind / DaisyUI 样式系统升级（1 commit · `75e27de`）
 
 > 完成最后一组依赖升级：Tailwind 3 → 4、DaisyUI 4 → 5，并迁移到 Tailwind v4 的 PostCSS 与 CSS-first 配置。
 
@@ -266,4 +266,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance S4 Tailwind / DaisyUI 样式系统升级（提交见 git log）
+- 最新记录到：`75e27de`（Maintenance S4 Tailwind / DaisyUI 样式系统升级）
