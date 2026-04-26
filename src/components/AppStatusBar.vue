@@ -1,5 +1,12 @@
 <template>
   <div class="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+    <div
+      v-if="!connected"
+      class="px-6 py-1.5 bg-rose-600 text-white text-xs font-semibold flex items-center justify-center gap-2"
+    >
+      <span class="inline-block w-2 h-2 rounded-full bg-white animate-pulse"></span>
+      后端连接中断 · 连续 {{ consecutiveFailures }} 次失败 · 正在重试…
+    </div>
     <div class="px-6 py-2 flex items-center justify-between text-sm">
       <div class="flex items-center gap-2 flex-wrap">
         <RouterLink to="/site-config" class="status-pill" :class="identityPillClass" title="点击进入站点配置">
@@ -55,6 +62,8 @@ const {
   loading,
   lastError,
   lastUpdatedAt,
+  connected,
+  consecutiveFailures,
 } = storeToRefs(store);
 
 const refresh = () => store.refresh();

@@ -42,6 +42,8 @@ export const useAppStatusStore = defineStore('appStatus', () => {
   const loading = ref(false);
   const lastUpdatedAt = ref<string | null>(null);
   const lastError = ref<string | null>(null);
+  const consecutiveFailures = ref(0);
+  const connected = ref(true);
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let started = false;
@@ -122,8 +124,14 @@ export const useAppStatusStore = defineStore('appStatus', () => {
 
       pruneEventCounter();
       lastUpdatedAt.value = new Date().toISOString();
+      consecutiveFailures.value = 0;
+      connected.value = true;
     } catch (err) {
       lastError.value = (err as { message?: string })?.message || String(err);
+      consecutiveFailures.value++;
+      if (consecutiveFailures.value >= 2) {
+        connected.value = false;
+      }
     } finally {
       loading.value = false;
     }
@@ -157,6 +165,8 @@ export const useAppStatusStore = defineStore('appStatus', () => {
     loading,
     lastUpdatedAt,
     lastError,
+    connected,
+    consecutiveFailures,
     refresh,
     start,
     stop,
