@@ -7,8 +7,8 @@
       <span class="inline-block w-2 h-2 rounded-full bg-white animate-pulse"></span>
       后端连接中断 · 连续 {{ consecutiveFailures }} 次失败 · 正在重试…
     </div>
-    <div class="px-6 py-2 flex items-center justify-between text-sm">
-      <div class="flex items-center gap-2 flex-wrap">
+    <div class="px-4 md:px-6 py-2 flex items-center justify-between text-sm gap-2">
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
         <RouterLink to="/site-config" class="status-pill" :class="identityPillClass" title="点击进入站点配置">
           <span class="dot" :class="identity.isMaster ? 'bg-purple-500' : 'bg-blue-500'"></span>
           <span class="font-semibold">{{ identity.location || '未配置' }}</span>
@@ -179,5 +179,18 @@ const eventsPillClass = computed(() =>
   height: 0.5rem;
   border-radius: 9999px;
   flex-shrink: 0;
+}
+
+.status-pill {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 </style>
