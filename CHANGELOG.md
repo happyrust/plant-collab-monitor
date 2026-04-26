@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance Verification · 依赖升级预览 Smoke（本次提交）
+### Maintenance Verification · 依赖升级预览 Smoke（1 commit · `01389ea`）
 
 > S1-S4 全部完成后追加生产预览静态验证，确认 `/monitor/` base、SPA fallback、核心 assets 与 Tailwind/DaisyUI 产物正常。
 
@@ -279,4 +279,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance Verification 依赖升级预览 Smoke（提交见 git log）
+- 最新记录到：`01389ea`（Maintenance Verification 依赖升级预览 Smoke）
