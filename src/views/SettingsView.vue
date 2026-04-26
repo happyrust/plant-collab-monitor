@@ -27,7 +27,7 @@
         </div>
 
         <!-- Auto Detection Section -->
-        <div class="bg-white p-6 rounded-xl border border-base-200 shadow-sm">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-base-200 shadow-sm">
           <h4 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
             <i class="fas fa-search text-blue-500"></i> 自动检测
           </h4>
@@ -71,7 +71,7 @@
         </div>
 
         <!-- Sync Settings Section -->
-        <div class="bg-white p-6 rounded-xl border border-base-200 shadow-sm">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-base-200 shadow-sm">
           <h4 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
             <i class="fas fa-sync text-green-500"></i> 同步策略
           </h4>
@@ -131,7 +131,7 @@
         </div>
 
         <!-- Notification & Logs Section -->
-        <div class="bg-white p-6 rounded-xl border border-base-200 shadow-sm">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-base-200 shadow-sm">
           <h4 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800">
             <i class="fas fa-bell text-amber-500"></i> 通知与日志
           </h4>

@@ -34,7 +34,7 @@
             <span class="loading loading-spinner loading-lg text-primary"></span>
             <p class="text-sm text-slate-500 mt-3">加载中...</p>
           </div>
-          <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white rounded-xl border-2 border-dashed border-slate-200">
+          <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200">
             <i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i>
             <p class="font-medium text-slate-600">暂无环境配置</p>
             <p class="text-xs mt-2 text-slate-400">点击右上角"新建"按钮添加环境</p>
@@ -44,7 +44,7 @@
             :key="env.id"
             @click="selectEnv(env)"
             :class="[
-              'card bg-white shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200 border-2',
+              'card bg-white dark:bg-slate-800 shadow-sm cursor-pointer hover:shadow-lg transition-all duration-200 border-2',
               selectedEnv?.id === env.id
                 ? 'border-primary ring-2 ring-primary/20 shadow-primary/10'
                 : 'border-slate-200 hover:border-blue-200'
@@ -81,13 +81,13 @@
 
       <!-- Right: Sites -->
       <div class="flex-1 flex flex-col bg-gradient-to-br from-green-50/40 to-emerald-50/20 rounded-xl border-2 border-green-100 relative overflow-hidden shadow-sm min-h-[400px] lg:min-h-0">
-        <div v-if="!selectedEnv" class="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10 text-slate-400">
+        <div v-if="!selectedEnv" class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-800/80 backdrop-blur-sm z-10 text-slate-400">
           <i class="fas fa-hand-point-left text-6xl mb-6 text-slate-200 animate-pulse"></i>
           <p class="text-lg font-medium text-slate-500">请先在左侧选择一个环境</p>
           <p class="text-sm text-slate-400 mt-2">选择环境后可查看其包含的站点</p>
         </div>
 
-        <div class="p-5 border-b-2 border-green-100 flex justify-between items-center bg-white/60">
+        <div class="p-5 border-b-2 border-green-100 flex justify-between items-center bg-white dark:bg-slate-800/60">
           <div>
             <h4 class="font-bold text-lg text-slate-800 flex items-center gap-2">
               <i class="fas fa-sitemap text-green-600"></i>
@@ -367,7 +367,7 @@
 
     <!-- Add Site Modal -->
     <dialog class="modal" :class="{ 'modal-open': showAddSite }">
-      <div class="modal-box max-w-2xl shadow-2xl border border-slate-200/50 bg-white/95 backdrop-blur-sm">
+      <div class="modal-box max-w-2xl shadow-2xl border border-slate-200/50 bg-white dark:bg-slate-800/95 backdrop-blur-sm">
         <!-- 关闭按钮 -->
         <button 
           @click="showAddSite = false" 
@@ -448,7 +448,7 @@
               <div class="w-full border-t border-slate-200"></div>
             </div>
             <div class="relative flex justify-center">
-              <span class="bg-white px-4 text-xs font-medium text-slate-400 flex items-center gap-2">
+              <span class="bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-400 flex items-center gap-2">
                 <i class="fas fa-ellipsis-h"></i>
                 或手动填写
                 <i class="fas fa-ellipsis-h"></i>
@@ -637,24 +637,24 @@
                 基本信息
               </h4>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
                   <p class="text-xs text-slate-500 mb-1">站点名称</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.name || '-' }}</p>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
                   <p class="text-xs text-slate-500 mb-1">HTTP 地址</p>
                   <code class="text-sm text-blue-600">{{ selectedSite?.http_host || '-' }}</code>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
                   <p class="text-xs text-slate-500 mb-1">位置标识</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.location || '-' }}</p>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
                   <p class="text-xs text-slate-500 mb-1">数据库编号</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.dbnums || '-' }}</p>
                 </div>
               </div>
-              <div v-if="selectedSite?.notes" class="bg-white rounded-lg p-4 border border-slate-200 mt-4">
+              <div v-if="selectedSite?.notes" class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 mt-4">
                 <p class="text-xs text-slate-500 mb-1">备注</p>
                 <p class="text-sm text-slate-600">{{ selectedSite.notes }}</p>
               </div>
@@ -682,18 +682,18 @@
                 运行状态
               </h4>
               <div class="grid grid-cols-3 gap-4">
-                <div class="bg-white rounded-lg p-4 border border-slate-200 text-center">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 text-center">
                   <p class="text-xs text-slate-500 mb-1">连接状态</p>
                   <div class="flex items-center justify-center gap-2 mt-2">
                     <div :class="['w-3 h-3 rounded-full', siteDetails.status.online ? 'bg-green-500' : 'bg-red-500']"></div>
                     <p class="font-semibold text-slate-800">{{ siteDetails.status.online ? '在线' : '离线' }}</p>
                   </div>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-slate-200 text-center">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 text-center">
                   <p class="text-xs text-slate-500 mb-1">运行时长</p>
                   <p class="font-semibold text-slate-800 mt-2">{{ siteDetails.status.uptime || '-' }}</p>
                 </div>
-                <div class="bg-white rounded-lg p-4 border border-slate-200 text-center">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 text-center">
                   <p class="text-xs text-slate-500 mb-1">版本</p>
                   <p class="font-semibold text-slate-800 mt-2">{{ siteDetails.status.version || '-' }}</p>
                 </div>

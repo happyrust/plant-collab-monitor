@@ -55,7 +55,7 @@
         <!-- 第一行：节点角色和服务状态 -->
         <div class="flex items-center gap-3 flex-wrap">
           <!-- 节点角色 -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-base-300 shadow-sm">
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-base-300 shadow-sm">
             <span class="text-xs text-slate-600 font-medium">节点角色:</span>
             <span class="text-sm font-bold px-2 py-0.5 rounded" :class="mqttStatus.is_master_node ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'">
               {{ mqttStatus.is_master_node ? '主节点' : '从节点' }}
@@ -126,7 +126,7 @@
           </div>
 
           <!-- MQTT 订阅状态 -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-base-300 shadow-sm">
+          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-base-300 shadow-sm">
             <div class="flex items-center gap-2">
               <div
                 class="w-2.5 h-2.5 rounded-full"
@@ -224,7 +224,7 @@
 
         <!-- 第二行：统计信息 -->
         <div class="flex items-center gap-3">
-          <div class="stats stats-horizontal shadow-sm bg-white border border-base-200">
+          <div class="stats stats-horizontal shadow-sm bg-white dark:bg-slate-800 border border-base-200">
             <div class="stat py-2 px-4">
               <div class="stat-title text-xs text-slate-600">在线节点</div>
               <div class="stat-value text-2xl text-success font-bold">{{ summary.online }}</div>
@@ -318,7 +318,7 @@
                 'card cursor-pointer transition-all duration-200 border-2',
                 selectedNode?.location === node.location
                   ? 'bg-primary/10 border-primary shadow-md'
-                  : 'bg-white border-slate-200 hover:border-blue-200 hover:shadow'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 hover:border-blue-200 hover:shadow'
               ]"
             >
               <div class="card-body p-4">
@@ -400,7 +400,7 @@
             <div
               v-for="msg in filteredMessages"
               :key="msg.message_id"
-              class="card bg-white shadow-sm border border-slate-200"
+              class="card bg-white dark:bg-slate-800 shadow-sm border border-slate-200"
             >
               <div class="card-body p-4">
                 <div class="flex justify-between items-start mb-3">

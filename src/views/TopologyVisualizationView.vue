@@ -13,7 +13,7 @@
       </div>
       <div class="flex items-center gap-3">
         <!-- Legend -->
-        <div class="flex items-center gap-4 text-xs bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex-wrap">
+        <div class="flex items-center gap-4 text-xs bg-white dark:bg-slate-800 px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex-wrap">
           <div class="flex items-center gap-1.5">
             <div class="w-3 h-3 rounded bg-purple-600 animate-pulse"></div>
             <span class="font-semibold">主节点</span>
@@ -400,7 +400,7 @@
     <!-- Node Details Panel -->
     <div
       v-if="selectedNode"
-      class="absolute bottom-4 left-4 w-80 bg-white rounded-xl shadow-2xl border-2 border-primary/20 p-4 max-h-96 overflow-y-auto"
+      class="absolute bottom-4 left-4 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border-2 border-primary/20 p-4 max-h-96 overflow-y-auto"
     >
       <div class="flex justify-between items-start mb-3">
         <div>
@@ -477,7 +477,7 @@
             <div
               v-for="topic in selectedNode.subscribed_topics"
               :key="topic"
-              class="text-xs font-mono bg-white px-2 py-1 rounded border border-slate-200"
+              class="text-xs font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border border-slate-200"
             >
               {{ topic }}
             </div>
@@ -491,7 +491,7 @@
             <div
               v-for="(msg, idx) in getRecentMessages(selectedNode.location)"
               :key="idx"
-              class="text-xs bg-white px-3 py-2 rounded border border-slate-200"
+              class="text-xs bg-white dark:bg-slate-800 px-3 py-2 rounded border border-slate-200"
             >
               <div class="flex items-center justify-between mb-1">
                 <span class="font-semibold text-primary">{{ msg.sender_location }}</span>

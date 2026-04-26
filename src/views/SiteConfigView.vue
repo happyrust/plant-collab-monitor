@@ -1,14 +1,14 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-6 px-4">
+  <div class="min-h-screen bg-gray-50 dark:bg-slate-900 py-6 px-4">
     <div class="max-w-6xl mx-auto">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-blue-200">
+      <div class="flex items-center justify-between mb-6 pb-4 border-b-2 border-blue-200 dark:border-slate-700">
         <div>
-          <h1 class="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+          <h1 class="text-2xl font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
             <i class="fas fa-cog text-blue-600"></i>
             站点配置管理
           </h1>
-          <p class="text-sm text-slate-600 mt-1">配置本站点的数据库连接、项目路径、MQTT 等参数</p>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">配置本站点的数据库连接、项目路径、MQTT 等参数</p>
         </div>
         <div class="flex gap-2">
           <button
@@ -89,9 +89,9 @@
       <!-- Configuration Form -->
       <div v-else class="space-y-4">
         <!-- 项目设置 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-blue-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-blue-100">
               <i class="fas fa-folder-open text-blue-600"></i>
               项目设置
             </h2>
@@ -104,7 +104,7 @@
                   v-model="config.project_path"
                   type="text"
                   placeholder="D:/AVEVA/Projects/E3D2.1"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">PDMS/E3D 项目根目录</span>
@@ -119,7 +119,7 @@
                   v-model="config.project_name"
                   type="text"
                   placeholder="AvevaMarineSample"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -131,7 +131,7 @@
                   v-model="config.project_code"
                   type="text"
                   placeholder="1516"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -143,7 +143,7 @@
                   v-model="config.module"
                   type="text"
                   placeholder="DESI"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -155,7 +155,7 @@
                   v-model="includedProjectsText"
                   type="text"
                   placeholder="AvevaMarineSample, AvevaCatalogue, SCB, ZDJ"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">多个项目用逗号分隔</span>
@@ -166,9 +166,9 @@
         </div>
 
         <!-- 位置和数据库 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-100">
               <i class="fas fa-map-marker-alt text-green-600"></i>
               位置和数据库
             </h2>
@@ -181,7 +181,7 @@
                   v-model="config.location"
                   type="text"
                   placeholder="SJZ"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">用于 MQTT 和异地同步识别</span>
@@ -197,7 +197,7 @@
                     v-model="locationDbsText"
                     type="text"
                     placeholder="1112, 1113, 1114"
-                    class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 pr-10"
+                    class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100 pr-10"
                   />
                   <button
                     type="button"
@@ -211,7 +211,7 @@
                 <!-- 下拉列表 -->
                 <div
                   v-if="showDbnoDropdown"
-                  class="absolute z-50 mt-1 w-full bg-white border-2 border-gray-300 shadow-lg max-h-60 overflow-y-auto"
+                  class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border-2 border-gray-300 shadow-lg max-h-60 overflow-y-auto"
                 >
                   <div v-if="loadingDbnos" class="p-3 text-center text-sm text-gray-600">
                     <i class="fas fa-spinner fa-spin"></i> 加载中...
@@ -234,7 +234,7 @@
                           class="checkbox checkbox-sm border-2 border-gray-400 rounded-none"
                           @click.stop="toggleDbno(db.db_num)"
                         />
-                        <span class="text-sm font-medium text-gray-900">{{ db.db_num }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ db.db_num }}</span>
                         <span class="text-xs text-gray-500">- {{ db.name }}</span>
                       </div>
                       <span class="text-xs text-gray-400">{{ db.record_count }} 条记录</span>
@@ -250,9 +250,9 @@
         </div>
 
         <!-- 数据库连接 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-purple-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-purple-100">
               <i class="fas fa-database text-purple-600"></i>
               数据库连接参数
             </h2>
@@ -266,7 +266,7 @@
                     v-model="config.ip"
                     type="text"
                     placeholder="127.0.0.1"
-                    class="input flex-1 bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -288,7 +288,7 @@
                   v-model="config.port"
                   type="text"
                   placeholder="3306"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -300,7 +300,7 @@
                   v-model="config.user"
                   type="text"
                   placeholder="root"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -312,7 +312,7 @@
                   v-model="config.password"
                   type="password"
                   placeholder="••••••••"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -320,9 +320,9 @@
         </div>
 
         <!-- MQTT 配置 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-orange-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-orange-100">
               <i class="fas fa-paper-plane text-orange-600"></i>
               MQTT 配置
             </h2>
@@ -336,7 +336,7 @@
                     v-model="config.mqtt_host"
                     type="text"
                     placeholder="192.168.31.58"
-                    class="input flex-1 bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -358,7 +358,7 @@
                   v-model.number="config.mqtt_port"
                   type="number"
                   placeholder="1883"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -366,9 +366,9 @@
         </div>
 
         <!-- 服务器配置 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-red-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-red-100">
               <i class="fas fa-server text-red-600"></i>
               服务器配置
             </h2>
@@ -382,7 +382,7 @@
                     v-model="config.server_release_ip"
                     type="text"
                     placeholder="127.0.0.1:9099"
-                    class="input flex-1 bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -405,7 +405,7 @@
                     v-model="config.file_server_host"
                     type="text"
                     placeholder="http://192.168.31.58:8000/assets/archives"
-                    class="input flex-1 bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
@@ -423,9 +423,9 @@
         </div>
 
         <!-- 模型生成配置 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-cyan-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-cyan-100">
               <i class="fas fa-cube text-cyan-600"></i>
               模型生成配置
             </h2>
@@ -483,7 +483,7 @@
                   type="number"
                   step="0.1"
                   placeholder="3.0"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">数值越大，网格越粗糙但性能更好</span>
@@ -494,9 +494,9 @@
         </div>
 
         <!-- 同步配置 -->
-        <div class="bg-white border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
           <div class="p-5">
-            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4 pb-3 border-b-2 border-indigo-100">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-indigo-100">
               <i class="fas fa-sync text-indigo-600"></i>
               同步配置
             </h2>
@@ -542,7 +542,7 @@
                   v-model="syncPushDbTypesText"
                   type="text"
                   placeholder="DESI, CATA, DICT"
-                  class="input w-full bg-white border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">多个类型用逗号分隔，空列表表示允许所有类型。默认只同步 DESI 类型</span>
@@ -557,7 +557,7 @@
 
     <!-- Validation Errors Modal -->
     <div v-if="validationErrors.length > 0" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white border-2 border-red-300 p-6 max-w-md w-full mx-4 shadow-lg">
+      <div class="bg-white dark:bg-slate-800 border-2 border-red-300 p-6 max-w-md w-full mx-4 shadow-lg">
         <h3 class="text-base font-semibold text-red-600 mb-4 flex items-center gap-2 pb-3 border-b-2 border-red-200">
           <i class="fas fa-exclamation-triangle"></i>
           配置验证失败

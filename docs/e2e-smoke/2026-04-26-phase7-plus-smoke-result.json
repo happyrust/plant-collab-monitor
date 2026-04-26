@@ -87,6 +87,11 @@
   "pageErrors": [],
   "requestFailures": [
     {
+      "url": "http://127.0.0.1:3200/api/sync/metrics",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
       "url": "http://127.0.0.1:3200/api/sync/events/stream",
       "method": "GET",
       "failure": "net::ERR_ABORTED"
@@ -111,7 +116,7 @@
     }
   },
   "screenshots": "docs/e2e-smoke/screenshots/2026-04-26-phase7-plus",
-  "generatedAt": "2026-04-26T17:19:04.721Z",
+  "generatedAt": "2026-04-26T17:21:44.534Z",
   "passed": true,
   "sseAuthorized": true,
   "routeNavigationOk": true

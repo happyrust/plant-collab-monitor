@@ -1,10 +1,10 @@
 <template>
   <section class="px-8 py-8 max-w-7xl mx-auto space-y-6">
     <!-- Header -->
-    <header class="flex items-start justify-between border-b border-slate-200 pb-5">
+    <header class="flex items-start justify-between border-b border-slate-200 dark:border-slate-700 pb-5">
       <div>
         <p class="text-xs uppercase tracking-widest text-slate-500 mb-1">PLANT · MONITOR</p>
-        <h1 class="text-3xl font-semibold tracking-tight text-slate-900">全局概览</h1>
+        <h1 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">全局概览</h1>
         <p class="mt-2 text-slate-600">
           异地协同站点运行时关键指标 · 30s 自动刷新
         </p>
@@ -33,7 +33,7 @@
         accent="blue"
       >
         <div class="flex items-baseline gap-2">
-          <span class="text-2xl font-bold text-slate-900">{{ identity.location || '—' }}</span>
+          <span class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ identity.location || '—' }}</span>
           <span
             v-if="identity.role"
             class="text-xs px-2 py-0.5 rounded-full"
@@ -57,7 +57,7 @@
             class="w-2.5 h-2.5 rounded-full"
             :class="syncStatusDotClass"
           ></span>
-          <span class="text-xl font-bold capitalize text-slate-900">
+          <span class="text-xl font-bold capitalize text-slate-900 dark:text-slate-100">
             {{ syncStatusLabel || '未知' }}
           </span>
         </div>
@@ -89,7 +89,7 @@
         :error="sections.queue.error"
         accent="amber"
       >
-        <div class="text-2xl font-bold text-slate-900">{{ queueSummary.waiting + queueSummary.running }}</div>
+        <div class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ queueSummary.waiting + queueSummary.running }}</div>
         <p class="text-xs text-slate-500 mt-1">
           等待 {{ queueSummary.waiting }} · 运行 {{ queueSummary.running }} · 失败 {{ queueSummary.failed }}
         </p>
@@ -131,8 +131,8 @@
     </div>
 
     <!-- Recent events -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
-      <div class="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 dark:border-slate-700 shadow-sm">
+      <div class="px-5 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <i class="fas fa-stream text-slate-500"></i>
           <span class="font-semibold text-slate-700">最近事件</span>
@@ -248,7 +248,7 @@ const DashCard: Component = {
         'div',
         {
           class: [
-            'bg-white rounded-xl border border-slate-200 shadow-sm p-4 border-l-4 transition-all',
+            'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 dark:border-slate-700 shadow-sm p-4 border-l-4 transition-all',
             accentMap[props.accent as string] || accentMap.slate,
             props.status === 'loading' ? 'opacity-70' : '',
           ],
