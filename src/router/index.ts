@@ -124,4 +124,8 @@ router.afterEach((to) => {
   document.title = t ? `${t} · plant-collab-monitor` : 'plant-collab-monitor';
 });
 
+router.onError((err) => {
+  console.error('[Router Error]', err?.message || err);
+});
+
 export default router;

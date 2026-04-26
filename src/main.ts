@@ -13,6 +13,16 @@ import './styles/main.css';
 // 因此不再 `app.use(naive)` 全量挂载，避免 1.3MB 巨型 vendor chunk。
 
 const app = createApp(App);
+
+app.config.errorHandler = (err, instance, info) => {
+  const component = instance?.$options?.name || instance?.$options?.__name || 'unknown';
+  console.error(`[Vue Error] ${info} in <${component}>:`, (err as Error)?.message || err);
+};
+
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[Unhandled Promise]', e.reason?.message || e.reason);
+});
+
 app.use(createPinia());
 app.use(router);
 app.mount('#app');
