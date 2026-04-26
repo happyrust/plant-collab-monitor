@@ -13,7 +13,7 @@
         <div class="flex gap-2">
           <button
             @click="loadConfig"
-            class="btn btn-sm gap-1 bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300 rounded-none"
+            class="btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
             :disabled="loading"
           >
             <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
@@ -89,7 +89,7 @@
       <!-- Configuration Form -->
       <div v-else class="space-y-4">
         <!-- 项目设置 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-blue-100">
               <i class="fas fa-folder-open text-blue-600"></i>
@@ -104,7 +104,7 @@
                   v-model="config.project_path"
                   type="text"
                   placeholder="D:/AVEVA/Projects/E3D2.1"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">PDMS/E3D 项目根目录</span>
@@ -119,7 +119,7 @@
                   v-model="config.project_name"
                   type="text"
                   placeholder="AvevaMarineSample"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -131,7 +131,7 @@
                   v-model="config.project_code"
                   type="text"
                   placeholder="1516"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -143,7 +143,7 @@
                   v-model="config.module"
                   type="text"
                   placeholder="DESI"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -155,7 +155,7 @@
                   v-model="includedProjectsText"
                   type="text"
                   placeholder="AvevaMarineSample, AvevaCatalogue, SCB, ZDJ"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">多个项目用逗号分隔</span>
@@ -166,7 +166,7 @@
         </div>
 
         <!-- 位置和数据库 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-green-100">
               <i class="fas fa-map-marker-alt text-green-600"></i>
@@ -181,7 +181,7 @@
                   v-model="config.location"
                   type="text"
                   placeholder="SJZ"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">用于 MQTT 和异地同步识别</span>
@@ -197,12 +197,12 @@
                     v-model="locationDbsText"
                     type="text"
                     placeholder="1112, 1113, 1114"
-                    class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100 pr-10"
+                    class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100 pr-10"
                   />
                   <button
                     type="button"
                     @click.stop="toggleDbnoDropdown"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 btn btn-sm gap-1 bg-gray-200 text-gray-800 border-2 border-gray-300 hover:bg-gray-300 rounded-none"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border-2 border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
                     title="选择数据库编号"
                   >
                     <i class="fas fa-chevron-down" :class="{ 'fa-chevron-up': showDbnoDropdown }"></i>
@@ -211,7 +211,7 @@
                 <!-- 下拉列表 -->
                 <div
                   v-if="showDbnoDropdown"
-                  class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border-2 border-gray-300 shadow-lg max-h-60 overflow-y-auto"
+                  class="absolute z-50 mt-1 w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 shadow-lg max-h-60 overflow-y-auto"
                 >
                   <div v-if="loadingDbnos" class="p-3 text-center text-sm text-gray-600">
                     <i class="fas fa-spinner fa-spin"></i> 加载中...
@@ -235,7 +235,7 @@
                           @click.stop="toggleDbno(db.db_num)"
                         />
                         <span class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ db.db_num }}</span>
-                        <span class="text-xs text-gray-500">- {{ db.name }}</span>
+                        <span class="text-xs text-gray-500 dark:text-slate-400">- {{ db.name }}</span>
                       </div>
                       <span class="text-xs text-gray-400">{{ db.record_count }} 条记录</span>
                     </div>
@@ -250,7 +250,7 @@
         </div>
 
         <!-- 数据库连接 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-purple-100">
               <i class="fas fa-database text-purple-600"></i>
@@ -266,12 +266,12 @@
                     v-model="config.ip"
                     type="text"
                     placeholder="127.0.0.1"
-                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
                     @click="fillLocalIP('ip')"
-                    class="btn btn-sm gap-1 bg-gray-200 text-gray-800 border-2 border-gray-300 hover:bg-gray-300 rounded-none"
+                    class="btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border-2 border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
                     title="获取本机IP"
                   >
                     <i class="fas fa-network-wired"></i>
@@ -288,7 +288,7 @@
                   v-model="config.port"
                   type="text"
                   placeholder="3306"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -300,7 +300,7 @@
                   v-model="config.user"
                   type="text"
                   placeholder="root"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
 
@@ -312,7 +312,7 @@
                   v-model="config.password"
                   type="password"
                   placeholder="••••••••"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -320,7 +320,7 @@
         </div>
 
         <!-- MQTT 配置 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-orange-100">
               <i class="fas fa-paper-plane text-orange-600"></i>
@@ -336,12 +336,12 @@
                     v-model="config.mqtt_host"
                     type="text"
                     placeholder="192.168.31.58"
-                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
                     @click="fillLocalIP('mqtt_host')"
-                    class="btn btn-sm gap-1 bg-gray-200 text-gray-800 border-2 border-gray-300 hover:bg-gray-300 rounded-none"
+                    class="btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border-2 border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
                     title="获取本机IP"
                   >
                     <i class="fas fa-network-wired"></i>
@@ -358,7 +358,7 @@
                   v-model.number="config.mqtt_port"
                   type="number"
                   placeholder="1883"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -366,7 +366,7 @@
         </div>
 
         <!-- 服务器配置 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-red-100">
               <i class="fas fa-server text-red-600"></i>
@@ -382,12 +382,12 @@
                     v-model="config.server_release_ip"
                     type="text"
                     placeholder="127.0.0.1:9099"
-                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
                     @click="fillLocalIP('server_release_ip')"
-                    class="btn btn-sm gap-1 bg-gray-200 text-gray-800 border-2 border-gray-300 hover:bg-gray-300 rounded-none"
+                    class="btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border-2 border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
                     title="获取本机IP（保留端口）"
                   >
                     <i class="fas fa-network-wired"></i>
@@ -405,12 +405,12 @@
                     v-model="config.file_server_host"
                     type="text"
                     placeholder="http://192.168.31.58:8000/assets/archives"
-                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                    class="input flex-1 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                   />
                   <button
                     type="button"
                     @click="fillLocalIP('file_server_host')"
-                    class="btn btn-sm gap-1 bg-gray-200 text-gray-800 border-2 border-gray-300 hover:bg-gray-300 rounded-none"
+                    class="btn btn-sm gap-1 bg-gray-200 dark:bg-slate-600 text-gray-800 border-2 border-gray-300 dark:border-slate-600 hover:bg-gray-300 rounded-none"
                     title="获取本机IP（保留协议和端口）"
                   >
                     <i class="fas fa-network-wired"></i>
@@ -423,7 +423,7 @@
         </div>
 
         <!-- 模型生成配置 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-cyan-100">
               <i class="fas fa-cube text-cyan-600"></i>
@@ -483,7 +483,7 @@
                   type="number"
                   step="0.1"
                   placeholder="3.0"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">数值越大，网格越粗糙但性能更好</span>
@@ -494,7 +494,7 @@
         </div>
 
         <!-- 同步配置 -->
-        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200">
+        <div class="bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
           <div class="p-5">
             <h2 class="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-4 pb-3 border-b-2 border-indigo-100">
               <i class="fas fa-sync text-indigo-600"></i>
@@ -542,7 +542,7 @@
                   v-model="syncPushDbTypesText"
                   type="text"
                   placeholder="DESI, CATA, DICT"
-                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
+                  class="input w-full bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 focus:border-blue-500 focus:outline-none rounded-none text-gray-900 dark:text-slate-100"
                 />
                 <label class="label py-1">
                   <span class="label-text-alt text-xs text-gray-600">多个类型用逗号分隔，空列表表示允许所有类型。默认只同步 DESI 类型</span>
