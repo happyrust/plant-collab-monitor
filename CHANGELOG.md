@@ -8,6 +8,26 @@
 
 ## 2026-04-26
 
+### Maintenance S1 · 类型工具链升级（本次提交）
+
+> 按维护 backlog 继续推进 S1：先完成类型工具链升级，并顺手补齐最新 PostCSS patch；高风险 Vite / Tailwind 大版本仍保留为后续独立 sprint。
+
+#### Dependencies
+
+- **类型工具链升级**：`@types/node` 22 → 25、`typescript` 5 → 6、`vue-tsc` 2 → 3，`package.json` / `package-lock.json` 同步更新。
+- **`postcss` patch 补齐**：`postcss` 8.5.11 → 8.5.12，保持 zero-risk patch 路径。
+
+#### Config
+
+- **TS 6 配置迁移**：移除 `tsconfig.json` 已弃用的 `baseUrl`，把 `paths` 目标从 `src/*` 改为 `./src/*`，保留 `@/*` 别名语义，同时消除 TS 6 `baseUrl` 弃用诊断。
+
+#### Verification
+
+- `npm run type-check` PASS。
+- `npm run build` PASS（vite 5.4.21，3489 modules transformed，`vendor-naive` 573.05KB / gzip 159.34KB 保持）。
+
+---
+
 ### Maintenance · 依赖体检与 PostCSS patch（1 commit · `0a14a7c`）
 
 > 在文档与部署收尾之后追加一次依赖健康检查，只应用 patch 级 zero-risk 升级，major 跨版本升级进入 maintenance backlog。
@@ -159,4 +179,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`0a14a7c`（依赖体检与 PostCSS patch）
+- 最新记录到：Maintenance S1 类型工具链升级（提交见 git log）
