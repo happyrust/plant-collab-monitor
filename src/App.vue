@@ -5,24 +5,27 @@
       <div class="min-h-screen flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
         <!-- 侧栏 -->
         <aside
-          class="w-64 flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0"
+          :class="[
+            'flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 transition-[width] duration-300',
+            sidebarCollapsed ? 'w-16' : 'w-64',
+          ]"
         >
-          <div class="px-6 py-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700">
+          <div class="py-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
             <div
-              class="w-12 h-12 rounded-2xl bg-blue-600/90 flex items-center justify-center text-white text-xl font-semibold shadow-lg shadow-blue-900/20"
+              class="w-10 h-10 rounded-2xl bg-blue-600/90 flex items-center justify-center text-white text-lg font-semibold shadow-lg shadow-blue-900/20 shrink-0"
             >
               AI
             </div>
-            <div>
-              <p class="text-xs uppercase tracking-[0.35em] font-medium text-slate-500 dark:text-slate-400">
+            <div v-if="!sidebarCollapsed" class="overflow-hidden">
+              <p class="text-xs uppercase tracking-[0.35em] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
                 PLANT · COLLAB
               </p>
               <p class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Monitor</p>
             </div>
           </div>
 
-          <nav class="flex-1 px-3 py-6 space-y-1 text-sm overflow-y-auto">
-            <div class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <nav class="flex-1 py-6 space-y-1 text-sm overflow-y-auto" :class="sidebarCollapsed ? 'px-1' : 'px-3'">
+            <div v-if="!sidebarCollapsed" class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               监控
             </div>
             <RouterLink
@@ -34,17 +37,19 @@
             >
               <button
                 class="nav-link w-full"
-                :class="{ active: isActive }"
+                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                :title="sidebarCollapsed ? item.label : undefined"
                 @click="$router.push(item.path)"
               >
-                <span class="w-6 text-center">{{ item.icon }}</span>
-                <span>{{ item.label }}</span>
+                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
               </button>
             </RouterLink>
 
-            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <div v-if="!sidebarCollapsed" class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               任务与日志
             </div>
+            <div v-else class="mt-4"></div>
             <RouterLink
               v-for="item in navTasks"
               :key="item.name"
@@ -54,17 +59,19 @@
             >
               <button
                 class="nav-link w-full"
-                :class="{ active: isActive }"
+                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                :title="sidebarCollapsed ? item.label : undefined"
                 @click="$router.push(item.path)"
               >
-                <span class="w-6 text-center">{{ item.icon }}</span>
-                <span>{{ item.label }}</span>
+                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
               </button>
             </RouterLink>
 
-            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <div v-if="!sidebarCollapsed" class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               系统
             </div>
+            <div v-else class="mt-4"></div>
             <RouterLink
               v-for="item in navSystem"
               :key="item.name"
@@ -74,17 +81,18 @@
             >
               <button
                 class="nav-link w-full"
-                :class="{ active: isActive }"
+                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                :title="sidebarCollapsed ? item.label : undefined"
                 @click="$router.push(item.path)"
               >
-                <span class="w-6 text-center">{{ item.icon }}</span>
-                <span>{{ item.label }}</span>
+                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
               </button>
             </RouterLink>
           </nav>
 
-          <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span class="flex items-center gap-2">
+          <div class="px-2 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center" :class="sidebarCollapsed ? 'flex-col gap-2' : 'justify-between px-4'">
+            <span class="flex items-center gap-2" :class="sidebarCollapsed ? 'flex-col' : ''">
               <button
                 @click="themeStore.toggle()"
                 class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
@@ -92,10 +100,17 @@
               >
                 {{ themeStore.isDark ? '☀' : '🌙' }}
               </button>
-              v0.1.0
+              <button
+                @click="toggleSidebar"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                :title="sidebarCollapsed ? '展开侧栏' : '折叠侧栏'"
+              >
+                {{ sidebarCollapsed ? '»' : '«' }}
+              </button>
+              <span v-if="!sidebarCollapsed">v0.1.0</span>
             </span>
             <button
-              v-if="adminAuth.isLoggedIn"
+              v-if="adminAuth.isLoggedIn && !sidebarCollapsed"
               class="text-emerald-600 hover:text-emerald-700"
               :title="`已登录: ${adminAuth.username}, 角色: ${adminAuth.role}`"
               @click="handleLogout"
@@ -103,7 +118,7 @@
               {{ adminAuth.username }} ⏎
             </button>
             <button
-              v-else
+              v-else-if="!adminAuth.isLoggedIn && !sidebarCollapsed"
               class="text-blue-600 hover:text-blue-700"
               @click="adminAuth.promptLogin()"
             >
@@ -144,6 +159,14 @@ import { useThemeStore } from '@/stores/theme';
 
 const themeStore = useThemeStore();
 const adminAuth = useAdminAuthStore();
+
+const SIDEBAR_KEY = 'sidebar_collapsed';
+const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === '1');
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+  localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value ? '1' : '0');
+}
 
 registerAuthTokenProvider(() => adminAuth.token);
 
