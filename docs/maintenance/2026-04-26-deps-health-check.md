@@ -19,7 +19,11 @@
 
 ## 2. `npm audit` 漏洞扫描
 
-### 当前漏洞
+### 当前漏洞（S3 后）
+
+`npm audit --audit-level=moderate --registry=https://registry.npmjs.org/`：**0 vulnerabilities**。
+
+### 已关闭漏洞
 
 | 包 | 版本范围 | 严重度 | CVE | 位置 |
 |---|---|---|---|---|
@@ -38,14 +42,13 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 
 ### 决定
 
-**本轮不修复**。理由：
-1. 生产产物不受影响；
-2. vite 5 → 8 跨 3 个 major，配套 `@vitejs/plugin-vue` 5 → 6 也要同步升；
-3. 当前所有 build / type-check / e2e smoke 8/8 PASS，零阻塞。
+**S3 已修复**：升级 `vite` 5 → 8、`@vitejs/plugin-vue` 5 → 6，官方 registry audit 0 vulnerabilities。
 
-### 推荐时机
+### 验证
 
-下一次 vite 大版本升级 sprint（详见 § 4 升级 backlog）。
+- `npm run type-check` PASS。
+- `npm run build` PASS（Vite 8.0.10，3487 modules transformed）。
+- Vite 8/Rolldown 产物出现 `rolldown-runtime` 小 chunk；`vendor-naive` 从 573.05KB / gzip 159.34KB 增至 633.81KB / gzip 181.80KB，仍低于 `chunkSizeWarningLimit: 1500`。
 
 ---
 
@@ -59,17 +62,18 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 | `vue-tsc` | 3.2.7 | 3.2.7 | 3.2.7 | major | 中 ✅ 已应用 |
 | `pinia` | 3.0.4 | 3.0.4 | 3.0.4 | major | 中 ✅ 已应用 |
 | `vue-router` | 5.0.6 | 5.0.6 | 5.0.6 | major | 中 ✅ 已应用 |
-| `@vitejs/plugin-vue` | 5.2.4 | 5.2.4 | 6.0.6 | major | 中（与 vite 配套升）|
+| `vite` | 8.0.10 | 8.0.10 | 8.0.10 | major × 3 | 高 ✅ 已应用 |
+| `@vitejs/plugin-vue` | 6.0.6 | 6.0.6 | 6.0.6 | major | 中 ✅ 已应用 |
 | `@vueuse/core` | 11.3.0 | 11.3.0 | 14.2.1 | major × 3 | 低-中（API 兼容性需测试）|
 | `daisyui` | 4.12.24 | 4.12.24 | 5.5.19 | major | **高**（与 tailwind 4 配套）|
 | `tailwindcss` | 3.4.19 | 3.4.19 | 4.2.4 | major | **高**（rewrite，配置格式大改）|
-| `vite` | 5.4.21 | 5.4.21 | 8.0.10 | major × 3 | **高**（配置 + plugin 全套同升）|
 
 ### 已应用 ✅
 
 - **`postcss` 8.5.10 → 8.5.12**：patch 级，无 API 变化。`npm install postcss@latest`，`build` + `type-check` 全绿验证。
 - **S1 类型工具链升级完成**：`@types/node` 22 → 25、`typescript` 5 → 6、`vue-tsc` 2 → 3。TS 6 对 `baseUrl` 发出弃用诊断后，同步把 `tsconfig.json` 的 `paths` 迁移为无 `baseUrl` 写法（`@/*` → `./src/*`），`type-check` + `build` 全绿。
 - **S2 路由 + 状态升级完成**：`vue-router` 4 → 5、`pinia` 2 → 3。现有 `router.beforeEach` admin guard、RouteMeta 扩展、`adminAuth` / `appStatus` setup store 均无需代码改动；`type-check` + `build` 全绿。
+- **S3 Vite 安全修复完成**：`vite` 5 → 8、`@vitejs/plugin-vue` 5 → 6。现有 `base`、proxy、manualChunks、auto-import / components 插件配置无需代码改动；`type-check` + `build` + `npm audit` 全绿。
 
 ### 暂不升级（待独立 sprint 评估）
 
@@ -81,7 +85,6 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 
 #### 高风险 backlog（成套升级）
 
-- **`vite` 5 → 8 + `@vitejs/plugin-vue` 5 → 6**：配套升级修复 esbuild 漏洞。需要单独 sprint 跑 build 配置 + manualChunks 函数 + auto-import 插件 + 全套 e2e。
 - **`tailwindcss` 3 → 4 + `daisyui` 4 → 5**：配置格式从 `tailwind.config.js` 改 CSS-first，需要 rewrite 整个样式入口。
 
 ---
@@ -104,11 +107,11 @@ S2 · 路由 + 状态升级（已完成）
   - 所有 admin guard / store 接入路径全验
   - npm run type-check + npm run build 全绿
 
-S3 · vite + esbuild 安全修复（90-120 min · 高风险）
+S3 · vite + esbuild 安全修复（已完成）
   - vite@^8
   - @vitejs/plugin-vue@^6
   - 检查 manualChunks 函数签名 + base url + proxy + auto-import 插件
-  - dev / build 全跑
+  - npm run type-check + npm run build + npm audit 全绿
 
 S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
   - tailwindcss@^4 + daisyui@^5
@@ -122,11 +125,11 @@ S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
 
 | 问题 | 答案 |
 |---|---|
-| 当前是否有 critical / high 漏洞？ | **否**（仅 2 项 moderate · esbuild dev-only） |
+| 当前是否有 critical / high 漏洞？ | **否**（npm audit 0 vulnerabilities） |
 | 生产产物是否受影响？ | **否** |
-| 必须立即升级？ | **否**（开发者本地 dev 不公网暴露即可） |
-| 推荐何时升级？ | 下一个 maintenance sprint，按 § 4 backlog 分批 |
-| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级完成 |
+| 必须立即升级？ | **否**（S3 已关闭 audit 漏洞） |
+| 推荐何时升级？ | 剩余 `@vueuse/core` 可单独评估；Tailwind/daisyUI 需独立样式 rewrite sprint |
+| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级 + S3 Vite 安全修复完成 |
 
 ---
 

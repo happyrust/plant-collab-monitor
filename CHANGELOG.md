@@ -8,6 +8,29 @@
 
 ## 2026-04-26
 
+### Maintenance S3 · Vite 安全修复（本次提交）
+
+> 按维护 backlog 完成 Vite/esbuild moderate 漏洞闭环：升级 Vite 主链路，保留现有构建配置语义。
+
+#### Dependencies
+
+- **`vite` 5 → 8**：升级到 `vite` 8.0.10，关闭 `esbuild <= 0.24.2` dev server moderate 漏洞链路。
+- **`@vitejs/plugin-vue` 5 → 6**：升级到 `@vitejs/plugin-vue` 6.0.6，与 Vite 8 配套。
+
+#### Build
+
+- **配置兼容**：`vite.config.ts` 无需改动；`base`、proxy、manualChunks、auto-import / components 插件配置继续通过。
+- **产物变化**：Vite 8/Rolldown 构建新增 `rolldown-runtime` 小 chunk；`vendor-naive` 从 573.05KB / gzip 159.34KB 增至 633.81KB / gzip 181.80KB，仍低于 `chunkSizeWarningLimit: 1500`。
+
+#### Verification
+
+- `npm run type-check` PASS。
+- `npm run build` PASS（vite 8.0.10，3487 modules transformed，built in 2.88s）。
+- `npm audit --registry=https://registry.npmjs.org/` PASS：0 vulnerabilities。
+- `npm outdated` 剩余：`@vueuse/core`、`tailwindcss` / `daisyui`。
+
+---
+
 ### Maintenance S2 · 路由与状态依赖升级（1 commit · `4e9fd60`）
 
 > 继续按维护 backlog 推进中风险但局部可控的路由 + 状态升级，先把 Vue Router / Pinia major 版本收口；Vite/esbuild 安全修复仍保留到 S3 独立处理。
@@ -197,4 +220,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`4e9fd60`（Maintenance S2 路由与状态依赖升级）
+- 最新记录到：Maintenance S3 Vite 安全修复（提交见 git log）
