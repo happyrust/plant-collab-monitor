@@ -198,7 +198,7 @@ location /ws/ {
 | Phase 14 (本会话) | NTooltip + SSE 状态徽标 + console.error 序列化 + Topology NMessage/NDialog | ✅ `936a09e` |
 | Phase 15 (本会话) | manualChunks 函数化 + SiteConfig confirm → NDialog + Phase 7-Plus 准备文档 + README 更新 | ✅ `0b111c1` + 后续 commit |
 | Phase 7-Plus | 带后端真实联调（admin login flow + SSE token + 11 视图）| ⏳ 待外部 chrome-devtools，参见 `docs/plans/2026-04-26-phase7-plus-preparation.md` |
-| 后端 Sprint B | B1/B2/B3/B4/B6 ✅；B5/B6+ ⏳ | 跨仓 `plant-model-gen`，参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md` |
+| 后端 Sprint B | B1/B2/B3/B4/**B5**/B6/B7 ✅（20/20 PASS）；B6+ 真热加载 ⏳跨仓 rs-core | 参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md` |
 
 ## 相关文档
 
@@ -219,6 +219,7 @@ location /ws/ {
 | 异地协同 API 汇总清单（81 端点）| `../plant-model-gen/docs/architecture/异地协同API汇总清单.md` |
 | 父计划（14h · 5 阶段）| `../plant-model-gen/docs/plans/2026-04-22-异地协同前端独立与API汇总计划.md` |
 | Sprint B 后端计划（B1-B7）| `../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md` |
+| **Sprint B 后端验收报告（20/20 PASS）** | `../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md` |
 | Phase 1 精细执行清单 | `../plant-model-gen/docs/plans/2026-04-22-phase-1-execution-checklist.md` |
 | Phase 3/4 精细执行清单 | `../plant-model-gen/docs/plans/2026-04-22-phase-3-phase-4-execution-checklist.md` |
 | M1 冒烟结果 | `../plant-model-gen/docs/plans/2026-04-22-m1-smoke-test-result.md` |

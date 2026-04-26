@@ -4,8 +4,27 @@
 > - 无后端基线 e2e-smoke 报告：`docs/e2e-smoke/2026-04-26-e2e-smoke-report.md`
 > - Sprint A/C 完成清单：`docs/plans/2026-04-26-sprint-bc-plan.md`
 > - 后端 Sprint B 状态：`../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md`
+> - **后端 Phase 7-Plus 验收报告（20/20 PASS）**：`../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md`
 >
-> 本文件给**下次有 chrome-devtools MCP 或浏览器自动化能力**的会话用，5 分钟内即可跑通带后端的 11 视图 Phase 7-Plus 真实联调，并校验本会话（commit `0b111c1`）引入的 admin login flow / SSE token / 路由守卫是否在浏览器里真生效。
+> 本文件给**下次有 chrome-devtools MCP 或浏览器自动化能力**的会话用，5 分钟内即可跑通带后端的 11 视图 Phase 7-Plus 真实联调，并校验本会话（commit `34ac9f9`）引入的 admin login flow / SSE token / 路由守卫是否在浏览器里真生效。
+
+---
+
+## 0. 后端已就绪（重要前提）
+
+> 后端 plant-model-gen 已完成 Sprint B 全部本仓任务，参见 `2026-04-26-sprint-b-verification-report.md` §3：
+>
+> - ✅ **B1** set_master/set_client 真写 SQLite `node_config` 表（commit `94bc86e`）
+> - ✅ **B2** broker logs ring-buffer + 6 处注入（commit `c3a38ce`）
+> - ✅ **B3** subscription/status 5 个新字段（commit `94bc86e`）
+> - ✅ **B4** SSE `MqttSubscriptionStatusChanged` 4 处推送（commit `5463e41`）
+> - ✅ **B5** graceful shutdown（axum + AppState.shutdown_tx · commit `26ffc5f`）
+> - ✅ **B6** reload diff + 分类响应（commit `2286cd2`）
+> - ✅ **B7** smoke-collab-api.sh **20/20 PASS**
+>
+> ⏳ 仅剩 **B6+** 真热加载（跨仓 rs-core OnceCell → RwLock<Arc<DbOption>> 改造，独立会话）—— 不阻塞本次浏览器联调。
+>
+> **结论**：起后端就能跑。前端不需要做任何"猜测降级"。
 
 ---
 
