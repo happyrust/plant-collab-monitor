@@ -445,7 +445,11 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { mqttApi, syncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
+import { useAdminAuthStore } from '@/stores/adminAuth';
+import { useAppStatusStore } from '@/stores/appStatus';
 
+const adminAuth = useAdminAuthStore();
+const appStatus = useAppStatusStore();
 const nodes = ref([]);
 const messages = ref([]);
 const selectedNode = ref(null);
@@ -812,9 +816,11 @@ let logsInterval = null;
 // MqttSubscriptionStatusChanged 事件，触发后立即 reload，避免等下一次轮询
 // 字段口径与 GET /api/mqtt/subscription/status 完全一致，无需差量解析
 const sse = useSse('/api/sync/events/stream', {
+  getToken: () => adminAuth.token,
   onMessage(e) {
     try {
       const event = JSON.parse(e.data);
+      appStatus.trackEvent();
       if (event?.type === 'MqttSubscriptionStatusChanged') {
         loadData();
       }

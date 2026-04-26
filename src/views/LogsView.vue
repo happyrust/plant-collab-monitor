@@ -38,8 +38,10 @@ import LogViewer from '@/components/LogViewer.vue';
 import { remoteSyncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
 import { useAdminAuthStore } from '@/stores/adminAuth';
+import { useAppStatusStore } from '@/stores/appStatus';
 
 const adminAuth = useAdminAuthStore();
+const appStatus = useAppStatusStore();
 const logs = ref([]);
 const loading = ref(false);
 const errorMsg = ref('');
@@ -64,6 +66,7 @@ const sse = useSse('/api/sync/events/stream', {
     try {
       const event = JSON.parse(e.data);
       logs.value = [event, ...logs.value].slice(0, 500);
+      appStatus.trackEvent();
     } catch {
       // ignore non-JSON heartbeat
     }
