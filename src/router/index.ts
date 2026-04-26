@@ -71,7 +71,8 @@ const routes: RouteRecordRaw[] = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  // 与 vite.config.ts 的 base 联动；生产环境默认 /monitor/
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
 

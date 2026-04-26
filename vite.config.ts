@@ -11,8 +11,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiTarget = env.VITE_API_TARGET || 'http://127.0.0.1:3100';
   const wsTarget = apiTarget.replace(/^http/, 'ws');
+  // 生产部署默认挂载在 /monitor/（与 README + nginx-plant-collab-monitor.conf 对齐）
+  // 开发态默认 / ；可由 VITE_BASE 覆盖
+  const base = env.VITE_BASE || (mode === 'production' ? '/monitor/' : '/');
 
   return {
+    base,
     plugins: [vue()],
     resolve: {
       alias: {

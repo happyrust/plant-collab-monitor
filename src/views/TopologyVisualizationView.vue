@@ -574,15 +574,12 @@ const nodesWithPositions = computed(() => {
     });
   });
 
-  console.log('🔍 MQTT 节点映射:', Array.from(nodeMap.keys()));
-
   // 2. 从拓扑配置补充（确保所有配置的节点都显示）
   // 添加环境节点（主节点）
   if (topology.value.environments) {
     topology.value.environments.forEach(env => {
       const loc = env.location || env.id;
       if (!nodeMap.has(loc)) {
-        console.log('➕ 添加环境节点（未在 MQTT 中）:', loc, env.name);
         nodeMap.set(loc, {
           location: loc,
           node_name: env.name,
@@ -601,7 +598,6 @@ const nodesWithPositions = computed(() => {
           existing.node_name = env.name;
         }
         existing.is_master_node = true;
-        console.log('🔄 更新环境节点:', loc, '-> 主节点');
       }
     });
   }
@@ -613,7 +609,6 @@ const nodesWithPositions = computed(() => {
       if (!loc) return;  // 跳过无效位置
 
       if (!nodeMap.has(loc)) {
-        console.log('➕ 添加站点节点（未在 MQTT 中）:', loc, site.name);
         nodeMap.set(loc, {
           location: loc,
           node_name: site.name,
@@ -631,14 +626,12 @@ const nodesWithPositions = computed(() => {
         if (!existing.node_name || existing.node_name === loc) {
           existing.node_name = site.name;
         }
-        console.log('🔄 更新站点节点:', loc, existing.node_name);
       }
     });
   }
 
   // 转换为数组并计算位置
   const allNodes = Array.from(nodeMap.values());
-  console.log('📊 最终节点列表:', allNodes.length, '个节点', allNodes.map(n => `${n.location}(${n.is_master_node ? '主' : '从'})`));
 
   // 分离主节点和从节点，主节点放在中心，从节点环绕
   const masterNodes = allNodes.filter(n => n.is_master_node);
@@ -699,8 +692,6 @@ const connections = computed(() => {
     nodeStatusMap.set(n.location, n);
   });
 
-  console.log('🔗 开始计算连接关系...');
-
   // 1. 首先从拓扑配置获取所有主从连接（这是配置的拓扑结构）
   // 环境节点作为主节点，站点作为从节点
   if (topology.value.environments && topology.value.sites) {
@@ -709,7 +700,6 @@ const connections = computed(() => {
 
       // 找到属于这个环境的所有站点
       const envSites = topology.value.sites.filter(site => site.env_id === env.id);
-      console.log(`🌐 环境 ${envLocation} 有 ${envSites.length} 个站点`);
 
       envSites.forEach(site => {
         const siteLocation = site.location || site.id;
@@ -718,47 +708,6 @@ const connections = computed(() => {
         const key = `${envLocation}-${siteLocation}`;
 
         if (!connKeys.has(key)) {
-
-function toLocalCoords(event) {
-  const svg = svgCanvas.value;
-  if (!svg) return { x: 0, y: 0 };
-  const rect = svg.getBoundingClientRect();
-  const x = (event.clientX - rect.left - viewBox.value.x) / viewBox.value.scale;
-  const y = (event.clientY - rect.top - viewBox.value.y) / viewBox.value.scale;
-  return { x, y };
-}
-
-function startNodeDrag(event, node) {
-  isDragging.value = true;
-  draggingNode.value = node;
-  const p = toLocalCoords(event);
-  dragOffset.value = { dx: node.x - p.x, dy: node.y - p.y };
-}
-
-function onMouseMove(event) {
-  if (isDragging.value && draggingNode.value) {
-    const p = toLocalCoords(event);
-    const nx = p.x + dragOffset.value.dx;
-    const ny = p.y + dragOffset.value.dy;
-    nodePositions.value = {
-      ...nodePositions.value,
-      [draggingNode.value.location]: { x: nx, y: ny }
-    };
-  } else {
-    // 回退到平移逻辑
-    pan(event);
-  }
-}
-
-function endPanAndDrag() {
-  if (isDragging.value) {
-    isDragging.value = false;
-    draggingNode.value = null;
-    saveNodePositions();
-  }
-  endPan();
-}
-
           connKeys.add(key);
 
           // 检查从节点的MQTT订阅状态
@@ -766,8 +715,6 @@ function endPanAndDrag() {
           const isSubscribed = siteNode && siteNode.is_online &&
             (siteNode.broker_connected_sub === true || siteNode.has_mqtt_subscription);
           const isOnline = siteNode && siteNode.is_online;
-
-          console.log(`  ├─ ${envLocation} → ${siteLocation}: ${isSubscribed ? '已订阅' : (isOnline ? '在线未订阅' : '离线')}`);
 
           conns.push({
             from: envLocation,
@@ -790,8 +737,6 @@ function endPanAndDrag() {
   const masterNodes = allNodesWithRole.filter(n => n.is_master_node);
   const clientNodes = allNodesWithRole.filter(n => !n.is_master_node);
 
-  console.log(`📡 MQTT 节点: ${masterNodes.length} 个主节点, ${clientNodes.length} 个从节点`);
-
   masterNodes.forEach(master => {
     clientNodes.forEach(client => {
       const key = `${master.location}-${client.location}`;
@@ -801,8 +746,6 @@ function endPanAndDrag() {
         const clientMqttNode = nodeStatusMap.get(client.location);
         const isSubscribed = clientMqttNode && clientMqttNode.is_online &&
           (clientMqttNode.broker_connected_sub === true || clientMqttNode.has_mqtt_subscription);
-
-        console.log(`  ├─ ${master.location} → ${client.location}: ${isSubscribed ? '已订阅' : (client.is_online ? '在线未订阅' : '离线')} (MQTT)`);
 
         conns.push({
           from: master.location,
@@ -832,7 +775,6 @@ function endPanAndDrag() {
     });
   });
 
-  console.log(`✅ 总共 ${conns.length} 条连接`);
   return conns;
 });
 
@@ -868,9 +810,8 @@ async function loadData() {
       } else if (Array.isArray(nodesData)) {
         nodes.value = nodesData;
       }
-      console.log('📡 加载 MQTT 节点:', nodes.value.length, '个节点');
     } else {
-      console.warn('⚠️ 加载 MQTT 节点失败:', nodesResult.reason);
+      console.warn('加载 MQTT 节点失败:', nodesResult.reason);
     }
 
     // 加载消息投递状态
@@ -881,9 +822,8 @@ async function loadData() {
       } else if (Array.isArray(messagesData)) {
         messages.value = messagesData.slice(0, 50);
       }
-      console.log('📨 加载消息记录:', messages.value.length, '条消息');
     } else {
-      console.warn('⚠️ 加载消息记录失败:', messagesResult.reason);
+      console.warn('加载消息记录失败:', messagesResult.reason);
     }
 
     // 加载拓扑配置
@@ -896,21 +836,15 @@ async function loadData() {
           sites: data.sites || [],
           connections: data.connections || [],
         };
-        console.log('🗺️ 加载拓扑配置:', {
-          environments: topology.value.environments.length,
-          sites: topology.value.sites.length,
-          connections: topology.value.connections.length,
-        });
       } else {
         topology.value = { environments: [], sites: [], connections: [] };
-        console.warn('⚠️ 未找到拓扑配置，将仅显示 MQTT 节点');
       }
     } else {
       topology.value = { environments: [], sites: [], connections: [] };
-      console.warn('⚠️ 加载拓扑配置失败:', topologyResult.reason);
+      console.warn('加载拓扑配置失败:', topologyResult.reason);
     }
   } catch (error) {
-    console.error('❌ 加载拓扑数据失败:', error);
+    console.error('加载拓扑数据失败:', error);
     topology.value = { environments: [], sites: [], connections: [] };
   } finally {
     loading.value = false;
@@ -935,6 +869,47 @@ function pan(event) {
 
 function endPan() {
   isPanning.value = false;
+}
+
+// 屏幕坐标转 SVG 内部坐标（考虑当前 pan/scale）
+function toLocalCoords(event) {
+  const svg = svgCanvas.value;
+  if (!svg) return { x: 0, y: 0 };
+  const rect = svg.getBoundingClientRect();
+  const x = (event.clientX - rect.left - viewBox.value.x) / viewBox.value.scale;
+  const y = (event.clientY - rect.top - viewBox.value.y) / viewBox.value.scale;
+  return { x, y };
+}
+
+function startNodeDrag(event, node) {
+  isDragging.value = true;
+  draggingNode.value = node;
+  const p = toLocalCoords(event);
+  dragOffset.value = { dx: node.x - p.x, dy: node.y - p.y };
+}
+
+// 顶层 mousemove handler：拖拽节点时更新坐标，否则回退到画布平移
+function onMouseMove(event) {
+  if (isDragging.value && draggingNode.value) {
+    const p = toLocalCoords(event);
+    const nx = p.x + dragOffset.value.dx;
+    const ny = p.y + dragOffset.value.dy;
+    nodePositions.value = {
+      ...nodePositions.value,
+      [draggingNode.value.location]: { x: nx, y: ny }
+    };
+  } else {
+    pan(event);
+  }
+}
+
+function endPanAndDrag() {
+  if (isDragging.value) {
+    isDragging.value = false;
+    draggingNode.value = null;
+    saveNodePositions();
+  }
+  endPan();
 }
 
 function zoom(event) {
@@ -989,8 +964,9 @@ function formatShortTime(timestamp) {
 let refreshInterval = null;
 
 onMounted(() => {
+  loadNodePositions();
   loadData();
-  refreshInterval = setInterval(loadData, 5000);
+  refreshInterval = setInterval(loadData, 30000);
 });
 
 onUnmounted(() => {

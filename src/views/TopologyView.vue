@@ -1023,30 +1023,30 @@ const handleSubmitEnv = async () => {
       return;
     }
 
-    // ȷ���Ѽ��ص�ǰվ������
+    // 确保已加载当前站点配置
     if (!currentSiteConfig.value) {
       await loadCurrentSiteConfig();
     }
-    
-    // ���滷�����ƣ����ں�������
+
+    // 保存环境名称，用于后续查找
     const envName = envForm.value.name;
-    
-    // ��������
+
+    // 创建环境
     const res = await createRemoteEnv(envForm.value);
     if (!res || (res.status && res.status !== 'success')) {
       throw new Error(res?.error || '创建环境失败');
     }
-    
+
     showAddEnv.value = false;
     envForm.value = { name: '', file_server_host: '', mqtt_host: '', mqtt_port: 1883, location: '', location_dbs: '' };
-    
-    // ���¼��ػ����б�
+
+    // 重新加载环境列表
     await loadEnvs();
-    
-    // �����´����Ļ�����ͨ������ƥ�䣩
+
+    // 查找新创建的环境（通过名称匹配）
     const newEnv = envs.value.find(e => e.name === envName);
-    
-    // �Զ�����ǰվ�����ӵ��´����Ļ�����
+
+    // 自动把当前站点添加到新创建的环境中
     if (newEnv && currentSiteConfig.value) {
       try {
         await createRemoteSite(newEnv.id, {
@@ -1056,15 +1056,15 @@ const handleSubmitEnv = async () => {
           dbnums: currentSiteConfig.value.location_dbs || '',
           notes: currentSiteConfig.value.notes || '站点（自动添加）'
         });
-        // ���¼���վ���б�
+        // 重新加载站点列表
         await selectEnv(newEnv);
       } catch (siteError) {
-        console.warn('�Զ���创建站点失败:', siteError);
-        // ��ʹ����վ��ʧ�ܣ�Ҳѡ���»���
+        console.warn('自动创建站点失败:', siteError);
+        // 即使创建站点失败，也选中新环境
         await selectEnv(newEnv);
       }
     } else if (newEnv) {
-      // ����Ҳ�����ǰվ�����ã�����ѡ���»���
+      // 如果找不到当前站点配置，也选中新环境
       await selectEnv(newEnv);
     }
   } catch (e) {
