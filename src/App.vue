@@ -166,8 +166,8 @@ async function handleLogout(): Promise<void> {
 onMounted(async () => {
   if (adminAuth.token) {
     try {
-      const session = await adminAuthApi.me();
-      adminAuth.setSession(session);
+      const profile = await adminAuthApi.me();
+      adminAuth.updateProfile(profile);
     } catch {
       adminAuth.clearSession();
     }

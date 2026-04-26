@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-import type { AdminSession } from '@/api/adminAuthApi';
+import type { AdminProfile, AdminSession } from '@/api/adminAuthApi';
 
 const STORAGE_KEYS = {
   token: 'admin_token',
@@ -58,6 +58,14 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     backendAdminUnconfigured.value = false;
   }
 
+  function updateProfile(profile: AdminProfile): void {
+    username.value = profile.username;
+    role.value = profile.role;
+    writeStorage(STORAGE_KEYS.username, profile.username);
+    writeStorage(STORAGE_KEYS.role, profile.role);
+    backendAdminUnconfigured.value = false;
+  }
+
   function clearSession(): void {
     token.value = null;
     username.value = null;
@@ -94,6 +102,7 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     backendAdminUnconfigured,
     isLoggedIn,
     setSession,
+    updateProfile,
     clearSession,
     promptLogin,
     dismissLogin,

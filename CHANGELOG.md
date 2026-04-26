@@ -8,6 +8,35 @@
 
 ## 2026-04-26
 
+### Phase 7-Plus · 真实浏览器联调首轮执行（本次提交）
+
+> 解除浏览器环境阻塞：发现系统 Chrome 已安装但不在 PATH，新增可复跑 Playwright smoke，并完成首轮带后端浏览器联调。
+
+#### Added
+
+- 新增 `npm run smoke:phase7-plus`，默认使用系统 Chrome 跑浏览器 smoke，不依赖 Playwright Chromium 下载。
+- 新增 `scripts/phase7-plus-smoke.mjs`，覆盖 admin guard、登录回跳、11 个核心路由、SSE Bearer token 与 console/page error 采集。
+- 新增 `docs/e2e-smoke/2026-04-26-phase7-plus-browser-smoke-report.md` 与 JSON 结果文件。
+
+#### Fixed
+
+- 修复 `adminAuthApi.login()` 与后端 envelope 响应不一致的问题。
+- 修复 `/api/admin/auth/me` 只返回用户资料时前端误清 session 的问题，admin 路由刷新后不再掉登录态。
+
+#### Verified
+
+- `admin_redirect_after_login=/topology` 写入成功。
+- 登录 `admin/admin` 后自动回跳 `/topology`。
+- `/dashboard`、`/topology`、`/topology-viz`、`/tasks`、`/history`、`/mqtt/messages`、`/mqtt/nodes`、`/logs`、`/archives`、`/site-config`、`/settings` 均可进入目标路由。
+- `/api/sync/events/stream` 两次请求均带 `Authorization: Bearer ...`。
+- Vue `pageerror` 为 0。
+
+#### Known Issue
+
+- `/archives` 触发 `GET /api/incremental/archives`，当前后端返回 404；Phase 7-Plus 尚未达到 14/14 全绿，需后端补齐归档列表 API 后重跑。
+
+---
+
 ### Maintenance Browser QA · 真实浏览器联调阻塞记录（本次提交）
 
 > S1-S4 与 preview smoke 完成后尝试进入 Phase 7-Plus 真实浏览器联调，但当前机器缺少可用浏览器环境。
@@ -311,4 +340,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance Browser QA 真实浏览器联调阻塞记录（提交见 git log）
+- 最新记录到：Phase 7-Plus 真实浏览器联调首轮执行（提交见 git log）

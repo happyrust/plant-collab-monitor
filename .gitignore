@@ -38,6 +38,7 @@ lerna-debug.log*
 # Test output
 coverage/
 *.test.log
+docs/e2e-smoke/screenshots/
 
 # Cache
 .cache/

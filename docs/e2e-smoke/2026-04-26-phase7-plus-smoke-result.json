@@ -1,0 +1,116 @@
+{
+  "baseUrl": "http://127.0.0.1:3200",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "redirectBeforeLogin": "/topology",
+  "routeCount": 11,
+  "routeResults": [
+    {
+      "name": "01-dashboard-plus",
+      "route": "/dashboard",
+      "url": "http://127.0.0.1:3200/dashboard",
+      "title": "全局概览 · plant-collab-monitor"
+    },
+    {
+      "name": "04-topology",
+      "route": "/topology",
+      "url": "http://127.0.0.1:3200/topology",
+      "title": "异地拓扑 · plant-collab-monitor"
+    },
+    {
+      "name": "06-topology-viz",
+      "route": "/topology-viz",
+      "url": "http://127.0.0.1:3200/topology-viz",
+      "title": "拓扑可视化 · plant-collab-monitor"
+    },
+    {
+      "name": "07-tasks",
+      "route": "/tasks",
+      "url": "http://127.0.0.1:3200/tasks",
+      "title": "任务队列 · plant-collab-monitor"
+    },
+    {
+      "name": "08-history",
+      "route": "/history",
+      "url": "http://127.0.0.1:3200/history",
+      "title": "同步历史 · plant-collab-monitor"
+    },
+    {
+      "name": "09-mqtt-messages",
+      "route": "/mqtt/messages",
+      "url": "http://127.0.0.1:3200/mqtt/messages",
+      "title": "MQTT 消息 · plant-collab-monitor"
+    },
+    {
+      "name": "10-mqtt-nodes",
+      "route": "/mqtt/nodes",
+      "url": "http://127.0.0.1:3200/mqtt/nodes",
+      "title": "MQTT 节点 · plant-collab-monitor"
+    },
+    {
+      "name": "11-logs",
+      "route": "/logs",
+      "url": "http://127.0.0.1:3200/logs",
+      "title": "系统日志 · plant-collab-monitor"
+    },
+    {
+      "name": "12-archives",
+      "route": "/archives",
+      "url": "http://127.0.0.1:3200/archives",
+      "title": "归档管理 · plant-collab-monitor"
+    },
+    {
+      "name": "13-site-config",
+      "route": "/site-config",
+      "url": "http://127.0.0.1:3200/site-config",
+      "title": "站点配置 · plant-collab-monitor"
+    },
+    {
+      "name": "14-settings",
+      "route": "/settings",
+      "url": "http://127.0.0.1:3200/settings",
+      "title": "参数设置 · plant-collab-monitor"
+    }
+  ],
+  "sseRequests": [
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "hasAuthorization": true
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "hasAuthorization": true
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "加载归档失败: Request failed with status code 404"
+  ],
+  "pageErrors": [],
+  "requestFailures": [
+    {
+      "url": "http://127.0.0.1:3200/api/sync/metrics",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "httpErrors": [
+    {
+      "url": "http://127.0.0.1:3200/api/incremental/archives",
+      "status": 404,
+      "statusText": "Not Found"
+    }
+  ],
+  "screenshots": "docs/e2e-smoke/screenshots/2026-04-26-phase7-plus",
+  "generatedAt": "2026-04-26T15:57:33.683Z"
+}
