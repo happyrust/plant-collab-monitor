@@ -38,6 +38,41 @@
         </div>
       </div>
 
+      <!-- Inline Banners (P2-1: 替代 legacy alert()) -->
+      <div v-if="loadError || actionError || actionSuccess" class="space-y-2 mb-4">
+        <div
+          v-if="loadError"
+          class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-start gap-2"
+        >
+          <i class="fas fa-exclamation-circle mt-0.5"></i>
+          <span class="flex-1">加载配置失败：{{ loadError }}</span>
+          <button
+            class="text-rose-500 hover:text-rose-700"
+            title="关闭"
+            @click="loadError = ''"
+          ><i class="fas fa-times"></i></button>
+        </div>
+        <div
+          v-if="actionError"
+          class="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-start gap-2"
+        >
+          <i class="fas fa-exclamation-circle mt-0.5"></i>
+          <span class="flex-1">{{ actionError }}</span>
+          <button
+            class="text-rose-500 hover:text-rose-700"
+            title="关闭"
+            @click="actionError = ''"
+          ><i class="fas fa-times"></i></button>
+        </div>
+        <div
+          v-if="actionSuccess"
+          class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-start gap-2"
+        >
+          <i class="fas fa-check-circle mt-0.5"></i>
+          <span class="flex-1">{{ actionSuccess }}</span>
+        </div>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center items-center py-20">
         <div class="loading loading-spinner loading-lg text-blue-500"></div>
@@ -545,6 +580,31 @@ const loadingDbnos = ref(false);
 const availableDbnos = ref([]);
 const dbnoDropdownRef = ref(null);
 
+// P2-1: inline banner 替代 legacy alert()，与 SettingsView 风格一致
+const loadError = ref('');
+const actionError = ref('');
+const actionSuccess = ref('');
+let successTimer = null;
+
+function flashSuccess(msg) {
+  actionSuccess.value = msg;
+  actionError.value = '';
+  if (successTimer) clearTimeout(successTimer);
+  successTimer = setTimeout(() => {
+    actionSuccess.value = '';
+    successTimer = null;
+  }, 5000);
+}
+
+function setActionError(msg) {
+  actionError.value = msg;
+  actionSuccess.value = '';
+  if (successTimer) {
+    clearTimeout(successTimer);
+    successTimer = null;
+  }
+}
+
 const config = ref({
   // 项目设置
   project_path: '',
@@ -661,9 +721,9 @@ function normalizePathForSave(path) {
   return path;
 }
 
-// 加载配置
 async function loadConfig() {
   loading.value = true;
+  loadError.value = '';
   try {
     const data = await siteConfigApi.get();
     if (data?.status === 'success' || data?.config) {
@@ -672,20 +732,20 @@ async function loadConfig() {
         config.value.project_path = normalizePathForDisplay(config.value.project_path);
       }
     } else {
-      alert('❌ ' + (data?.message || '未返回有效配置'));
+      loadError.value = data?.message || '未返回有效配置';
     }
   } catch (error) {
-    console.error('加载配置失败:', error);
-    alert('❌ 加载配置失败: ' + (error?.message || error));
+    console.error('加载配置失败:', error?.message || error);
+    loadError.value = error?.message || String(error);
   } finally {
     loading.value = false;
   }
 }
 
-// 验证配置
 async function validateConfig() {
   validating.value = true;
   validationErrors.value = [];
+  setActionError('');
 
   try {
     const configToValidate = {
@@ -695,25 +755,25 @@ async function validateConfig() {
 
     const data = await siteConfigApi.validate(configToValidate);
     if (data?.status === 'success') {
-      alert('✅ ' + (data.message || '校验通过'));
+      flashSuccess(data.message || '校验通过');
     } else {
       validationErrors.value = data?.errors || [data?.message || '校验失败'];
     }
   } catch (error) {
-    console.error('验证配置失败:', error);
-    alert('❌ 验证失败: ' + (error?.message || error));
+    console.error('验证配置失败:', error?.message || error);
+    setActionError('验证失败：' + (error?.message || String(error)));
   } finally {
     validating.value = false;
   }
 }
 
-// 保存配置
 async function saveConfig() {
   if (!confirm('确定要保存配置吗？某些配置需要重启服务器后生效。')) {
     return;
   }
 
   saving.value = true;
+  setActionError('');
   try {
     const configToSave = {
       ...config.value,
@@ -722,14 +782,14 @@ async function saveConfig() {
 
     const data = await siteConfigApi.save(configToSave);
     if (data?.status === 'success') {
-      alert('✅ ' + (data.message || '保存成功'));
+      flashSuccess(data.message || '保存成功');
       config.value.project_path = normalizePathForDisplay(configToSave.project_path);
     } else {
-      alert('❌ ' + (data?.message || '保存失败'));
+      setActionError(data?.message || '保存失败');
     }
   } catch (error) {
-    console.error('保存配置失败:', error);
-    alert('❌ 保存失败: ' + (error?.message || error));
+    console.error('保存配置失败:', error?.message || error);
+    setActionError('保存失败：' + (error?.message || String(error)));
   } finally {
     saving.value = false;
   }
@@ -870,9 +930,12 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside);
 });
 
-// 组件卸载时移除事件监听
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  if (successTimer) {
+    clearTimeout(successTimer);
+    successTimer = null;
+  }
 });
 </script>
 
