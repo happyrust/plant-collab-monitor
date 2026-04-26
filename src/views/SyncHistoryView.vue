@@ -1,9 +1,9 @@
 <template>
   <section class="px-8 py-8 max-w-6xl mx-auto">
-    <header class="flex items-center justify-between border-b border-slate-200 pb-6 mb-6">
+    <header class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-6 mb-6">
       <div>
         <p class="text-xs uppercase tracking-widest text-slate-500 mb-1">PLANT · MONITOR</p>
-        <h1 class="text-3xl font-semibold tracking-tight text-slate-900">同步历史</h1>
+        <h1 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">同步历史</h1>
         <p class="mt-2 text-slate-600">过去 N 日的同步事件，按日期分组。</p>
       </div>
       <NButton type="primary" :loading="loading" @click="refresh">刷新</NButton>

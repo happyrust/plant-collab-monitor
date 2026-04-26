@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
       <div>
         <p class="text-[10px] uppercase tracking-[0.35em] text-slate-500 font-bold mb-1.5">归档管理</p>
-        <h2 class="text-xl font-bold text-slate-900 mb-1">CBA 文件列表</h2>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">CBA 文件列表</h2>
         <p class="text-sm text-slate-700">浏览并下载已生成的增量更新包文件。</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
@@ -35,7 +35,7 @@
       <p class="mt-4 text-slate-500 font-medium">正在加载文件列表...</p>
     </div>
 
-    <div v-else-if="files.length === 0" class="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+    <div v-else-if="files.length === 0" class="text-center py-12 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
       <p class="text-slate-500">
         {{ filterByCurrentSite ? '当前站点暂无归档文件' : '暂无归档文件' }}
       </p>
