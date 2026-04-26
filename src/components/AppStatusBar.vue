@@ -119,15 +119,17 @@ const relativeUpdated = computed(() => {
 });
 
 const identityPillClass = computed(() =>
-  identity.value.isMaster ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200',
+  identity.value.isMaster
+    ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700'
+    : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700',
 );
 
 const runtimePillClass = computed(() => {
   const s = (runtime.value.status || '').toLowerCase();
-  if (s.includes('error') || s.includes('fault')) return 'bg-rose-50 text-rose-700 border-rose-200';
-  if (s.includes('paus')) return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (s.includes('run')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  return 'bg-slate-50 text-slate-700 border-slate-200';
+  if (s.includes('error') || s.includes('fault')) return 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-700';
+  if (s.includes('paus')) return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700';
+  if (s.includes('run')) return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700';
+  return 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600';
 });
 
 const runtimeDotClass = computed(() => {
@@ -142,16 +144,16 @@ const runtimeTitle = computed(() => `runtime status: ${runtime.value.status || '
 
 const queuePillClass = computed(() =>
   queue.value.failed > 0
-    ? 'bg-rose-50 text-rose-700 border-rose-200'
+    ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-700'
     : queueActiveCount.value > 0
-    ? 'bg-amber-50 text-amber-700 border-amber-200'
-    : 'bg-slate-50 text-slate-700 border-slate-200',
+    ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700'
+    : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600',
 );
 
 const eventsPillClass = computed(() =>
   eventsPerMinute.value > 0
-    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    : 'bg-slate-50 text-slate-700 border-slate-200',
+    ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700'
+    : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600',
 );
 </script>
 
