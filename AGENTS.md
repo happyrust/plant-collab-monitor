@@ -203,6 +203,13 @@ Phase 7-Plus 验证要点：
 **G7 100% 闭环**：Phase 20 rs-core `OnceCell<DbOption>` → `RwLock<Arc<DbOption>>` 真热加载已落地。
 `POST /api/site-config/reload` 对 hot 字段变更返回 `actions: ["hot_reloaded"]`，无需重启。
 
+Phase 21-25 增强特性：
+- **Dark Mode**（Phase 21）：`stores/theme.ts` + Tailwind `@variant dark` + DaisyUI dark + 11 视图/组件/echarts 全适配 + 侧栏 ☀/🌙 切换
+- **后端连接健康检测**（Phase 22）：`appStatus.connected` + 连续失败计数 → 红色横幅
+- **浏览器标签页告警**（Phase 23）：断连/任务失败时 `document.title` 加前缀提醒
+- **侧栏可折叠**（Phase 24）：64px/256px 切换 + localStorage 持久化 + 300ms 过渡
+- **键盘快捷键**（Phase 25）：`Alt+D` 切换主题 · `Alt+B` 折叠侧栏
+
 ---
 
 ## 8. 不要做的事（hot rules）

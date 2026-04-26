@@ -143,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
 // Provider 组件由 NaiveUiResolver 在 template 中自动注册；这里仅保留 theme/locale 等非组件 export
 import { darkTheme, zhCN, dateZhCN } from 'naive-ui';
@@ -196,7 +196,14 @@ async function handleLogout(): Promise<void> {
   adminAuth.clearSession();
 }
 
+function handleKeydown(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.altKey && e.key === 'd') { e.preventDefault(); themeStore.toggle(); }
+  if (e.altKey && e.key === 'b') { e.preventDefault(); toggleSidebar(); }
+}
+
 onMounted(async () => {
+  document.addEventListener('keydown', handleKeydown);
   if (adminAuth.token) {
     try {
       const profile = await adminAuthApi.me();
@@ -205,6 +212,10 @@ onMounted(async () => {
       adminAuth.clearSession();
     }
   }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown);
 });
 
 const navMonitor = [
