@@ -1,28 +1,28 @@
 <template>
-  <NConfigProvider :theme="isDark ? darkTheme : null" :locale="zhCN" :date-locale="dateZhCN">
+  <NConfigProvider :theme="themeStore.isDark ? darkTheme : null" :locale="zhCN" :date-locale="dateZhCN">
     <NMessageProvider>
       <NDialogProvider>
-      <div class="min-h-screen flex h-screen overflow-hidden bg-slate-50 text-slate-900">
+      <div class="min-h-screen flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
         <!-- 侧栏 -->
         <aside
-          class="w-64 flex flex-col border-r border-slate-200 bg-white shrink-0"
+          class="w-64 flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0"
         >
-          <div class="px-6 py-6 flex items-center gap-3 border-b border-slate-200">
+          <div class="px-6 py-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700">
             <div
               class="w-12 h-12 rounded-2xl bg-blue-600/90 flex items-center justify-center text-white text-xl font-semibold shadow-lg shadow-blue-900/20"
             >
               AI
             </div>
             <div>
-              <p class="text-xs uppercase tracking-[0.35em] font-medium text-slate-500">
+              <p class="text-xs uppercase tracking-[0.35em] font-medium text-slate-500 dark:text-slate-400">
                 PLANT · COLLAB
               </p>
-              <p class="text-lg font-bold tracking-tight text-slate-900">Monitor</p>
+              <p class="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Monitor</p>
             </div>
           </div>
 
           <nav class="flex-1 px-3 py-6 space-y-1 text-sm overflow-y-auto">
-            <div class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <div class="px-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               监控
             </div>
             <RouterLink
@@ -42,7 +42,7 @@
               </button>
             </RouterLink>
 
-            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               任务与日志
             </div>
             <RouterLink
@@ -62,7 +62,7 @@
               </button>
             </RouterLink>
 
-            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <div class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               系统
             </div>
             <RouterLink
@@ -83,8 +83,17 @@
             </RouterLink>
           </nav>
 
-          <div class="px-4 py-3 border-t border-slate-200 text-xs text-slate-500 flex items-center justify-between">
-            <span>v0.1.0 · Phase 2</span>
+          <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+              <button
+                @click="themeStore.toggle()"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                :title="themeStore.isDark ? '切换为浅色模式' : '切换为深色模式'"
+              >
+                {{ themeStore.isDark ? '☀' : '🌙' }}
+              </button>
+              v0.1.0
+            </span>
             <button
               v-if="adminAuth.isLoggedIn"
               class="text-emerald-600 hover:text-emerald-700"
@@ -131,8 +140,9 @@ import {
   registerUnauthorizedHandler,
 } from '@/api';
 import { useAdminAuthStore } from '@/stores/adminAuth';
+import { useThemeStore } from '@/stores/theme';
 
-const isDark = ref(false);
+const themeStore = useThemeStore();
 const adminAuth = useAdminAuthStore();
 
 registerAuthTokenProvider(() => adminAuth.token);

@@ -1,8 +1,9 @@
 @import "tailwindcss";
 @config "../../tailwind.config.js";
+@variant dark (&:where(.dark, .dark *));
 
 @plugin "daisyui" {
-  themes: light --default, dark --prefersdark;
+  themes: light --default, dark;
   logs: false;
 }
 
@@ -40,8 +41,22 @@ body,
   color: rgb(15 23 42);
 }
 
+:where(.dark) .nav-link {
+  color: rgb(148 163 184);
+}
+
+:where(.dark) .nav-link:hover {
+  background-color: rgb(51 65 85);
+  color: rgb(226 232 240);
+}
+
 .nav-link.active {
   background-color: rgb(59 130 246 / 0.1);
   color: rgb(37 99 235);
   font-weight: 600;
+}
+
+:where(.dark) .nav-link.active {
+  background-color: rgb(59 130 246 / 0.15);
+  color: rgb(96 165 250);
 }
