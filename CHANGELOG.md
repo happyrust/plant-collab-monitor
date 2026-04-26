@@ -8,6 +8,26 @@
 
 ## 2026-04-26
 
+### Maintenance Browser QA · 真实浏览器联调阻塞记录（本次提交）
+
+> S1-S4 与 preview smoke 完成后尝试进入 Phase 7-Plus 真实浏览器联调，但当前机器缺少可用浏览器环境。
+
+#### Attempted
+
+- 读取 `docs/plans/2026-04-26-phase7-plus-preparation.md`，确认下一步应跑 14 步真实浏览器矩阵。
+- 检查本机浏览器命令：`chrome` / `chrome.exe` / `msedge` / `msedge.exe` 均不可用。
+- 检查 Playwright CLI：`npx playwright --version` 可用（1.59.1）。
+- 尝试 Playwright screenshot：失败，Chromium executable 不存在。
+- 尝试 `npx playwright install chromium`：官方源下载失败（`ECONNRESET`）。
+- 尝试 `PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright`：镜像路径返回 404 `NoSuchKey`。
+
+#### Result
+
+- 仓库无代码变更。
+- Phase 7-Plus 真实浏览器联调暂时阻塞；需要安装 Chrome/Edge，或修复 Playwright Chromium 下载环境后再继续。
+
+---
+
 ### Maintenance Memory · 固化依赖升级结论（1 commit · `9e837eb`）
 
 > 将 S1-S4 与 preview smoke 的稳定结论迁移到 `AGENTS.md`，让后续 agent 直接继承最新技术栈与配置禁忌。
@@ -291,4 +311,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`9e837eb`（Maintenance Memory 固化依赖升级结论）
+- 最新记录到：Maintenance Browser QA 真实浏览器联调阻塞记录（提交见 git log）
