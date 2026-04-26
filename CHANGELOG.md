@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Phase 7-Plus · 真实浏览器联调首轮执行（本次提交）
+### Phase 7-Plus · 真实浏览器联调首轮执行（1 commit · `5286e88`）
 
 > 解除浏览器环境阻塞：发现系统 Chrome 已安装但不在 PATH，新增可复跑 Playwright smoke，并完成首轮带后端浏览器联调。
 
@@ -340,4 +340,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Phase 7-Plus 真实浏览器联调首轮执行（提交见 git log）
+- 最新记录到：`5286e88`（Phase 7-Plus 真实浏览器联调首轮执行）
