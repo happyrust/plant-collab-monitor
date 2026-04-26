@@ -70,6 +70,17 @@
 - **面包屑条**（Phase 30）：`PLANT · COLLAB › 当前页面`，dark mode 适配
 - **Admin 路由锁标记**（Phase 31）：5 个 admin-gated 路由侧栏显示 🔒
 
+#### Phase 33-42 · 监控感知增强
+
+- **动态 Favicon**（Phase 33）：Canvas 生成 AI 图标，蓝色正常 / 红色断连 / 琥珀色任务失败
+- **侧栏 queue.failed 角标**（Phase 34）：展开态右侧数字徽标，折叠态右上角红点
+- **侧栏离线指示器**（Phase 35）：后端断连时底部红色脉冲 `后端离线`
+- **侧栏时钟**（Phase 36）：等宽数字 `HH:MM:SS`，1 秒更新
+- **StatusBar pills dark**（Phase 37）：4 个 status pill 5 种状态 dark 适配
+- **Dark mode 深度精修**（Phase 38-40）：DashCard 标题 + 事件列表 divider + text-slate-600/700 70+ 处 + SiteConfigView 38 处 + border-slate-200 11 处零残留
+- **Dark mode 截图测试**（Phase 41）：smoke 扩展 dark 截图轮，4 张基线截图
+- **NTooltip 侧栏**（Phase 42）：折叠态导航从 native title 升级为 NTooltip 秒显
+
 #### 验证
 
 - `npm run type-check` 全程 0 errors
