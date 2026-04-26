@@ -6,6 +6,70 @@
 
 ---
 
+## 2026-04-27
+
+### Phase 20-26 · 跨仓真热加载 + 监控台增强（~15 commits · `7fde6c9` → `e9e8f80`）
+
+> 本轮完成 rs-core / plant-model-gen / plant-collab-monitor 三仓改造：后端配置真热加载 + 前端全面增强（Dark Mode / 连接健康 / 通知 / 交互优化）。
+
+#### Phase 20 · rs-core 真热加载（跨仓）
+
+- rs-core `lib.rs`：`OnceCell<DbOption>` → `RwLock<Arc<DbOption>>` + 新增 `set_db_option_from_file()`
+- plant-model-gen：reload handler 从诊断版升级为真热加载（`hot_reloaded` / `graceful_shutdown_triggered` / `hot_reload_failed`）
+- 11 文件 `.clone()` 兼容性修复（`Arc::clone` vs `DbOption::clone` 语义差异）
+- Smoke 3/3 PASS：`enable_log true→false → hot_reloaded`，二次 `no_change`，反向 `hot_reloaded`
+- SiteConfigView 新增「重载配置」按钮，根据 `actions` 字段显示不同反馈
+- plant-model-gen `history.txt` 加入 `.gitignore`（运行时 query artifact）
+
+#### Phase 21 · Dark Mode 全面覆盖（7 commits）
+
+- 新增 `stores/theme.ts`（Pinia + localStorage + 系统偏好检测）
+- `main.css`：Tailwind 4 `@variant dark (&:where(.dark, .dark *))` + DaisyUI `data-theme` 联动
+- App.vue 侧栏 dark 适配 + ☀/🌙 切换按钮
+- 11/11 视图 dark 适配（bg-white / text-gray / border-slate 等 90+ 处 `dark:` 变体）
+- AppStatusBar + LogViewer 组件 dark 适配
+- SyncTrendChart + SiteStatusChart：echarts tooltip / axis / legend / pie border 跟随主题
+
+#### Phase 22 · 后端连接健康检测
+
+- `appStatus.ts`：`connected` + `consecutiveFailures` 状态追踪，2 次连续失败 → 断连
+- AppStatusBar 顶部红色横幅 `后端连接中断 · 连续 N 次失败 · 正在重试…`
+
+#### Phase 23 · 浏览器标签页告警
+
+- 断连时 `document.title = '⚠ 连接中断 · ...'`
+- 任务失败时 `document.title = '❌ N 失败 · ...'`
+- 正常时恢复原标题
+
+#### Phase 24 · 侧栏可折叠
+
+- 折叠态 64px（仅图标 + tooltip），展开态 256px
+- localStorage 持久化，300ms `transition-[width]` 过渡
+- 折叠态隐藏分组标题、导航文字、版本号、登录按钮
+
+#### Phase 25 · 键盘快捷键
+
+- `Alt+D`：切换 Dark/Light 主题
+- `Alt+B`：折叠/展开侧栏
+- 输入框聚焦时自动屏蔽
+
+#### Phase 26 · Desktop 通知
+
+- 浏览器 Notification API，仅页面非聚焦时发送
+- 后端掉线 → `连接中断` 通知
+- 任务失败增加 → `任务失败` 通知
+- 重新连接 → `连接恢复` 通知
+- AppStatusBar 右侧 🔔 按钮请求通知权限
+- `tag: 'plant-monitor'` 去重避免堆积
+
+#### 验证
+
+- `npm run type-check` 全程 0 errors
+- `npm run smoke:phase7-plus` 多次 passed（11 路由 + SSE + 登录 + 弹窗确认）
+- `npm run build` 成功
+
+---
+
 ## 2026-04-26
 
 ### Phase 7-Plus · 真实浏览器联调首轮执行（1 commit · `5286e88`）
