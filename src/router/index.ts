@@ -80,9 +80,13 @@ const routes: RouteRecordRaw[] = [
 ];
 
 const router = createRouter({
-  // 与 vite.config.ts 的 base 联动；生产环境默认 /monitor/
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition;
+    if (to.hash) return { el: to.hash, behavior: 'smooth' };
+    return { top: 0, behavior: 'smooth' };
+  },
 });
 
 // 登录后期望返回的目标路由（被 guard 拦截时记录，登录成功后由 LoginDialog 消费）
