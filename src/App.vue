@@ -130,6 +130,9 @@
         <!-- 主内容区 -->
         <main class="flex-1 flex flex-col overflow-hidden">
           <AppStatusBar />
+          <div v-if="currentPageTitle" class="px-6 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            PLANT · COLLAB › <span class="font-medium text-slate-700 dark:text-slate-300">{{ currentPageTitle }}</span>
+          </div>
           <div class="flex-1 overflow-auto">
             <RouterView v-slot="{ Component }">
               <Transition name="page" mode="out-in">
@@ -147,8 +150,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { RouterLink, RouterView } from 'vue-router';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
 // Provider 组件由 NaiveUiResolver 在 template 中自动注册；这里仅保留 theme/locale 等非组件 export
 import { darkTheme, zhCN, dateZhCN } from 'naive-ui';
 import LoginDialog from '@/components/LoginDialog.vue';
@@ -220,6 +223,12 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
+});
+
+const route = useRoute();
+const currentPageTitle = computed(() => {
+  const t = route.meta?.title;
+  return typeof t === 'string' ? t : '';
 });
 
 const navMonitor = [
