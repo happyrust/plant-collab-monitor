@@ -17,6 +17,7 @@
 | 跑一次浏览器 e2e 联调 | 起后端 → 看 `docs/plans/2026-04-26-phase7-plus-preparation.md` 14 步矩阵 |
 | 实施 rs-core 真热加载 | 看 `docs/plans/2026-04-26-phase20-rs-core-true-hot-reload.md`（含 Rust 代码模板 + 测试） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
+| **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md)（中文 · Sprint A/B/C + G10 全闭环） |
 | 加新视图 / API / SSE | `AGENTS.md` §10 速查表 |
 
 ---
