@@ -81,6 +81,9 @@
 - **Dark mode 截图测试**（Phase 41）：smoke 扩展 dark 截图轮，4 张基线截图
 - **NTooltip 侧栏**（Phase 42）：折叠态导航从 native title 升级为 NTooltip 秒显
 - **移动端响应式**（Phase 43）：`md` 以下隐藏侧栏 + ☰ 汉堡菜单 + overlay 弹出 + 自动关闭
+- **StatusBar 移动适配**（Phase 44）：pills 横向滚动 + 隐藏滚动条
+- **PWA Manifest**（Phase 45）：`manifest.json` + 安装到桌面支持 + SVG 图标
+- **useClipboard**（Phase 46）：复制到剪贴板 composable + 2s 状态反馈
 
 #### 验证
 
