@@ -38,11 +38,11 @@
               <button
                 class="nav-link w-full"
                 :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? item.label : undefined"
+                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}` : undefined"
                 @click="$router.push(item.path)"
               >
                 <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
               </button>
             </RouterLink>
 
@@ -60,11 +60,11 @@
               <button
                 class="nav-link w-full"
                 :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? item.label : undefined"
+                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}` : undefined"
                 @click="$router.push(item.path)"
               >
                 <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
               </button>
             </RouterLink>
 
@@ -82,11 +82,11 @@
               <button
                 class="nav-link w-full"
                 :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? item.label : undefined"
+                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}` : undefined"
                 @click="$router.push(item.path)"
               >
                 <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+                <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
               </button>
             </RouterLink>
           </nav>
@@ -233,7 +233,7 @@ const currentPageTitle = computed(() => {
 
 const navMonitor = [
   { name: 'dashboard', path: '/dashboard', icon: '◉', label: '全局概览' },
-  { name: 'topology', path: '/topology', icon: '◇', label: '异地拓扑' },
+  { name: 'topology', path: '/topology', icon: '◇', label: '异地拓扑', admin: true },
   { name: 'topology-viz', path: '/topology-viz', icon: '◆', label: '拓扑可视化' },
 ];
 
@@ -241,13 +241,13 @@ const navTasks = [
   { name: 'tasks', path: '/tasks', icon: '▤', label: '任务队列' },
   { name: 'history', path: '/history', icon: '⟲', label: '同步历史' },
   { name: 'mqtt', path: '/mqtt/messages', icon: '⚡', label: 'MQTT 消息' },
-  { name: 'mqtt-nodes', path: '/mqtt/nodes', icon: '◎', label: 'MQTT 节点' },
+  { name: 'mqtt-nodes', path: '/mqtt/nodes', icon: '◎', label: 'MQTT 节点', admin: true },
   { name: 'logs', path: '/logs', icon: '▦', label: '系统日志' },
-  { name: 'archives', path: '/archives', icon: '▣', label: '归档管理' },
+  { name: 'archives', path: '/archives', icon: '▣', label: '归档管理', admin: true },
 ];
 
 const navSystem = [
-  { name: 'site-config', path: '/site-config', icon: '⚙', label: '站点配置' },
-  { name: 'settings', path: '/settings', icon: '⚒', label: '参数设置' },
+  { name: 'site-config', path: '/site-config', icon: '⚙', label: '站点配置', admin: true },
+  { name: 'settings', path: '/settings', icon: '⚒', label: '参数设置', admin: true },
 ];
 </script>
