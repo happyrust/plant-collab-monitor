@@ -37,6 +37,12 @@
         <span v-else-if="loading" class="text-amber-500">● 刷新中</span>
         <span v-else-if="lastUpdatedAt" :title="lastUpdatedAt">{{ relativeUpdated }}</span>
         <button
+          v-if="!notificationsEnabled"
+          class="text-amber-600 hover:underline"
+          @click="store.requestNotificationPermission()"
+          title="启用桌面通知以接收告警"
+        >🔔 开启通知</button>
+        <button
           class="text-blue-600 hover:underline"
           :disabled="loading"
           @click="refresh"
@@ -64,6 +70,7 @@ const {
   lastUpdatedAt,
   connected,
   consecutiveFailures,
+  notificationsEnabled,
 } = storeToRefs(store);
 
 const refresh = () => store.refresh();

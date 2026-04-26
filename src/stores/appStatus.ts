@@ -44,9 +44,26 @@ export const useAppStatusStore = defineStore('appStatus', () => {
   const lastError = ref<string | null>(null);
   const consecutiveFailures = ref(0);
   const connected = ref(true);
+  const notificationsEnabled = ref(Notification.permission === 'granted');
 
   let timer: ReturnType<typeof setInterval> | null = null;
   let started = false;
+  let prevConnected = true;
+  let prevFailed = 0;
+
+  function requestNotificationPermission(): void {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then((p) => {
+        notificationsEnabled.value = p === 'granted';
+      });
+    }
+  }
+
+  function sendNotification(title: string, body: string): void {
+    if (!notificationsEnabled.value || document.hasFocus()) return;
+    try { new Notification(title, { body, icon: '/favicon.ico', tag: 'plant-monitor' }); } catch { /* noop */ }
+  }
 
   // 1-min event counter（由其它视图通过 SSE 推入）
   const eventTimestamps = ref<number[]>([]);
@@ -125,12 +142,26 @@ export const useAppStatusStore = defineStore('appStatus', () => {
       pruneEventCounter();
       lastUpdatedAt.value = new Date().toISOString();
       consecutiveFailures.value = 0;
+      if (!prevConnected) {
+        sendNotification('连接恢复', '后端服务已重新连接');
+      }
       connected.value = true;
+      prevConnected = true;
+
+      const curFailed = queue.value.failed;
+      if (curFailed > prevFailed && curFailed > 0) {
+        sendNotification('任务失败', `队列中有 ${curFailed} 个失败任务`);
+      }
+      prevFailed = curFailed;
     } catch (err) {
       lastError.value = (err as { message?: string })?.message || String(err);
       consecutiveFailures.value++;
       if (consecutiveFailures.value >= 2) {
+        if (prevConnected) {
+          sendNotification('连接中断', `后端服务无响应 (${consecutiveFailures.value} 次)`);
+        }
         connected.value = false;
+        prevConnected = false;
       }
     } finally {
       loading.value = false;
@@ -171,5 +202,7 @@ export const useAppStatusStore = defineStore('appStatus', () => {
     start,
     stop,
     trackEvent,
+    requestNotificationPermission,
+    notificationsEnabled,
   };
 });
