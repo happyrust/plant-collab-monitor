@@ -163,9 +163,11 @@ import {
 } from '@/api';
 import { useAdminAuthStore } from '@/stores/adminAuth';
 import { useThemeStore } from '@/stores/theme';
+import { useFaviconBadge } from '@/composables/useFaviconBadge';
 
 const themeStore = useThemeStore();
 const adminAuth = useAdminAuthStore();
+useFaviconBadge();
 
 const SIDEBAR_KEY = 'sidebar_collapsed';
 const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === '1');
