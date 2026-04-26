@@ -26,6 +26,8 @@ npm run type-check   # vue-tsc -b · 必须 0 errors
 npm run build        # 产物 dist/ · base 默认 /monitor/
 ```
 
+环境要求：Node **≥ 20.19**（Vite 8 / Tailwind 4 toolchain）。
+
 环境变量：
 - `VITE_API_TARGET`：dev 期 vite proxy 目标（默认 `http://127.0.0.1:3100`）
 - `VITE_API_BASE`：axios baseURL（生产同源时留空）
@@ -37,10 +39,10 @@ npm run build        # 产物 dist/ · base 默认 /monitor/
 
 | 层 | 选型 |
 |---|---|
-| 框架 | Vue 3.5 + `<script setup lang="ts">` + Vite 5.4 + TypeScript 5.6 strict |
-| UI | Naive UI 2.40 + Tailwind 3.4 + DaisyUI 4 |
-| 状态 | Pinia 2.2（`stores/adminAuth.ts` + `stores/appStatus.ts`）|
-| 路由 | vue-router 4.4（`router/index.ts` 含 `requiresAdmin` 守卫）|
+| 框架 | Vue 3.5 + `<script setup lang="ts">` + Vite 8.0 + TypeScript 6.0 strict |
+| UI | Naive UI 2.40 + Tailwind 4.2 + DaisyUI 5.5 |
+| 状态 | Pinia 3.0（`stores/adminAuth.ts` + `stores/appStatus.ts`）|
+| 路由 | vue-router 5.0（`router/index.ts` 含 `requiresAdmin` 守卫）|
 | HTTP | axios 1.7 + admin token interceptor |
 | SSE | 自研 `composables/useSse.ts`（双路径：原生 EventSource / fetch+ReadableStream + Bearer）|
 | 图表 | echarts 6（独立 vendor chunk，按需 import）|
@@ -129,6 +131,16 @@ API 模块清单：
 
 每个徽标都是 `RouterLink`，点击跳转对应视图。
 
+### 4.6 Tailwind 4 / DaisyUI 5 配置
+
+Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
+
+- `postcss.config.js` 必须使用 `@tailwindcss/postcss`，不要写旧的 `tailwindcss: {}`。
+- `src/styles/main.css` 使用 CSS-first 入口：`@import "tailwindcss"` + `@config "../../tailwind.config.js"` + `@plugin "daisyui"`。
+- DaisyUI v5 通过 CSS `@plugin "daisyui"` 配置 light/dark theme；不要再在 `tailwind.config.js` 里 `require('daisyui')`。
+- `tailwind.config.js` 只保留 content 与 font theme 扩展。
+- `@vueuse/core` 不是 direct dependency；源码无直接使用，不要重新加入。
+
 ---
 
 ## 5. 编码约定
@@ -142,6 +154,7 @@ API 模块清单：
 | import 路径 | 用 `@/...` 而非相对路径 |
 | naive-ui hooks | 自动 import（无需手写），见 `vite.config.ts` AutoImport |
 | naive-ui 组件 | 自动注册（无需手写 import），见 `vite.config.ts` Components |
+| Tailwind/DaisyUI | Tailwind 4 CSS-first；DaisyUI 5 用 `@plugin`，见 `src/styles/main.css` |
 | .vue 文件结构 | template → script → style scoped 顺序 |
 | commit message | `<type>(<scope>): 中文一句话 + 多行说明 + 关 Gap-Gx`，type ∈ feat/fix/refactor/chore/docs/build/perf/style |
 
@@ -162,10 +175,11 @@ API 模块清单：
 | 全局参数 | `src/views/SettingsView.vue` |
 | 异地拓扑可视化 | `src/views/TopologyVisualizationView.vue` |
 | Vite + auto-import 配置 | `vite.config.ts` |
+| Tailwind/DaisyUI 配置 | `postcss.config.js` + `src/styles/main.css` + `tailwind.config.js` |
 
 ---
 
-## 7. 当前实现度（2026-04-26 b78cf26 后）
+## 7. 当前实现度（2026-04-26 maintenance 后）
 
 | 维度 | 数值 |
 |---|---|
@@ -175,8 +189,10 @@ API 模块清单：
 | admin-gated endpoint 可用度 | 26/26（admin/admin 凭据下） |
 | `.js` 文件占比（src/） | **0**（全 `.ts` / `.vue`）|
 | 验收报告 | ✅ 11/11（无后端基线 · `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md`） |
+| 依赖健康 | `npm audit` 0 vulnerabilities；`npm outdated` 无剩余输出 |
+| 生产预览 smoke | ✅ `/monitor/` base + SPA fallback + assets + DaisyUI CSS 产物通过 |
 
-**剩余**：仅 Phase 7-Plus 浏览器联调（外部 chrome-devtools 依赖）+ B6+ rs-core 真热加载（跨仓独立会话）。
+**剩余**：仅 Phase 7-Plus 真实浏览器联调（外部 chrome-devtools 依赖）+ B6+ rs-core 真热加载（跨仓独立会话）。
 
 ---
 
@@ -190,8 +206,10 @@ API 模块清单：
 6. **不要**用 `console.error('xxx', err)` 直接打 err 对象（用 `err?.message || err`）
 7. **不要**写死 chart 兜底假数据（用 echarts `graphic` 空状态）
 8. **不要**新增 `<script setup>` plain JS 视图（一律 lang="ts"）
-9. **不要**改 `tsconfig.json` `composite` 与 `noEmit` 字段（vue-tsc 自管理，TS6310 兼容已修复）
-10. **不要**push 前不跑 `npm run type-check`
+9. **不要**把 Tailwind v4 PostCSS 插件写成旧 `tailwindcss: {}`（必须 `@tailwindcss/postcss`）
+10. **不要**在 `tailwind.config.js` 里重新 `require('daisyui')`（DaisyUI v5 在 CSS `@plugin` 配置）
+11. **不要**改 `tsconfig.json` `composite` 与 `noEmit` 字段（vue-tsc 自管理，TS6310 兼容已修复）
+12. **不要**push 前不跑 `npm run type-check`
 
 ---
 
@@ -199,6 +217,9 @@ API 模块清单：
 
 ### 本仓
 - `README.md` — 完整项目说明（含部署、状态表、相关文档）
+- `CHANGELOG.md` — 中文 changelog（maintenance S1-S4 与 smoke 记录）
+- `docs/maintenance/2026-04-26-deps-health-check.md` — 依赖体检 / 升级 backlog / S1-S4 结果
+- `docs/maintenance/2026-04-26-maintenance-upgrade-preview-smoke.md` — 依赖升级后的生产预览 smoke
 - `docs/prd/2026-04-25-collab-monitor-prd.md` — 整体能力规范 PRD
 - `docs/prd/2026-04-26-remote-site-prd.md` — 异地站点专题 PRD
 - `docs/plans/2026-04-25-collab-monitor-completion-gap.md` — 14 项 Gap 清单

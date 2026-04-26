@@ -8,6 +8,18 @@
 
 ## 2026-04-26
 
+### Maintenance Memory · 固化依赖升级结论（本次提交）
+
+> 将 S1-S4 与 preview smoke 的稳定结论迁移到 `AGENTS.md`，让后续 agent 直接继承最新技术栈与配置禁忌。
+
+#### Docs
+
+- **更新 `AGENTS.md` 技术栈**：Vite 8 / TypeScript 6 / Tailwind 4 / DaisyUI 5 / Pinia 3 / vue-router 5 / Node ≥20.19。
+- **新增 Tailwind 4 / DaisyUI 5 配置约定**：PostCSS 必须用 `@tailwindcss/postcss`；DaisyUI v5 用 CSS `@plugin`，不要回到 JS config `require('daisyui')`。
+- **同步当前状态**：`npm audit` 0 vulnerabilities、`npm outdated` 无剩余输出、production preview smoke 已通过。
+
+---
+
 ### Maintenance Verification · 依赖升级预览 Smoke（1 commit · `01389ea`）
 
 > S1-S4 全部完成后追加生产预览静态验证，确认 `/monitor/` base、SPA fallback、核心 assets 与 Tailwind/DaisyUI 产物正常。
@@ -279,4 +291,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`01389ea`（Maintenance Verification 依赖升级预览 Smoke）
+- 最新记录到：Maintenance Memory 固化依赖升级结论（提交见 git log）
