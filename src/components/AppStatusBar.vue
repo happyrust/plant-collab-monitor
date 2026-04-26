@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useAppStatusStore } from '@/stores/appStatus';
@@ -70,13 +70,34 @@ const refresh = () => store.refresh();
 
 const tick = ref(0);
 let tickTimer: ReturnType<typeof setInterval> | null = null;
+let titleTimer: ReturnType<typeof setInterval> | null = null;
+const originalTitle = document.title;
+
+function updateAlertTitle() {
+  if (!connected.value) {
+    document.title = `⚠ 连接中断 · ${originalTitle}`;
+  } else if (queue.value.failed > 0) {
+    document.title = `❌ ${queue.value.failed} 失败 · ${originalTitle}`;
+  } else {
+    document.title = originalTitle;
+  }
+}
 
 onMounted(() => {
   store.start();
-  // 每 10s 触发 tick 让 relativeUpdated 重算（不依赖响应式时间源）
   tickTimer = setInterval(() => {
     tick.value += 1;
   }, 10_000);
+  titleTimer = setInterval(updateAlertTitle, 3000);
+});
+
+onUnmounted(() => {
+  if (tickTimer) clearInterval(tickTimer);
+  if (titleTimer) {
+    clearInterval(titleTimer);
+    document.title = originalTitle;
+  }
+  store.stop();
 });
 
 const relativeUpdated = computed(() => {
