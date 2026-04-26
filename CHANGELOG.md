@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Post Wrap-Up · 文档与部署收尾（3 commits · `a7ec92d` → `da3819f`）
+### Post Wrap-Up · 文档与部署收尾（5 commits · `a7ec92d` → `bd196db`）
 
 > 在 19 commits 大收尾之后追加的文档体系闭环 + 部署链路静态验证。
 
@@ -20,11 +20,12 @@
 #### Verification
 
 - **Preview base 部署链路验证报告 6/6 PASS（commit `da3819f`）**：`docs/e2e-smoke/2026-04-26-preview-base-smoke-report.md`（94 行）。不依赖 chrome-devtools MCP 的简化版 e2e：用 `vite preview` 模拟 nginx 静态托管 + PowerShell `Invoke-WebRequest` 验证。**6/6 PASS**：`GET /` → 302 redirect 到 `/monitor/`；`GET /monitor/` → 200 + 正确 title；`/monitor/assets/index-*.js` 与 `*.css` → 200；`/monitor/dashboard` 与 `/monitor/topology`（admin route）SPA fallback → 200 (715 bytes index.html)。**关键判定**：(1) vite preview 行为与 nginx `try_files $uri $uri/ /monitor/index.html;` 等价；(2) admin guard 静态层不泄漏（admin 视图代码懒加载 + 前端 `router.beforeEach` 拦截）；(3) `index.html` modulepreload 仅 `vendor-vue` (109KB) + `vendor-http` (38KB) + `vendor-naive` (573KB) + entry，**不含 `vendor-echarts` (538KB)**——证实 manualChunks + 懒加载协同生效。本报告等价于 `docs/plans/2026-04-26-phase7-plus-preparation.md` 14 步矩阵中 「nginx 静态托管」预研项的交付。
+- **Dual-server 协议层 e2e 验证报告 8/8 PASS · 1 finding（commit `bd196db`）**：`docs/e2e-smoke/2026-04-26-dual-server-smoke-report.md`（124 行）。同时启 plant-model-gen web_server `:3100` + vite preview `:3200`，PowerShell + `[System.Net.HttpWebRequest]` 验证完整 e2e 协议链路。**8/8 PASS**：双服可达性 + admin login flow（admin/admin → token → `/me` Bearer）+ admin-gated `/api/remote-sync/envs` 鉴权门（无 token `401` / 带 token `200`）+ SSE Bearer 路径头部确认（`200 OK` + `Content-Type: text/event-stream`）+ 公共 `/api/sync/status` `200`。**Finding F-01（低）**：`/api/sync/events/stream` 端点未受 admin middleware 保护，无 token 也返回 `200 + text/event-stream`；与 mini API smoke F-01（`/api/deployment-sites`）属同类问题，建议后端确认设计意图。**四份 e2e 报告组成完整矩阵**（视图渲染 / 后端 API / 前端静态部署 / 双服协议层），仅剩浏览器渲染层（chrome MCP）未覆盖。
 
 #### Post Wrap-Up 累计
 
-- 3 commits（`a7ec92d` → `da3819f`）
-- 触及 3 个文件（README.md / HANDOFF.md / docs/e2e-smoke/2026-04-26-preview-base-smoke-report.md）
+- 5 commits（`a7ec92d` → `bd196db`）
+- 触及 4 个文件（README.md / HANDOFF.md / docs/e2e-smoke/2026-04-26-preview-base-smoke-report.md / docs/e2e-smoke/2026-04-26-dual-server-smoke-report.md）
 - `npm run type-check` 全程 0 errors
 - `working tree clean` · 远端 `origin/main` 同步
 
@@ -139,4 +140,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 当前主分支 HEAD：`da3819f`
+- 当前主分支 HEAD：`bd196db`
