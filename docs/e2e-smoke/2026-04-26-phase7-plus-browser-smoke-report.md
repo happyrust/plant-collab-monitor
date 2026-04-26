@@ -19,6 +19,8 @@
 | SSE Bearer token | PASS：2 次 `/api/sync/events/stream` 请求均带 `Authorization` |
 | Vue pageerror | 0 |
 | HTTP error | 0 |
+| SiteConfig 保存确认 | PASS：打开确认弹窗后取消，未发出写请求 |
+| Topology 删除确认 | SKIPPED：当前无可删除站点/环境 |
 | Smoke 判定 | PASS |
 
 ## 1. 本次修复
@@ -27,6 +29,7 @@
 - 修复 `adminAuthApi.me()` 的契约：后端 `/me` 只返回用户资料，不返回 token/expires；前端改为只刷新 `username/role`，不再清掉已有 session。
 - 新增 `scripts/phase7-plus-smoke.mjs`，支持用系统 Chrome 跑 Phase 7-Plus smoke，不依赖 Playwright Chromium 下载。
 - 后端 `plant-model-gen` 补齐 `GET /api/incremental/archives`，`/archives` 不再触发 404。
+- smoke 脚本新增非破坏性确认弹窗检查：SiteConfig 保存确认弹窗打开后点击取消，并断言未发出写请求。
 
 ## 2. 自动化覆盖
 
@@ -43,7 +46,7 @@
 | 10 | `/mqtt/nodes` | PASS |
 | 11 | `/logs` | PASS |
 | 12 | `/archives` | PASS：归档列表接口返回 `{ success: true, files: [] }` |
-| 13 | `/site-config` | PASS |
+| 13 | `/site-config` | PASS：保存确认弹窗可打开并取消，无写请求 |
 | 14 | `/settings` | PASS |
 
 ## 3. 已关闭缺陷
@@ -61,5 +64,5 @@
 
 ## 5. 下一步
 
-- 若 console/pageerror 清零，再补跑删除确认、SiteConfig 保存确认等带写操作的手动/自动化步骤。
-- 后续可将删除确认、SiteConfig 保存确认纳入 Playwright 脚本的非破坏性测试分支。
+- 若后端提供测试环境/测试站点数据，再补跑 Topology 删除确认弹窗（当前无可删除项，自动化标记 skipped）。
+- 后续可增加专用 test fixture，让删除确认也能稳定自动化而不影响真实数据。

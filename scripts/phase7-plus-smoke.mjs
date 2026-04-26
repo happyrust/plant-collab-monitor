@@ -38,6 +38,66 @@ async function snapshot(page, name) {
   });
 }
 
+async function tryCancelDeleteDialog(page) {
+  await page.goto(`${baseUrl}/topology`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1200);
+
+  const siteDelete = page.locator('[data-tip="删除站点"]').first();
+  if ((await siteDelete.count()) > 0) {
+    await siteDelete.click();
+    await page.getByRole('heading', { name: '确认删除站点', exact: true }).waitFor({
+      timeout: 5000,
+    });
+    await snapshot(page, '05-delete-confirm');
+    await page.getByRole('dialog').getByRole('button', { name: '取消' }).click();
+    await page.getByRole('heading', { name: '确认删除站点', exact: true }).waitFor({
+      state: 'hidden',
+      timeout: 5000,
+    });
+    return { status: 'passed', target: 'site' };
+  }
+
+  const envDelete = page.locator('[title="删除环境"]').first();
+  if ((await envDelete.count()) > 0) {
+    await envDelete.click();
+    await page.getByRole('heading', { name: '确认删除环境', exact: true }).waitFor({
+      timeout: 5000,
+    });
+    await snapshot(page, '05-delete-confirm');
+    await page.getByRole('dialog').getByRole('button', { name: '取消' }).click();
+    await page.getByRole('heading', { name: '确认删除环境', exact: true }).waitFor({
+      state: 'hidden',
+      timeout: 5000,
+    });
+    return { status: 'passed', target: 'env' };
+  }
+
+  return { status: 'skipped', reason: 'no deletable topology item' };
+}
+
+async function tryCancelSiteConfigSave(page, writeRequests) {
+  const beforeWrites = writeRequests.length;
+
+  await page.goto(`${baseUrl}/site-config`, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2500);
+  await page.getByRole('button', { name: '保存配置', exact: true }).click();
+  await page.getByText('确认保存配置', { exact: true }).waitFor({
+    timeout: 5000,
+  });
+  await snapshot(page, '13-site-config-save-confirm');
+  await page.getByRole('button', { name: '取消' }).last().click();
+  await page.getByText('确认保存配置', { exact: true }).waitFor({
+    state: 'hidden',
+    timeout: 5000,
+  });
+
+  return {
+    status: writeRequests.length === beforeWrites ? 'passed' : 'failed',
+    writeRequestsBefore: beforeWrites,
+    writeRequestsAfter: writeRequests.length,
+  };
+}
+
 async function main() {
   await mkdir(screenshotDir, { recursive: true });
   await mkdir(path.dirname(reportPath), { recursive: true });
@@ -54,6 +114,7 @@ async function main() {
   const requestFailures = [];
   const httpErrors = [];
   const sseRequests = [];
+  const writeRequests = [];
   const routeResults = [];
 
   page.on('console', (msg) => {
@@ -81,6 +142,12 @@ async function main() {
       sseRequests.push({
         url: request.url(),
         hasAuthorization: Boolean(request.headers().authorization),
+      });
+    }
+    if (request.method() !== 'GET' && request.url().includes('/api/site-config')) {
+      writeRequests.push({
+        url: request.url(),
+        method: request.method(),
       });
     }
   });
@@ -113,6 +180,11 @@ async function main() {
     });
   }
 
+  const dialogChecks = {
+    deleteConfirm: await tryCancelDeleteDialog(page),
+    siteConfigSaveConfirm: await tryCancelSiteConfigSave(page, writeRequests),
+  };
+
   const result = {
     baseUrl,
     browser: executablePath ?? 'chrome channel',
@@ -124,6 +196,8 @@ async function main() {
     pageErrors,
     requestFailures,
     httpErrors,
+    writeRequests,
+    dialogChecks,
     screenshots: screenshotDir,
     generatedAt: new Date().toISOString(),
   };
@@ -137,6 +211,8 @@ async function main() {
     redirectBeforeLogin === '/topology' &&
     routeNavigationOk &&
     sseAuthorized &&
+    dialogChecks.siteConfigSaveConfirm.status === 'passed' &&
+    dialogChecks.deleteConfirm.status !== 'failed' &&
     pageErrors.length === 0 &&
     httpErrors.length === 0;
 

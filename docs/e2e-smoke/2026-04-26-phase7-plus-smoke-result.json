@@ -103,8 +103,20 @@
     }
   ],
   "httpErrors": [],
+  "writeRequests": [],
+  "dialogChecks": {
+    "deleteConfirm": {
+      "status": "skipped",
+      "reason": "no deletable topology item"
+    },
+    "siteConfigSaveConfirm": {
+      "status": "passed",
+      "writeRequestsBefore": 0,
+      "writeRequestsAfter": 0
+    }
+  },
   "screenshots": "docs/e2e-smoke/screenshots/2026-04-26-phase7-plus",
-  "generatedAt": "2026-04-26T16:28:44.926Z",
+  "generatedAt": "2026-04-26T16:35:40.371Z",
   "passed": true,
   "sseAuthorized": true,
   "routeNavigationOk": true

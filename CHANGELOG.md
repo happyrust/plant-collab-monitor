@@ -31,10 +31,11 @@
 - `/api/sync/events/stream` 两次请求均带 `Authorization: Bearer ...`。
 - Vue `pageerror` 为 0。
 - 后端补齐 `/api/incremental/archives` 后，`npm run smoke:phase7-plus` 判定 PASS，HTTP error 为 0。
+- SiteConfig 保存确认弹窗非破坏性验证通过：点击取消后未发出写请求。
 
 #### Follow-up
 
-- 仍需补跑删除确认、SiteConfig 保存确认等带写操作的 Phase 7-Plus 步骤。
+- Topology 删除确认因当前无可删除站点/环境而 skipped；后续需测试 fixture 支持。
 
 ---
 
