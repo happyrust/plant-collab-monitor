@@ -3,11 +3,20 @@
     <NMessageProvider>
       <NDialogProvider>
       <div class="min-h-screen flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+        <!-- 移动端 overlay 背景 -->
+        <div
+          v-if="mobileMenuOpen"
+          class="fixed inset-0 bg-black/40 z-40 md:hidden"
+          @click="mobileMenuOpen = false"
+        ></div>
+
         <!-- 侧栏 -->
         <aside
           :class="[
-            'flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 transition-[width] duration-300',
+            'flex flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0 transition-all duration-300',
             sidebarCollapsed ? 'w-16' : 'w-64',
+            'hidden md:flex',
+            mobileMenuOpen ? '!flex fixed inset-y-0 left-0 z-50 shadow-2xl' : '',
           ]"
         >
           <div class="py-6 flex items-center gap-3 border-b border-slate-200 dark:border-slate-700" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
@@ -40,7 +49,7 @@
                   <button
                     class="nav-link w-full"
                     :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                    @click="$router.push(item.path)"
+                    @click="navigateTo(item.path)"
                   >
                     <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
                     <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
@@ -66,7 +75,7 @@
                   <button
                     class="nav-link w-full relative"
                     :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                    @click="$router.push(item.path)"
+                    @click="navigateTo(item.path)"
                   >
                     <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
                     <span v-if="!sidebarCollapsed" class="flex-1 flex items-center justify-between">
@@ -96,7 +105,7 @@
                   <button
                     class="nav-link w-full"
                     :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                    @click="$router.push(item.path)"
+                    @click="navigateTo(item.path)"
                   >
                     <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
                     <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
@@ -156,6 +165,13 @@
 
         <!-- 主内容区 -->
         <main class="flex-1 flex flex-col overflow-hidden">
+          <div class="md:hidden px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-3">
+            <button
+              @click="mobileMenuOpen = !mobileMenuOpen"
+              class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-lg"
+            >☰</button>
+            <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">PLANT · COLLAB</span>
+          </div>
           <AppStatusBar />
           <div v-if="currentPageTitle" class="px-6 py-2 text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
             PLANT · COLLAB › <span class="font-medium text-slate-700 dark:text-slate-300">{{ currentPageTitle }}</span>
@@ -178,7 +194,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { RouterLink, RouterView, useRoute } from 'vue-router';
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 // Provider 组件由 NaiveUiResolver 在 template 中自动注册；这里仅保留 theme/locale 等非组件 export
 import { darkTheme, zhCN, dateZhCN } from 'naive-ui';
 import LoginDialog from '@/components/LoginDialog.vue';
@@ -193,6 +209,7 @@ import { useAppStatusStore } from '@/stores/appStatus';
 import { useThemeStore } from '@/stores/theme';
 import { useFaviconBadge } from '@/composables/useFaviconBadge';
 
+const router = useRouter();
 const themeStore = useThemeStore();
 const adminAuth = useAdminAuthStore();
 const appStatus = useAppStatusStore();
@@ -200,6 +217,7 @@ useFaviconBadge();
 
 const SIDEBAR_KEY = 'sidebar_collapsed';
 const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === '1');
+const mobileMenuOpen = ref(false);
 
 const clockTime = ref('');
 let clockTimer: ReturnType<typeof setInterval> | null = null;
@@ -210,6 +228,11 @@ function updateClock() {
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
   localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value ? '1' : '0');
+}
+
+function navigateTo(path: string) {
+  router.push(path);
+  mobileMenuOpen.value = false;
 }
 
 registerAuthTokenProvider(() => adminAuth.token);
