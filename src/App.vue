@@ -95,6 +95,14 @@
             </RouterLink>
           </nav>
 
+          <div
+            v-if="!appStatus.connected"
+            class="px-3 py-1.5 text-[10px] font-semibold text-rose-500 dark:text-rose-400 flex items-center gap-1.5"
+            :class="sidebarCollapsed ? 'justify-center' : ''"
+          >
+            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
+            <span v-if="!sidebarCollapsed">后端离线</span>
+          </div>
           <div class="px-2 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center" :class="sidebarCollapsed ? 'flex-col gap-2' : 'justify-between px-4'">
             <span class="flex items-center gap-2" :class="sidebarCollapsed ? 'flex-col' : ''">
               <button
