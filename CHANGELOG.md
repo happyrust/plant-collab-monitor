@@ -8,6 +8,25 @@
 
 ## 2026-04-26
 
+### Maintenance · 依赖体检与 PostCSS patch（1 commit · `0a14a7c`）
+
+> 在文档与部署收尾之后追加一次依赖健康检查，只应用 patch 级 zero-risk 升级，major 跨版本升级进入 maintenance backlog。
+
+#### Dependencies
+
+- **`postcss` 8.5.10 → 8.5.11（commit `0a14a7c`）**：执行 `npm install postcss@8.5.11`，仅落地 patch 级升级；`package.json` / `package-lock.json` 同步更新，不触碰 vite / vue / tailwind 等 major 跨版本依赖。
+
+#### Maintenance
+
+- **新增依赖体检报告（commit `0a14a7c`）**：`docs/maintenance/2026-04-26-deps-health-check.md` 汇总 `npm audit` + `npm outdated`。结论：当前仅 2 项 moderate 漏洞（`esbuild <= 0.24.2` 与 `vite <= 6.4.1`，dev server 场景，生产产物不受影响）；完整修复需 `vite` 5 → 8 + `@vitejs/plugin-vue` 配套大版本升级，本轮不做热修，列入独立 maintenance sprint。
+- **升级 backlog 分层**：低风险 `@types/node` / `@vueuse/core` 可单独 PR；中风险 `vue-router` / `pinia` / `typescript` / `vue-tsc` 需配套测试；高风险 `vite` / `tailwindcss` / `daisyui` 建议成套 sprint，重点覆盖 `manualChunks`、base url、auto-import 插件与全视图样式回归。
+
+#### Verification
+
+- `npm run build` + `npm run type-check` 全绿，`vendor-naive` 573KB 不变。
+
+---
+
 ### Post Wrap-Up · 文档与部署收尾（5 commits · `a7ec92d` → `bd196db`）
 
 > 在 19 commits 大收尾之后追加的文档体系闭环 + 部署链路静态验证。
@@ -140,4 +159,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 当前主分支 HEAD：`bd196db`
+- 最新记录到：`0a14a7c`（依赖体检与 PostCSS patch）
