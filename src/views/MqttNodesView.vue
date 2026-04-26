@@ -400,7 +400,7 @@
             <div
               v-for="msg in filteredMessages"
               :key="msg.message_id"
-              class="card bg-white dark:bg-slate-800 shadow-sm border border-slate-200"
+              class="card bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700"
             >
               <div class="card-body p-4">
                 <div class="flex justify-between items-start mb-3">

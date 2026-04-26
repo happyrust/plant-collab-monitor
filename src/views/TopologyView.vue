@@ -34,7 +34,7 @@
             <span class="loading loading-spinner loading-lg text-primary"></span>
             <p class="text-sm text-slate-500 mt-3">加载中...</p>
           </div>
-          <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200">
+          <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
             <i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i>
             <p class="font-medium text-slate-600 dark:text-slate-400">暂无环境配置</p>
             <p class="text-xs mt-2 text-slate-400">点击右上角"新建"按钮添加环境</p>
@@ -377,7 +377,7 @@
         </button>
 
         <!-- 标题区域 -->
-        <div class="flex items-center gap-4 mb-8 pb-4 border-b border-slate-200">
+        <div class="flex items-center gap-4 mb-8 pb-4 border-b border-slate-200 dark:border-slate-700">
           <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-green-500/30">
             <i class="fas fa-sitemap text-2xl"></i>
           </div>
@@ -445,7 +445,7 @@
           <!-- 分隔线 -->
           <div class="relative my-6">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-slate-200"></div>
+              <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
             </div>
             <div class="relative flex justify-center">
               <span class="bg-white dark:bg-slate-800 px-4 text-xs font-medium text-slate-400 flex items-center gap-2">
@@ -572,7 +572,7 @@
               </label>
             </div>
           </div>
-<div class="modal-action mt-8 pt-6 border-t border-slate-200">
+<div class="modal-action mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
             <button 
               type="button" 
               class="btn btn-ghost gap-2 hover:bg-slate-100 transition-colors" 
@@ -637,19 +637,19 @@
                 基本信息
               </h4>
               <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                   <p class="text-xs text-slate-500 mb-1">站点名称</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.name || '-' }}</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                   <p class="text-xs text-slate-500 mb-1">HTTP 地址</p>
                   <code class="text-sm text-blue-600">{{ selectedSite?.http_host || '-' }}</code>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                   <p class="text-xs text-slate-500 mb-1">位置标识</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.location || '-' }}</p>
                 </div>
-                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200">
+                <div class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
                   <p class="text-xs text-slate-500 mb-1">数据库编号</p>
                   <p class="font-semibold text-slate-800">{{ selectedSite?.dbnums || '-' }}</p>
                 </div>

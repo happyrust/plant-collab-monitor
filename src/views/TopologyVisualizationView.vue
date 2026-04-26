@@ -477,7 +477,7 @@
             <div
               v-for="topic in selectedNode.subscribed_topics"
               :key="topic"
-              class="text-xs font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border border-slate-200"
+              class="text-xs font-mono bg-white dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700"
             >
               {{ topic }}
             </div>
@@ -491,7 +491,7 @@
             <div
               v-for="(msg, idx) in getRecentMessages(selectedNode.location)"
               :key="idx"
-              class="text-xs bg-white dark:bg-slate-800 px-3 py-2 rounded border border-slate-200"
+              class="text-xs bg-white dark:bg-slate-800 px-3 py-2 rounded border border-slate-200 dark:border-slate-700"
             >
               <div class="flex items-center justify-between mb-1">
                 <span class="font-semibold text-primary">{{ msg.sender_location }}</span>
