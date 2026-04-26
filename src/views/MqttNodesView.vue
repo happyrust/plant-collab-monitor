@@ -543,18 +543,12 @@ async function loadLogs() {
     if (data?.status === 'success' && Array.isArray(data?.logs)) {
       logs.value = data.logs;
     } else {
-      // 后端 stub 时降级为占位日志（Gap-G6）
-      logs.value = [
-        { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'MQTT Broker 已启动在端口 1883' },
-        { time: new Date().toLocaleTimeString(), level: 'INFO', message: '等待客户端连接...' },
-      ];
+      // 后端未实现 / 返回非预期：保持空，由 UI 的 "暂无日志" 占位呈现，禁止伪造日志
+      logs.value = [];
     }
   } catch (error) {
     console.error('加载日志失败:', error);
-    logs.value = [
-      { time: new Date().toLocaleTimeString(), level: 'INFO', message: 'MQTT Broker 运行中' },
-      { time: new Date().toLocaleTimeString(), level: 'WARN', message: '日志API未实现或调用失败' },
-    ];
+    logs.value = [];
   } finally {
     logsLoading.value = false;
   }
