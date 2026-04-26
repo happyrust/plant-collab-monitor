@@ -8,7 +8,7 @@
         </div>
         <div>
           <p class="text-[10px] uppercase tracking-[0.35em] text-slate-400 font-semibold mb-1.5">后台日志</p>
-          <h2 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-1">
+          <h2 class="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-200 dark:to-slate-400 bg-clip-text text-transparent mb-1">
             实时检测输出
           </h2>
           <p class="text-sm text-slate-600 flex items-center gap-2">
@@ -24,7 +24,7 @@
             'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 shadow-md hover:shadow-lg',
             autoScroll
               ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border-2 border-green-400'
-              : 'bg-white text-slate-700 border-2 border-slate-300 hover:border-slate-400'
+              : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-2 border-slate-300 dark:border-slate-600 hover:border-slate-400'
           ]"
         >
           <i :class="['fas', autoScroll ? 'fa-lock' : 'fa-lock-open', 'text-[10px]']"></i>
@@ -188,6 +188,10 @@ onMounted(() => {
   padding: 1.75rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
+:where(.dark) .modern-log-container {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: #334155;
+}
 
 .icon-wrapper {
   width: 48px;
@@ -208,6 +212,10 @@ onMounted(() => {
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
   position: relative;
+}
+:where(.dark) .log-viewer-modern {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border-color: rgba(51, 65, 85, 0.8);
 }
 
 .log-viewer-modern::-webkit-scrollbar {
@@ -243,6 +251,10 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: slideInRight 0.4s ease-out backwards;
+}
+:where(.dark) .log-entry-modern {
+  background: #1e293b;
+  border-color: rgba(51, 65, 85, 0.8);
 }
 
 @keyframes slideInRight {
@@ -316,6 +328,9 @@ onMounted(() => {
   word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+:where(.dark) .log-message-modern {
+  color: #cbd5e1;
+}
 
 /* INFO - Blue Theme */
 .log-modern-info .log-icon-wrapper {
@@ -334,6 +349,7 @@ onMounted(() => {
   border-color: #93c5fd;
   background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
 }
+:where(.dark) .log-modern-info:hover { background: linear-gradient(135deg, #1e293b 0%, #1e3a5f 100%); }
 
 /* SUCCESS - Green Theme */
 .log-modern-success .log-icon-wrapper {
@@ -352,6 +368,7 @@ onMounted(() => {
   border-color: #6ee7b7;
   background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%);
 }
+:where(.dark) .log-modern-success:hover { background: linear-gradient(135deg, #1e293b 0%, #064e3b 100%); }
 
 /* WARNING - Orange Theme */
 .log-modern-warning .log-icon-wrapper {
@@ -370,6 +387,7 @@ onMounted(() => {
   border-color: #fcd34d;
   background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
 }
+:where(.dark) .log-modern-warning:hover { background: linear-gradient(135deg, #1e293b 0%, #451a03 100%); }
 
 /* ERROR - Red Theme */
 .log-modern-error .log-icon-wrapper {
@@ -388,6 +406,7 @@ onMounted(() => {
   border-color: #fca5a5;
   background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
 }
+:where(.dark) .log-modern-error:hover { background: linear-gradient(135deg, #1e293b 0%, #450a0a 100%); }
 
 /* DEBUG - Purple Theme */
 .log-modern-debug .log-icon-wrapper {
@@ -406,6 +425,7 @@ onMounted(() => {
   border-color: #d8b4fe;
   background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
 }
+:where(.dark) .log-modern-debug:hover { background: linear-gradient(135deg, #1e293b 0%, #3b0764 100%); }
 
 /* Empty State */
 .empty-state {
