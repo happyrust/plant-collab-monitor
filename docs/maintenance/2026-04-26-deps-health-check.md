@@ -76,6 +76,7 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 - **S3 Vite 安全修复完成**：`vite` 5 → 8、`@vitejs/plugin-vue` 5 → 6。现有 `base`、proxy、manualChunks、auto-import / components 插件配置无需代码改动；`type-check` + `build` + `npm audit` 全绿。
 - **未使用 direct dependency 清理完成**：业务源码与 `vite.config.ts` 均未直接使用 `@vueuse/core`，移除 direct dependency 后仍由 `unplugin-auto-import` 保留传递依赖；`type-check` + `build` + `npm audit` 全绿。
 - **S4 样式系统升级完成**：`tailwindcss` 3 → 4、`daisyui` 4 → 5，并新增 `@tailwindcss/postcss`。`postcss.config.js` 改用 `@tailwindcss/postcss`；`src/styles/main.css` 迁移到 CSS-first `@import "tailwindcss"` + `@plugin "daisyui"`；`tailwind.config.js` 保留 theme/content，移除 DaisyUI JS plugin 配置。
+- **生产预览 smoke 完成**：`docs/maintenance/2026-04-26-maintenance-upgrade-preview-smoke.md` 记录 `/monitor/` base、SPA fallback、核心 assets、DaisyUI 全局类与 audit/outdated 验证结果。
 
 ### 暂不升级
 

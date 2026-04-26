@@ -8,6 +8,19 @@
 
 ## 2026-04-26
 
+### Maintenance Verification · 依赖升级预览 Smoke（本次提交）
+
+> S1-S4 全部完成后追加生产预览静态验证，确认 `/monitor/` base、SPA fallback、核心 assets 与 Tailwind/DaisyUI 产物正常。
+
+#### Verification
+
+- **新增报告**：`docs/maintenance/2026-04-26-maintenance-upgrade-preview-smoke.md`。
+- **路由 smoke 6/6 PASS**：`/`（跟随 redirect 后 200）、`/monitor/`、`/monitor/dashboard`、`/monitor/topology`、`/monitor/mqtt/nodes`、`/monitor/site-config`。
+- **assets smoke 6/6 PASS**：entry JS、`vendor-naive`、`rolldown-runtime`、`vendor-http`、`vendor-vue`、主 CSS 均 200。
+- **CSS 产物检查 PASS**：主 CSS 命中 `btn-primary` / `modal-box` / `input-bordered` / `badge-success` / `stats-horizontal`。
+
+---
+
 ### Maintenance S4 · Tailwind / DaisyUI 样式系统升级（1 commit · `75e27de`）
 
 > 完成最后一组依赖升级：Tailwind 3 → 4、DaisyUI 4 → 5，并迁移到 Tailwind v4 的 PostCSS 与 CSS-first 配置。
@@ -266,4 +279,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`75e27de`（Maintenance S4 Tailwind / DaisyUI 样式系统升级）
+- 最新记录到：Maintenance Verification 依赖升级预览 Smoke（提交见 git log）
