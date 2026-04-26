@@ -8,6 +8,24 @@
 
 ## 2026-04-26
 
+### Maintenance S2 · 路由与状态依赖升级（本次提交）
+
+> 继续按维护 backlog 推进中风险但局部可控的路由 + 状态升级，先把 Vue Router / Pinia major 版本收口；Vite/esbuild 安全修复仍保留到 S3 独立处理。
+
+#### Dependencies
+
+- **`vue-router` 4 → 5**：升级到 `vue-router` 5.0.6，现有 `createRouter` / `createWebHistory` / `router.beforeEach` / `RouteMeta` 扩展类型通过。
+- **`pinia` 2 → 3**：升级到 `pinia` 3.0.4，现有 `createPinia()` + `defineStore()` setup store（`adminAuth` / `appStatus`）无需代码改动。
+
+#### Verification
+
+- `npm run type-check` PASS。
+- `npm run build` PASS（vite 5.4.21，3486 modules transformed，`vendor-naive` 573.05KB / gzip 159.34KB 保持）。
+- `npm outdated` 剩余：`@vueuse/core`、`vite` / `@vitejs/plugin-vue`、`tailwindcss` / `daisyui`。
+- `npm audit --registry=https://registry.npmjs.org/` 仍为 2 项 moderate（`esbuild <= 0.24.2` / `vite <= 6.4.1`，需 S3 Vite 大版本处理）。
+
+---
+
 ### Maintenance S1 · 类型工具链升级（本次提交）
 
 > 按维护 backlog 继续推进 S1：先完成类型工具链升级，并顺手补齐最新 PostCSS patch；高风险 Vite / Tailwind 大版本仍保留为后续独立 sprint。
@@ -179,4 +197,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance S1 类型工具链升级（提交见 git log）
+- 最新记录到：Maintenance S2 路由与状态依赖升级（提交见 git log）

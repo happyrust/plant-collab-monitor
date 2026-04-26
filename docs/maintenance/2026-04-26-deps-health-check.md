@@ -11,7 +11,7 @@
 | 项 | 值 |
 |---|---|
 | 维护基线 | `2993194 docs(changelog): 同步依赖体检记录` |
-| Node | ≥ 20 |
+| Node | ≥ 20.19（本轮验证环境：v22.22.0；Vue Router 5 的构建期依赖要求 ≥20.19） |
 | package manager | npm |
 | 注册表 | npmmirror（淘宝镜像）→ audit 时切到 `https://registry.npmjs.org/`（淘宝镜像不实现 audit endpoint） |
 
@@ -57,18 +57,19 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 | `@types/node` | 25.6.0 | 25.6.0 | 25.6.0 | major × 3 | 低 ✅ 已应用 |
 | `typescript` | 6.0.3 | 6.0.3 | 6.0.3 | major | 中 ✅ 已应用 |
 | `vue-tsc` | 3.2.7 | 3.2.7 | 3.2.7 | major | 中 ✅ 已应用 |
+| `pinia` | 3.0.4 | 3.0.4 | 3.0.4 | major | 中 ✅ 已应用 |
+| `vue-router` | 5.0.6 | 5.0.6 | 5.0.6 | major | 中 ✅ 已应用 |
 | `@vitejs/plugin-vue` | 5.2.4 | 5.2.4 | 6.0.6 | major | 中（与 vite 配套升）|
 | `@vueuse/core` | 11.3.0 | 11.3.0 | 14.2.1 | major × 3 | 低-中（API 兼容性需测试）|
 | `daisyui` | 4.12.24 | 4.12.24 | 5.5.19 | major | **高**（与 tailwind 4 配套）|
-| `pinia` | 2.3.1 | 2.3.1 | 3.0.4 | major | 中（store 定义可能需调整）|
 | `tailwindcss` | 3.4.19 | 3.4.19 | 4.2.4 | major | **高**（rewrite，配置格式大改）|
 | `vite` | 5.4.21 | 5.4.21 | 8.0.10 | major × 3 | **高**（配置 + plugin 全套同升）|
-| `vue-router` | 4.6.4 | 4.6.4 | 5.0.6 | major | 中（meta + guard 兼容性）|
 
 ### 已应用 ✅
 
 - **`postcss` 8.5.10 → 8.5.12**：patch 级，无 API 变化。`npm install postcss@latest`，`build` + `type-check` 全绿验证。
 - **S1 类型工具链升级完成**：`@types/node` 22 → 25、`typescript` 5 → 6、`vue-tsc` 2 → 3。TS 6 对 `baseUrl` 发出弃用诊断后，同步把 `tsconfig.json` 的 `paths` 迁移为无 `baseUrl` 写法（`@/*` → `./src/*`），`type-check` + `build` 全绿。
+- **S2 路由 + 状态升级完成**：`vue-router` 4 → 5、`pinia` 2 → 3。现有 `router.beforeEach` admin guard、RouteMeta 扩展、`adminAuth` / `appStatus` setup store 均无需代码改动；`type-check` + `build` 全绿。
 
 ### 暂不升级（待独立 sprint 评估）
 
@@ -77,11 +78,6 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 #### 低风险 backlog（可单独 PR）
 
 - `@vueuse/core` 11 → 14：检查项目使用了哪些 hook，逐个对照 changelog。
-
-#### 中风险 backlog（需配套测试）
-
-- `vue-router` 4 → 5：meta 类型 / guard 接口可能变化；`router.beforeEach` 写法影响 admin guard。
-- `pinia` 2 → 3：setup store 写法主流，但可能影响 SSR 行为（本项目 SPA，影响小）。
 
 #### 高风险 backlog（成套升级）
 
@@ -102,10 +98,11 @@ S1 · 类型升级（已完成）
   - tsconfig paths 迁移到无 baseUrl 写法
   - npm run type-check + npm run build 全绿
 
-S2 · 路由 + 状态升级（30-60 min · 中风险）
+S2 · 路由 + 状态升级（已完成）
   - vue-router@^5（重点 router.beforeEach / RouteMeta 兼容）
   - pinia@^3
   - 所有 admin guard / store 接入路径全验
+  - npm run type-check + npm run build 全绿
 
 S3 · vite + esbuild 安全修复（90-120 min · 高风险）
   - vite@^8
@@ -129,7 +126,7 @@ S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
 | 生产产物是否受影响？ | **否** |
 | 必须立即升级？ | **否**（开发者本地 dev 不公网暴露即可） |
 | 推荐何时升级？ | 下一个 maintenance sprint，按 § 4 backlog 分批 |
-| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级完成 |
+| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级完成 |
 
 ---
 
