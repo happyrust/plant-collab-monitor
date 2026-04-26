@@ -127,13 +127,31 @@ async function main() {
     screenshots: screenshotDir,
     generatedAt: new Date().toISOString(),
   };
+  const sseAuthorized =
+    sseRequests.length > 0 && sseRequests.every((request) => request.hasAuthorization);
+  const routeNavigationOk = routeResults.every((entry) => {
+    const url = new URL(entry.url);
+    return url.pathname === entry.route;
+  });
+  const passed =
+    redirectBeforeLogin === '/topology' &&
+    routeNavigationOk &&
+    sseAuthorized &&
+    pageErrors.length === 0 &&
+    httpErrors.length === 0;
+
+  Object.assign(result, {
+    passed,
+    sseAuthorized,
+    routeNavigationOk,
+  });
 
   await writeFile(reportPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
   await browser.close();
 
   console.log(JSON.stringify(result, null, 2));
 
-  if (pageErrors.length > 0 || consoleErrors.length > 0) {
+  if (!passed) {
     process.exitCode = 1;
   }
 }

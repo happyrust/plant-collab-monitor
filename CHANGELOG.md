@@ -30,10 +30,11 @@
 - `/dashboard`、`/topology`、`/topology-viz`、`/tasks`、`/history`、`/mqtt/messages`、`/mqtt/nodes`、`/logs`、`/archives`、`/site-config`、`/settings` 均可进入目标路由。
 - `/api/sync/events/stream` 两次请求均带 `Authorization: Bearer ...`。
 - Vue `pageerror` 为 0。
+- 后端补齐 `/api/incremental/archives` 后，`npm run smoke:phase7-plus` 判定 PASS，HTTP error 为 0。
 
-#### Known Issue
+#### Follow-up
 
-- `/archives` 触发 `GET /api/incremental/archives`，当前后端返回 404；Phase 7-Plus 尚未达到 14/14 全绿，需后端补齐归档列表 API 后重跑。
+- 仍需补跑删除确认、SiteConfig 保存确认等带写操作的 Phase 7-Plus 步骤。
 
 ---
 

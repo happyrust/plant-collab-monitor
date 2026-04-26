@@ -5,7 +5,7 @@
 
 ## 0. 执行摘要
 
-**结论**：⚠️ 真实浏览器联调已恢复并完成首轮自动化覆盖；核心 admin login redirect 与 SSE Bearer token 均通过，`/archives` 因后端缺少 `/api/incremental/archives` 暂未达到 14/14 全绿。
+**结论**：✅ 真实浏览器联调已恢复并完成首轮自动化覆盖；核心 admin login redirect、SSE Bearer token 与 `/archives` 归档列表 API 均通过。
 
 | 维度 | 结果 |
 |---|---|
@@ -18,13 +18,15 @@
 | 登录回跳 | PASS：登录后回到 `/topology` |
 | SSE Bearer token | PASS：2 次 `/api/sync/events/stream` 请求均带 `Authorization` |
 | Vue pageerror | 0 |
-| console.error | 3 条，均由 `/api/incremental/archives` 404 或导航中断引起 |
+| HTTP error | 0 |
+| Smoke 判定 | PASS |
 
 ## 1. 本次修复
 
 - 修复 `adminAuthApi.login()` 对后端 envelope 响应的适配：后端返回 `data.token`、`data.user.username`、`data.user.role`。
 - 修复 `adminAuthApi.me()` 的契约：后端 `/me` 只返回用户资料，不返回 token/expires；前端改为只刷新 `username/role`，不再清掉已有 session。
 - 新增 `scripts/phase7-plus-smoke.mjs`，支持用系统 Chrome 跑 Phase 7-Plus smoke，不依赖 Playwright Chromium 下载。
+- 后端 `plant-model-gen` 补齐 `GET /api/incremental/archives`，`/archives` 不再触发 404。
 
 ## 2. 自动化覆盖
 
@@ -40,18 +42,17 @@
 | 09 | `/mqtt/messages` | PASS |
 | 10 | `/mqtt/nodes` | PASS |
 | 11 | `/logs` | PASS |
-| 12 | `/archives` | PARTIAL：页面进入，但归档列表接口 404 |
+| 12 | `/archives` | PASS：归档列表接口返回 `{ success: true, files: [] }` |
 | 13 | `/site-config` | PASS |
 | 14 | `/settings` | PASS |
 
-## 3. 剩余缺陷
+## 3. 已关闭缺陷
 
 ### P1 · `/archives` 归档列表接口缺失
 
 - 前端调用：`GET /api/incremental/archives`
-- 实测结果：`404 Not Found`
-- 影响：`ArchivesView` 只能显示空态，并产生 console error，Phase 7-Plus 无法达到 14/14 全绿。
-- 归属：后端 `plant-model-gen` 需要补齐归档列表 API，或前后端统一到已有文件服务能力。
+- 修复结果：后端返回 `200` + `{ success: true, files: [] }`
+- 当前影响：已关闭；暂无归档文件时展示空态。
 
 ## 4. 产物
 
@@ -60,5 +61,5 @@
 
 ## 5. 下一步
 
-- 在 `plant-model-gen` 补齐 `/api/incremental/archives` 后重跑 `npm run smoke:phase7-plus`。
 - 若 console/pageerror 清零，再补跑删除确认、SiteConfig 保存确认等带写操作的手动/自动化步骤。
+- 后续可将删除确认、SiteConfig 保存确认纳入 Playwright 脚本的非破坏性测试分支。
