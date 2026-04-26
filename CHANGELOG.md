@@ -84,6 +84,9 @@
 - **StatusBar 移动适配**（Phase 44）：pills 横向滚动 + 隐藏滚动条
 - **PWA Manifest**（Phase 45）：`manifest.json` + 安装到桌面支持 + SVG 图标
 - **useClipboard**（Phase 46）：复制到剪贴板 composable + 2s 状态反馈
+- **useExport**（Phase 47）：`downloadJson` / `downloadCsv`（UTF-8 BOM + 引号转义）
+- **useDebounce/useThrottledFn**（Phase 48）：ref 防抖 + 函数防抖/节流
+- **composables barrel**（Phase 49）：统一 re-export `@/composables`（7 个 composable）
 
 #### 验证
 
