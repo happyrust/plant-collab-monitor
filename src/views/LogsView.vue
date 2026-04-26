@@ -43,7 +43,7 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import LogViewer from '@/components/LogViewer.vue';
 import { remoteSyncApi } from '@/api';
@@ -51,21 +51,37 @@ import { useSse } from '@/composables/useSse';
 import { useAdminAuthStore } from '@/stores/adminAuth';
 import { useAppStatusStore } from '@/stores/appStatus';
 
+type LogItem = Record<string, unknown>;
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
 const adminAuth = useAdminAuthStore();
 const appStatus = useAppStatusStore();
-const logs = ref([]);
+const logs = ref<LogItem[]>([]);
 const loading = ref(false);
 const errorMsg = ref('');
 
-async function refresh() {
+async function refresh(): Promise<void> {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const data = await remoteSyncApi.logs({ limit: 200 });
-    const items = Array.isArray(data?.logs) ? data.logs : Array.isArray(data) ? data : [];
+    const data: unknown = await remoteSyncApi.logs({ limit: 200 });
+    const items: LogItem[] = (() => {
+      if (data && typeof data === 'object' && 'logs' in data) {
+        const ls = (data as { logs?: unknown }).logs;
+        if (Array.isArray(ls)) return ls as LogItem[];
+      }
+      if (Array.isArray(data)) return data as LogItem[];
+      return [];
+    })();
     logs.value = items;
   } catch (err) {
-    errorMsg.value = `加载日志失败: ${err?.message || err}`;
+    errorMsg.value = `加载日志失败: ${errorMessage(err)}`;
   } finally {
     loading.value = false;
   }
@@ -75,7 +91,7 @@ const sse = useSse('/api/sync/events/stream', {
   getToken: () => adminAuth.token,
   onMessage(e) {
     try {
-      const event = JSON.parse(e.data);
+      const event = JSON.parse(e.data) as LogItem;
       logs.value = [event, ...logs.value].slice(0, 500);
       appStatus.trackEvent();
     } catch {
@@ -84,9 +100,9 @@ const sse = useSse('/api/sync/events/stream', {
   },
 });
 
-const nowMs = ref(Date.now());
-let nowTicker = null;
-const retrySeconds = computed(() => {
+const nowMs = ref<number>(Date.now());
+let nowTicker: number | null = null;
+const retrySeconds = computed<number>(() => {
   const t = sse.nextRetryAt.value;
   if (!t) return 0;
   return Math.max(0, Math.ceil((t - nowMs.value) / 1000));
@@ -94,11 +110,13 @@ const retrySeconds = computed(() => {
 
 onMounted(() => {
   refresh();
-  nowTicker = window.setInterval(() => { nowMs.value = Date.now(); }, 1000);
+  nowTicker = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
 });
 
 onUnmounted(() => {
-  if (nowTicker) {
+  if (nowTicker !== null) {
     clearInterval(nowTicker);
     nowTicker = null;
   }
