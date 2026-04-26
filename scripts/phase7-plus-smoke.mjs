@@ -180,6 +180,23 @@ async function main() {
     });
   }
 
+  // Dark mode screenshot round
+  await page.evaluate(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+  });
+  await page.waitForTimeout(500);
+  for (const [name, route] of routes.slice(0, 4)) {
+    await page.goto(`${baseUrl}${route}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1200);
+    await snapshot(page, `${name}-dark`);
+  }
+  // Restore light mode
+  await page.evaluate(() => {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.classList.remove('dark');
+  });
+
   const dialogChecks = {
     deleteConfirm: await tryCancelDeleteDialog(page),
     siteConfigSaveConfirm: await tryCancelSiteConfigSave(page, writeRequests),
