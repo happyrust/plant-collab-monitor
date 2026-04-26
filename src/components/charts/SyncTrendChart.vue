@@ -1,6 +1,6 @@
 <template>
   <div class="chart-wrapper">
-    <div class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+    <div class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
       <i class="fas fa-chart-area text-blue-500"></i>
       同步趋势（最近7天）
     </div>
@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { useThemeStore } from '@/stores/theme';
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import {
@@ -42,6 +43,7 @@ const props = withDefaults(
   },
 );
 
+const themeStore = useThemeStore();
 const chartContainer = ref<HTMLElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 
@@ -57,33 +59,36 @@ const isEmpty = computed(
 );
 
 const buildOption = () => {
+  const dark = themeStore.isDark;
   const dates = props.data.dates.length > 0 ? props.data.dates : generateLast7Days();
+  const axisColor = dark ? '#475569' : '#e2e8f0';
+  const labelColor = dark ? '#94a3b8' : '#64748b';
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e2e8f0',
+      backgroundColor: dark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      borderColor: dark ? '#475569' : '#e2e8f0',
       borderWidth: 1,
-      textStyle: { color: '#334155' },
+      textStyle: { color: dark ? '#e2e8f0' : '#334155' },
     },
     legend: {
       data: ['已同步', '待同步'],
       bottom: 0,
-      textStyle: { color: '#64748b' },
+      textStyle: { color: labelColor },
     },
     grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       data: dates,
       boundaryGap: false,
-      axisLine: { lineStyle: { color: '#e2e8f0' } },
-      axisLabel: { color: '#64748b', fontSize: 11 },
+      axisLine: { lineStyle: { color: axisColor } },
+      axisLabel: { color: labelColor, fontSize: 11 },
     },
     yAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#e2e8f0' } },
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      splitLine: { lineStyle: { color: '#f1f5f9' } },
+      axisLine: { lineStyle: { color: axisColor } },
+      axisLabel: { color: labelColor, fontSize: 11 },
+      splitLine: { lineStyle: { color: dark ? '#334155' : '#f1f5f9' } },
     },
     series: [
       {
@@ -151,7 +156,7 @@ const handleResize = () => {
 };
 
 watch(
-  () => props.data,
+  () => [props.data, themeStore.isDark],
   () => {
     chartInstance?.setOption(buildOption(), { notMerge: true });
   },
@@ -176,6 +181,10 @@ onUnmounted(() => {
   padding: 1rem;
   border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
+}
+:where(.dark) .chart-wrapper {
+  background: #1e293b;
+  border-color: #334155;
 }
 
 .chart-container {

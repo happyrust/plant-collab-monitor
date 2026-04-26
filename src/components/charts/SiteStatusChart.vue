@@ -1,6 +1,6 @@
 <template>
   <div class="chart-wrapper">
-    <div class="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+    <div class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
       <i class="fas fa-chart-pie text-indigo-500"></i>
       {{ title }}
     </div>
@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { useThemeStore } from '@/stores/theme';
 import * as echarts from 'echarts/core';
 import { PieChart } from 'echarts/charts';
 import { TooltipComponent, LegendComponent } from 'echarts/components';
@@ -68,23 +69,25 @@ const effectiveSegments = computed<PieDatum[]>(() => {
   ];
 });
 
+const themeStore = useThemeStore();
 const chartContainer = ref<HTMLElement | null>(null);
 let chartInstance: echarts.ECharts | null = null;
 
 function buildOption() {
+  const dark = themeStore.isDark;
   return {
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#e2e8f0',
+      backgroundColor: dark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      borderColor: dark ? '#475569' : '#e2e8f0',
       borderWidth: 1,
-      textStyle: { color: '#334155' },
+      textStyle: { color: dark ? '#e2e8f0' : '#334155' },
     },
     legend: {
       orient: 'vertical',
       right: '10%',
       top: 'center',
-      textStyle: { color: '#64748b', fontSize: 12 },
+      textStyle: { color: dark ? '#94a3b8' : '#64748b', fontSize: 12 },
     },
     series: [
       {
@@ -93,10 +96,10 @@ function buildOption() {
         radius: ['40%', '70%'],
         center: ['35%', '50%'],
         avoidLabelOverlap: false,
-        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderRadius: 8, borderColor: dark ? '#1e293b' : '#fff', borderWidth: 2 },
         label: { show: false, position: 'center' },
         emphasis: {
-          label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#334155' },
+          label: { show: true, fontSize: 16, fontWeight: 'bold', color: dark ? '#e2e8f0' : '#334155' },
         },
         labelLine: { show: false },
         data: effectiveSegments.value,
@@ -116,9 +119,9 @@ function handleResize(): void {
 }
 
 watch(
-  () => [props.segments, props.data, props.title],
+  () => [props.segments, props.data, props.title, themeStore.isDark],
   () => {
-    chartInstance?.setOption(buildOption());
+    chartInstance?.setOption(buildOption(), { notMerge: true });
   },
   { deep: true },
 );
@@ -141,6 +144,10 @@ onUnmounted(() => {
   padding: 1rem;
   border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
+}
+:where(.dark) .chart-wrapper {
+  background: #1e293b;
+  border-color: #334155;
 }
 .chart-container {
   height: 280px;
