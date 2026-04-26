@@ -87,6 +87,21 @@
   "pageErrors": [],
   "requestFailures": [
     {
+      "url": "http://127.0.0.1:3200/node_modules/.vite/deps/naive-ui.js?v=95b33f46",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/src/components/AppStatusBar.vue?t=1777224608806",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/node_modules/.vite/deps/chunk-pbuEa-1d.js?v=95b33f46",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
       "url": "http://127.0.0.1:3200/api/sync/metrics",
       "method": "GET",
       "failure": "net::ERR_ABORTED"
@@ -116,7 +131,7 @@
     }
   },
   "screenshots": "docs/e2e-smoke/screenshots/2026-04-26-phase7-plus",
-  "generatedAt": "2026-04-26T17:21:44.534Z",
+  "generatedAt": "2026-04-26T17:33:43.012Z",
   "passed": true,
   "sseAuthorized": true,
   "routeNavigationOk": true

@@ -60,3 +60,13 @@ body,
   background-color: rgb(59 130 246 / 0.15);
   color: rgb(96 165 250);
 }
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}

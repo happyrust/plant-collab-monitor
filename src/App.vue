@@ -131,7 +131,11 @@
         <main class="flex-1 flex flex-col overflow-hidden">
           <AppStatusBar />
           <div class="flex-1 overflow-auto">
-            <RouterView />
+            <RouterView v-slot="{ Component }">
+              <Transition name="page" mode="out-in">
+                <component :is="Component" />
+              </Transition>
+            </RouterView>
           </div>
         </main>
 
