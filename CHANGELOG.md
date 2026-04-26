@@ -8,6 +8,30 @@
 
 ## 2026-04-26
 
+### Post Wrap-Up · 文档与部署收尾（3 commits · `a7ec92d` → `da3819f`）
+
+> 在 19 commits 大收尾之后追加的文档体系闭环 + 部署链路静态验证。
+
+#### Docs
+
+- **`README.md` 同步 G10 闭环与 unplugin / auto-import 状态（commit `a7ec92d`）**：技术栈段补 `echarts 6 独立 vendor chunk` + `unplugin-auto-import` + `unplugin-vue-components`（NaiveUiResolver · vendor-naive 1.36MB → 573KB）；项目结构 `main.ts` 注释由「naive-ui + pinia + vue-router 注入」更正为「pinia + vue-router 注入（naive-ui 改为按需引入，详见 vite.config.ts）」；环境变量表加 `VITE_BASE`（生产 `/monitor/` · 开发 `/`）；状态表加 Phase 16 / G10 闭环行（7 个 commit 索引）；「相关文档」段引入 `CHANGELOG.md` / `AGENTS.md` / `HANDOFF.md` / Phase 19 mini API smoke 报告 / Phase 20 计划。
+- **`HANDOFF.md` 加 CHANGELOG 引用保持文档体系一致（commit `881af04`）**：「立即可做的事」表格补一行 `CHANGELOG.md` 索引，与 `README.md` 「相关文档」段保持引用一致。
+
+#### Verification
+
+- **Preview base 部署链路验证报告 6/6 PASS（commit `da3819f`）**：`docs/e2e-smoke/2026-04-26-preview-base-smoke-report.md`（94 行）。不依赖 chrome-devtools MCP 的简化版 e2e：用 `vite preview` 模拟 nginx 静态托管 + PowerShell `Invoke-WebRequest` 验证。**6/6 PASS**：`GET /` → 302 redirect 到 `/monitor/`；`GET /monitor/` → 200 + 正确 title；`/monitor/assets/index-*.js` 与 `*.css` → 200；`/monitor/dashboard` 与 `/monitor/topology`（admin route）SPA fallback → 200 (715 bytes index.html)。**关键判定**：(1) vite preview 行为与 nginx `try_files $uri $uri/ /monitor/index.html;` 等价；(2) admin guard 静态层不泄漏（admin 视图代码懒加载 + 前端 `router.beforeEach` 拦截）；(3) `index.html` modulepreload 仅 `vendor-vue` (109KB) + `vendor-http` (38KB) + `vendor-naive` (573KB) + entry，**不含 `vendor-echarts` (538KB)**——证实 manualChunks + 懒加载协同生效。本报告等价于 `docs/plans/2026-04-26-phase7-plus-preparation.md` 14 步矩阵中 「nginx 静态托管」预研项的交付。
+
+#### Post Wrap-Up 累计
+
+- 3 commits（`a7ec92d` → `da3819f`）
+- 触及 3 个文件（README.md / HANDOFF.md / docs/e2e-smoke/2026-04-26-preview-base-smoke-report.md）
+- `npm run type-check` 全程 0 errors
+- `working tree clean` · 远端 `origin/main` 同步
+
+剩余 Phase 7-Plus 工作收窄到：浏览器渲染层（chrome-devtools MCP）+ SSE 真连接 + admin login 视觉确认 + Phase 20 跨仓 rs-core 真热加载。前端代码 / 部署静态层 / 文档体系层面零阻塞。
+
+---
+
 ### Sprint Wrap-Up · 19 commits 累积收尾（`8f32bae` → `da08158`）
 
 本会话围绕 e2e-smoke 报告 §5 的 P2 清单 + Sprint A G8 admin login flow 路由级闭环 + Sprint B 跨仓后端真值验证 + 项目记忆固化，做了一次综合大收尾。视图实现度从 ~95% 推到 **~99.5%**，前端层面所有可独立推进工作全部闭环，仅剩 Phase 7-Plus 浏览器联调（外部 chrome-devtools MCP）+ Phase 20 rs-core 真热加载（跨仓独立会话）。
@@ -115,4 +139,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 当前主分支 HEAD：`da08158`
+- 当前主分支 HEAD：`da3819f`
