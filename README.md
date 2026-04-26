@@ -21,11 +21,13 @@
 
 ## 技术栈
 
-- Vue 3.5 (Composition API · `<script setup>`)
+- Vue 3.5 (Composition API · `<script setup lang="ts">`)
 - Vite 5.4 · TypeScript 5.6 · vue-tsc strict
 - Naive UI 2.40 + Tailwind 3.4 + DaisyUI 4（完全继承自 web-server 旧栈）
 - Pinia 2.2 + vue-router 4.4
 - axios 1.7 · @vueuse/core 11
+- echarts 6（独立 vendor chunk · 按需 import）
+- `unplugin-auto-import` + `unplugin-vue-components`（NaiveUiResolver · 组件 + hooks 自动注册并 tree-shake · vendor-naive 1.36MB → 573KB）
 - vfonts（Lato + FiraCode）
 
 ## 环境要求
@@ -52,6 +54,7 @@ npm run dev
 |---|---|---|
 | `VITE_API_TARGET` | `http://127.0.0.1:3100` | vite dev 期代理目标（后端地址）|
 | `VITE_API_BASE` | 空字符串 | axios `baseURL`，生产部署同源时留空 |
+| `VITE_BASE` | 生产 `/monitor/`，开发 `/` | vite 部署 base url，与 nginx `location /monitor/` 对齐 |
 
 `.env.local` 示例：
 
@@ -72,7 +75,7 @@ VITE_API_TARGET=http://staging.example.com:3100
 
 ```
 src/
-├── main.ts                    # naive-ui + pinia + vue-router 注入
+├── main.ts                    # pinia + vue-router 注入（naive-ui 改为按需引入，详见 vite.config.ts）
 ├── App.vue                    # 侧栏 + 11 route 布局
 ├── env.d.ts                   # Vite + import.meta.env 类型
 ├── styles/main.css            # tailwind + 全局样式
@@ -203,6 +206,7 @@ location /ws/ {
 | Phase 13 (本会话) | base url + tsconfig fix + topology cleanup + SiteConfig P2-1 + SyncTrendChart ts + admin route guard + SSE token + LoginDialog redirect + appStatus.trackEvent | ✅ 6 commits |
 | Phase 14 (本会话) | NTooltip + SSE 状态徽标 + console.error 序列化 + Topology NMessage/NDialog | ✅ `936a09e` |
 | Phase 15 (本会话) | manualChunks 函数化 + SiteConfig confirm → NDialog + Phase 7-Plus 准备文档 + README 更新 | ✅ `0b111c1` + 后续 commit |
+| Phase 16 / G10 闭环 | naive-ui 按需引入 + AGENTS.md/HANDOFF.md + 11 视图 ts + 6 components ts + Phase 19 mini API smoke 17/17 + Phase 20 rs-core 真热加载计划 + CHANGELOG | ✅ `a144d0f` `1d6ce75` `cbc7a68` `da08158` `60097f6` `751d6ea` `f53586b` |
 | Phase 7-Plus | 带后端真实联调（admin login flow + SSE token + 11 视图）| ⏳ 待外部 chrome-devtools，参见 `docs/plans/2026-04-26-phase7-plus-preparation.md` |
 | 后端 Sprint B | B1/B2/B3/B4/**B5**/B6/B7 ✅（20/20 PASS）；B6+ 真热加载 ⏳跨仓 rs-core | 参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md` |
 
@@ -211,11 +215,16 @@ location /ws/ {
 ### 本仓
 | 文档 | 位置 |
 |---|---|
+| **变更日志（中文）** | [`CHANGELOG.md`](./CHANGELOG.md) |
+| **AI agent / 接手工程师速查** | [`AGENTS.md`](./AGENTS.md) |
+| **5 秒交接清单** | [`HANDOFF.md`](./HANDOFF.md) |
 | 异地站点 PRD | `docs/prd/2026-04-26-remote-site-prd.md` |
 | 整体能力规范 PRD | `docs/prd/2026-04-25-collab-monitor-prd.md` |
 | Gap 清单 | `docs/plans/2026-04-25-collab-monitor-completion-gap.md` |
 | 无后端基线 e2e-smoke 报告 | `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md` |
+| mini API smoke 17/17 报告 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md` |
 | **Phase 7-Plus 浏览器联调准备清单** | `docs/plans/2026-04-26-phase7-plus-preparation.md` |
+| **Phase 20 rs-core 真热加载精细计划** | `docs/plans/2026-04-26-phase20-rs-core-true-hot-reload.md` |
 | Sprint A/C 计划 | `docs/plans/2026-04-26-next-step-plan.md` `docs/plans/2026-04-26-sprint-bc-plan.md` |
 | Phase 12-Plus（MqttNodes SSE 订阅）| `docs/plans/2026-04-26-phase12-plus-mqtt-sse-subscribe.md` |
 
