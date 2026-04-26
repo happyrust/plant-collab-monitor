@@ -7,7 +7,7 @@
     :close-on-esc="false"
     :show-icon="false"
     style="max-width: 400px"
-    @update:show="(v) => !v && store.dismissLogin()"
+    @update:show="(v: boolean) => !v && store.dismissLogin()"
   >
     <NAlert
       v-if="store.loginError"
@@ -62,15 +62,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  NModal,
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NAlert,
-  useMessage,
-} from 'naive-ui';
+// 模板中的 N* 组件由 NaiveUiResolver 自动注册；useMessage 由 unplugin-auto-import 自动注入
 import { adminAuthApi } from '@/api';
 import { useAdminAuthStore } from '@/stores/adminAuth';
 import { consumeRedirectAfterLogin } from '@/router';

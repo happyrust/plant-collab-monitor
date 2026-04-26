@@ -90,7 +90,7 @@
         :data="messages"
         :loading="loading"
         :pagination="pagination"
-        :row-key="(row) => row.id || row.timestamp"
+        :row-key="(row: MqttMessage) => (row.id ?? row.timestamp ?? '') as string | number"
         @update:page="handlePageChange"
         class="h-full"
       />
@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue';
 import type { DataTableColumns, PaginationProps } from 'naive-ui';
+// h() 调用需要保留显式 import；template 中用到的 NSelect/NInput/NDataTable 由 NaiveUiResolver 自动注册
 import { NTag, NButton, NPopover } from 'naive-ui';
 import { mqttApi } from '@/api';
 

@@ -569,7 +569,6 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useDialog } from 'naive-ui';
 import { siteConfigApi, http } from '@/api';
 
 const dialog = useDialog();

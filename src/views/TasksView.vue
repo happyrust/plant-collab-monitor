@@ -17,7 +17,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { NButton } from 'naive-ui';
 import TaskQueue from '@/components/TaskQueue.vue';
 import { syncApi } from '@/api';
 

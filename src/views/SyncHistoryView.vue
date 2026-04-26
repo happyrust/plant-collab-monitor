@@ -28,7 +28,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { NButton, NModal } from 'naive-ui';
 import SyncHistory from '@/components/SyncHistory.vue';
 import { syncApi } from '@/api';
 

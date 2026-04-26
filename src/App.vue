@@ -121,14 +121,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { RouterLink, RouterView } from 'vue-router';
-import {
-  NConfigProvider,
-  NMessageProvider,
-  NDialogProvider,
-  darkTheme,
-  zhCN,
-  dateZhCN,
-} from 'naive-ui';
+// Provider 组件由 NaiveUiResolver 在 template 中自动注册；这里仅保留 theme/locale 等非组件 export
+import { darkTheme, zhCN, dateZhCN } from 'naive-ui';
 import LoginDialog from '@/components/LoginDialog.vue';
 import AppStatusBar from '@/components/AppStatusBar.vue';
 import {

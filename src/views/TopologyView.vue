@@ -715,7 +715,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useDialog, useMessage } from 'naive-ui';
 import { remoteSyncApi, siteConfigApi } from '@/api';
 
 const dialog = useDialog();

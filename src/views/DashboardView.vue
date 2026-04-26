@@ -174,7 +174,8 @@
 
 <script setup lang="ts">
 import { computed, ref, h, type Component } from 'vue';
-import { NButton, NSwitch, NTooltip } from 'naive-ui';
+// h(NTooltip) 在 script 里用到 → 保留显式 import；template 中 NButton/NSwitch 由 NaiveUiResolver 自动注册
+import { NTooltip } from 'naive-ui';
 import { RouterLink } from 'vue-router';
 import SyncTrendChart from '@/components/charts/SyncTrendChart.vue';
 import SiteStatusChart from '@/components/charts/SiteStatusChart.vue';
