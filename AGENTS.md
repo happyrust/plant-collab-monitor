@@ -179,7 +179,7 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 
 ---
 
-## 7. 当前实现度（2026-04-26 maintenance 后）
+## 7. 当前实现度（2026-04-26 Phase 7-Plus 闭环后）
 
 | 维度 | 数值 |
 |---|---|
@@ -189,10 +189,18 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 | admin-gated endpoint 可用度 | 26/26（admin/admin 凭据下） |
 | `.js` 文件占比（src/） | **0**（全 `.ts` / `.vue`）|
 | 验收报告 | ✅ 11/11（无后端基线 · `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md`） |
+| Phase 7-Plus 浏览器联调 | ✅ passed（`scripts/phase7-plus-smoke.mjs` · Playwright + Chrome） |
 | 依赖健康 | `npm audit` 0 vulnerabilities；`npm outdated` 无剩余输出 |
 | 生产预览 smoke | ✅ `/monitor/` base + SPA fallback + assets + DaisyUI CSS 产物通过 |
 
-**剩余**：仅 Phase 7-Plus 真实浏览器联调（外部 chrome-devtools 依赖）+ B6+ rs-core 真热加载（跨仓独立会话）。
+Phase 7-Plus 验证要点：
+- 11 路由截图 + 标题校验全部通过
+- SSE 流 Bearer token 注入验证通过
+- 登录重定向 `/topology` 验证通过
+- SiteConfig 保存确认弹窗：非破坏性取消验证通过（writeRequests = 0）
+- Topology 删除确认弹窗：skipped（本地环境无可删除拓扑项，非 failure）
+
+**剩余**：B6+ rs-core 真热加载（跨仓独立会话）。
 
 ---
 
@@ -227,6 +235,8 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 - `docs/plans/2026-04-26-phase12-plus-mqtt-sse-subscribe.md` — MqttNodes SSE 接入
 - `docs/plans/2026-04-26-phase7-plus-preparation.md` — **Phase 7-Plus 浏览器联调清单（下次必读）**
 - `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md` — 无后端基线 11/11 验收
+- `docs/e2e-smoke/2026-04-26-phase7-plus-smoke-result.json` — Phase 7-Plus 浏览器 smoke JSON 结果
+- `docs/e2e-smoke/2026-04-26-phase7-plus-browser-smoke-report.md` — Phase 7-Plus 浏览器联调报告
 
 ### 跨仓
 - `../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md` — 后端 Sprint B 计划（B1-B7）
