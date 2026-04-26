@@ -5,7 +5,7 @@
       <div>
         <p class="text-xs uppercase tracking-widest text-slate-500 mb-1">PLANT · MONITOR</p>
         <h1 class="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">全局概览</h1>
-        <p class="mt-2 text-slate-600">
+        <p class="mt-2 text-slate-600 dark:text-slate-400">
           异地协同站点运行时关键指标 · 30s 自动刷新
         </p>
       </div>
@@ -135,7 +135,7 @@
       <div class="px-5 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <i class="fas fa-stream text-slate-500"></i>
-          <span class="font-semibold text-slate-700">最近事件</span>
+          <span class="font-semibold text-slate-700 dark:text-slate-300">最近事件</span>
           <span class="text-xs text-slate-400">{{ recentEvents.length }} 条</span>
         </div>
         <RouterLink to="/history" class="text-xs text-blue-600 hover:underline">查看全部 →</RouterLink>
@@ -156,7 +156,7 @@
             class="text-xs px-2 py-0.5 rounded font-mono"
             :class="eventBadgeClass(ev)"
           >{{ eventLabel(ev) }}</span>
-          <span class="text-slate-700 flex-1 truncate">
+          <span class="text-slate-700 dark:text-slate-300 flex-1 truncate">
             <span v-if="ev.location" class="font-semibold mr-2">{{ ev.location }}</span>
             {{ eventMessage(ev) }}
           </span>
@@ -349,7 +349,7 @@ const syncMetricsObj = computed(() => asAny(sections.syncMetrics.data));
 const failedCount = computed(() => pickNumber(syncMetricsObj.value.failed_count) ?? 0);
 
 const failedAccent = computed(() => (failedCount.value > 0 ? 'rose' : 'slate'));
-const failedTextClass = computed(() => (failedCount.value > 0 ? 'text-rose-600' : 'text-slate-700'));
+const failedTextClass = computed(() => (failedCount.value > 0 ? 'text-rose-600' : 'text-slate-700 dark:text-slate-300'));
 
 // ---------- queue ----------
 const queueSummary = computed(() => {
@@ -443,7 +443,7 @@ function eventBadgeClass(ev: EventRow): string {
   if (k.includes('fail') || k.includes('error')) return 'bg-rose-50 text-rose-600';
   if (k.includes('done') || k.includes('success') || k.includes('ok')) return 'bg-emerald-50 text-emerald-600';
   if (k.includes('warn')) return 'bg-amber-50 text-amber-600';
-  return 'bg-slate-100 text-slate-600';
+  return 'bg-slate-100 text-slate-600 dark:text-slate-400';
 }
 
 function eventMessage(ev: EventRow): string {

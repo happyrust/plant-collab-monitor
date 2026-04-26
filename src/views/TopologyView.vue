@@ -36,7 +36,7 @@
           </div>
           <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200">
             <i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i>
-            <p class="font-medium text-slate-600">暂无环境配置</p>
+            <p class="font-medium text-slate-600 dark:text-slate-400">暂无环境配置</p>
             <p class="text-xs mt-2 text-slate-400">点击右上角"新建"按钮添加环境</p>
           </div>
           <div
@@ -64,7 +64,7 @@
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
-              <div class="text-xs text-slate-600 space-y-2 mt-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <div class="text-xs text-slate-600 dark:text-slate-400 space-y-2 mt-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
                 <p class="flex items-center gap-2" title="文件服务地址">
                   <i class="fas fa-hdd w-4 text-center text-blue-500"></i>
                   <span class="truncate font-mono text-[11px]">{{ env.file_server_host || '未配置文件服务' }}</span>
@@ -127,18 +127,18 @@
           <table v-else class="table w-full">
             <thead>
               <tr class="bg-gradient-to-r from-green-100/50 to-emerald-100/30 border-b-2 border-green-200">
-                <th class="rounded-l-lg text-slate-700 font-bold">
+                <th class="rounded-l-lg text-slate-700 dark:text-slate-300 font-bold">
                   <i class="fas fa-tag mr-2 text-green-600"></i>站点名称
                 </th>
-                <th class="text-slate-700 font-bold">
+                <th class="text-slate-700 dark:text-slate-300 font-bold">
                   <i class="fas fa-link mr-2 text-blue-600"></i>HTTP 地址
                 </th>
-                <th class="text-slate-700 font-bold">
+                <th class="text-slate-700 dark:text-slate-300 font-bold">
                   <i class="fas fa-comment mr-2 text-amber-600"></i>备注
                 </th>
-                <th class="text-slate-700 font-bold">角色</th>
-                <th class="text-slate-700 font-bold">状态</th>
-                <th class="rounded-r-lg text-right text-slate-700 font-bold">操作</th>
+                <th class="text-slate-700 dark:text-slate-300 font-bold">角色</th>
+                <th class="text-slate-700 dark:text-slate-300 font-bold">状态</th>
+                <th class="rounded-r-lg text-right text-slate-700 dark:text-slate-300 font-bold">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -166,11 +166,11 @@
                   </div>
                 </td>
                 <td>
-                  <code class="text-xs text-slate-600 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 inline-block">
+                  <code class="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 px-3 py-1.5 rounded-md border border-slate-200 inline-block">
                     {{ site.http_host || '-' }}
                   </code>
                 </td>
-                <td class="text-sm text-slate-600 truncate max-w-[250px]">
+                <td class="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                   {{ site.notes || '-' }}
                 </td>
                 <td>
@@ -263,7 +263,7 @@
         <form @submit.prevent="handleSubmitEnv">
           <div class="form-control w-full mb-4">
             <label class="label">
-              <span class="label-text font-semibold text-slate-700">
+              <span class="label-text font-semibold text-slate-700 dark:text-slate-300">
                 <i class="fas fa-tag mr-2 text-blue-600"></i>环境名称 <span class="text-error">*</span>
               </span>
             </label>
@@ -277,7 +277,7 @@
           </div>
           <div class="form-control w-full mb-4">
             <label class="label">
-              <span class="label-text font-semibold text-slate-700">
+              <span class="label-text font-semibold text-slate-700 dark:text-slate-300">
                 <i class="fas fa-hdd mr-2 text-blue-600"></i>文件服务地址
               </span>
             </label>
@@ -293,7 +293,7 @@
           </div>
           <div class="form-control w-full mb-4">
             <label class="label">
-              <span class="label-text font-semibold text-slate-700">
+              <span class="label-text font-semibold text-slate-700 dark:text-slate-300">
                 <i class="fas fa-map-marker-alt mr-2 text-blue-600"></i>位置
               </span>
             </label>
@@ -306,7 +306,7 @@
           </div>
           <div class="form-control w-full mb-4">
             <label class="label">
-              <span class="label-text font-semibold text-slate-700">
+              <span class="label-text font-semibold text-slate-700 dark:text-slate-300">
                 <i class="fas fa-database mr-2 text-indigo-600"></i>location_dbs <span class="text-error">*</span>
               </span>
             </label>
@@ -324,7 +324,7 @@
           <div class="grid grid-cols-2 gap-4 mb-4">
             <div class="form-control w-full">
               <label class="label">
-                <span class="label-text font-semibold text-slate-700">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300">
                   <i class="fas fa-signal mr-2 text-green-600"></i>MQTT 主机
                 </span>
               </label>
@@ -337,7 +337,7 @@
             </div>
             <div class="form-control w-full">
               <label class="label">
-                <span class="label-text font-semibold text-slate-700">MQTT 端口</span>
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300">MQTT 端口</span>
               </label>
               <input
                 v-model.number="envForm.mqtt_port"
@@ -373,7 +373,7 @@
           @click="showAddSite = false" 
           class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3 hover:bg-slate-100 transition-colors duration-200 z-10"
         >
-          <i class="fas fa-times text-slate-400 hover:text-slate-600"></i>
+          <i class="fas fa-times text-slate-400 hover:text-slate-600 dark:text-slate-400"></i>
         </button>
 
         <!-- 标题区域 -->
@@ -405,7 +405,7 @@
               </div>
               <div class="form-control w-full">
                 <div class="flex gap-0">
-                  <span class="bg-slate-100 text-slate-600 border border-r-0 border-slate-300 px-3 flex items-center rounded-l">
+                  <span class="bg-slate-100 text-slate-600 dark:text-slate-400 border border-r-0 border-slate-300 px-3 flex items-center rounded-l">
                     <i class="fas fa-server text-xs"></i>
                   </span>
                   <input
@@ -461,7 +461,7 @@
             <!-- 站点名称 -->
             <div class="form-control w-full">
               <label class="label pb-2">
-                <span class="label-text font-semibold text-slate-700 flex items-center gap-2">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
                     <i class="fas fa-tag text-green-600 text-xs"></i>
                   </div>
@@ -483,7 +483,7 @@
 
             <div class="form-control w-full">
               <label class="label pb-2">
-                <span class="label-text font-semibold text-slate-700 flex items-center gap-2">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
                     <i class="fas fa-map-marker-alt text-emerald-600 text-xs"></i>
                   </div>
@@ -503,7 +503,7 @@
 
             <div class="form-control w-full">
               <label class="label pb-2">
-                <span class="label-text font-semibold text-slate-700 flex items-center gap-2">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                     <i class="fas fa-database text-indigo-600 text-xs"></i>
                   </div>
@@ -526,7 +526,7 @@
             <!-- HTTP 服务地址 -->
             <div class="form-control w-full">
               <label class="label pb-2">
-                <span class="label-text font-semibold text-slate-700 flex items-center gap-2">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                     <i class="fas fa-link text-blue-600 text-xs"></i>
                   </div>
@@ -555,7 +555,7 @@
             <!-- 备注 -->
             <div class="form-control w-full">
               <label class="label pb-2">
-                <span class="label-text font-semibold text-slate-700 flex items-center gap-2">
+                <span class="label-text font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                     <i class="fas fa-comment text-amber-600 text-xs"></i>
                   </div>
@@ -656,7 +656,7 @@
               </div>
               <div v-if="selectedSite?.notes" class="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 mt-4">
                 <p class="text-xs text-slate-500 mb-1">备注</p>
-                <p class="text-sm text-slate-600">{{ selectedSite.notes }}</p>
+                <p class="text-sm text-slate-600 dark:text-slate-400">{{ selectedSite.notes }}</p>
               </div>
             </div>
           </div>

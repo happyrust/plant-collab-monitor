@@ -4,13 +4,13 @@
       <div>
         <p class="text-[10px] uppercase tracking-[0.35em] text-slate-500 font-bold mb-1.5">归档管理</p>
         <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-1">CBA 文件列表</h2>
-        <p class="text-sm text-slate-700">浏览并下载已生成的增量更新包文件。</p>
+        <p class="text-sm text-slate-700 dark:text-slate-300">浏览并下载已生成的增量更新包文件。</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <!-- 筛选切换 -->
         <div class="form-control">
           <label class="label cursor-pointer gap-2">
-            <span class="label-text text-sm text-slate-600">只显示当前站点</span>
+            <span class="label-text text-sm text-slate-600 dark:text-slate-400">只显示当前站点</span>
             <input
               type="checkbox"
               v-model="filterByCurrentSite"
@@ -46,7 +46,7 @@
 
     <div v-else>
       <!-- 统计信息 -->
-      <div v-if="allFiles.length > 0" class="mb-4 text-sm text-slate-600">
+      <div v-if="allFiles.length > 0" class="mb-4 text-sm text-slate-600 dark:text-slate-400">
         <span class="badge badge-ghost">
           共 {{ allFiles.length }} 个文件
           <span v-if="filterByCurrentSite">，当前显示 {{ files.length }} 个（仅当前站点）</span>
@@ -63,34 +63,34 @@
         <table class="table w-full">
           <thead>
             <tr>
-              <th class="bg-slate-50 text-slate-600 font-bold">文件名</th>
-              <th class="bg-slate-50 text-slate-600 font-bold">DB编号</th>
-              <th class="bg-slate-50 text-slate-600 font-bold">会话号</th>
-              <th class="bg-slate-50 text-slate-600 font-bold">大小</th>
-              <th class="bg-slate-50 text-slate-600 font-bold">修改时间</th>
-              <th class="bg-slate-50 text-slate-600 font-bold">更新次数(范围)</th>
-              <th class="bg-slate-50 text-slate-600 font-bold text-right">操作</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">文件名</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">DB编号</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">会话号</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">大小</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">修改时间</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold">更新次数(范围)</th>
+              <th class="bg-slate-50 text-slate-600 dark:text-slate-400 font-bold text-right">操作</th>
             </tr>
           </thead>
         <tbody>
           <tr v-for="file in files" :key="file.name" class="hover:bg-slate-50/50 transition-colors">
-            <td class="font-mono text-sm font-medium text-slate-700">
+            <td class="font-mono text-sm font-medium text-slate-700 dark:text-slate-300">
               <div class="flex items-center gap-2">
                 <i class="fas fa-file-archive text-amber-500"></i>
                 {{ file.name }}
               </div>
             </td>
-            <td class="text-slate-600 text-sm">
+            <td class="text-slate-600 dark:text-slate-400 text-sm">
               <span v-if="file.dbnum" class="badge badge-sm badge-outline">{{ file.dbnum }}</span>
               <span v-else class="text-slate-400">-</span>
             </td>
-            <td class="text-slate-600 text-sm">
+            <td class="text-slate-600 dark:text-slate-400 text-sm">
               <span v-if="file.sesno !== null && file.sesno !== undefined" class="badge badge-sm badge-info">{{ file.sesno }}</span>
               <span v-else class="text-slate-400">-</span>
             </td>
-            <td class="text-slate-600 text-sm">{{ formatSize(file.size) }}</td>
-            <td class="text-slate-600 text-sm">{{ formatTime(file.modified) }}</td>
-            <td class="text-slate-600 text-sm">
+            <td class="text-slate-600 dark:text-slate-400 text-sm">{{ formatSize(file.size) }}</td>
+            <td class="text-slate-600 dark:text-slate-400 text-sm">{{ formatTime(file.modified) }}</td>
+            <td class="text-slate-600 dark:text-slate-400 text-sm">
                <span v-if="file.update_count !== undefined" class="badge badge-sm badge-ghost">{{ file.update_count }}</span>
                <span v-else class="text-slate-400">-</span>
             </td>

@@ -418,7 +418,7 @@
       <div class="space-y-3">
         <!-- Status -->
         <div class="flex items-center justify-between bg-slate-50 rounded-lg p-3">
-          <span class="text-sm text-slate-600">状态</span>
+          <span class="text-sm text-slate-600 dark:text-slate-400">状态</span>
           <span
             class="badge badge-sm"
             :class="selectedNode.is_online ? 'badge-success' : 'badge-error'"
@@ -429,10 +429,10 @@
 
         <!-- MQTT Broker 连接状态 -->
         <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-sm text-slate-600 mb-2 font-bold">MQTT Broker 连接</div>
+          <div class="text-sm text-slate-600 dark:text-slate-400 mb-2 font-bold">MQTT Broker 连接</div>
           <div class="space-y-1">
             <div class="flex items-center justify-between text-xs">
-              <span class="text-slate-600">发布客户端:</span>
+              <span class="text-slate-600 dark:text-slate-400">发布客户端:</span>
               <span v-if="selectedNode.broker_connected_pub === true" class="text-success font-bold">
                 <i class="fas fa-check-circle mr-1"></i>已连接
               </span>
@@ -444,7 +444,7 @@
               </span>
             </div>
             <div class="flex items-center justify-between text-xs">
-              <span class="text-slate-600">订阅客户端:</span>
+              <span class="text-slate-600 dark:text-slate-400">订阅客户端:</span>
               <span v-if="selectedNode.broker_connected_sub === true" class="text-success font-bold">
                 <i class="fas fa-check-circle mr-1"></i>已连接
               </span>
@@ -460,19 +460,19 @@
 
         <!-- Messages Received -->
         <div class="flex items-center justify-between bg-slate-50 rounded-lg p-3">
-          <span class="text-sm text-slate-600">接收消息</span>
+          <span class="text-sm text-slate-600 dark:text-slate-400">接收消息</span>
           <span class="font-bold text-primary">{{ selectedNode.messages_received }}</span>
         </div>
 
         <!-- Last Heartbeat -->
         <div class="flex items-center justify-between bg-slate-50 rounded-lg p-3">
-          <span class="text-sm text-slate-600">最后心跳</span>
-          <span class="text-xs text-slate-600">{{ formatTime(selectedNode.last_heartbeat) }}</span>
+          <span class="text-sm text-slate-600 dark:text-slate-400">最后心跳</span>
+          <span class="text-xs text-slate-600 dark:text-slate-400">{{ formatTime(selectedNode.last_heartbeat) }}</span>
         </div>
 
         <!-- Subscribed Topics -->
         <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-sm text-slate-600 mb-2">订阅主题</div>
+          <div class="text-sm text-slate-600 dark:text-slate-400 mb-2">订阅主题</div>
           <div class="space-y-1">
             <div
               v-for="topic in selectedNode.subscribed_topics"
@@ -486,7 +486,7 @@
 
         <!-- Recent Messages -->
         <div class="bg-slate-50 rounded-lg p-3">
-          <div class="text-sm text-slate-600 mb-2">最近消息</div>
+          <div class="text-sm text-slate-600 dark:text-slate-400 mb-2">最近消息</div>
           <div class="space-y-2 max-h-32 overflow-y-auto">
             <div
               v-for="(msg, idx) in getRecentMessages(selectedNode.location)"
@@ -497,7 +497,7 @@
                 <span class="font-semibold text-primary">{{ msg.sender_location }}</span>
                 <span class="text-slate-400">{{ formatShortTime(msg.sent_at) }}</span>
               </div>
-              <div class="text-slate-600">{{ msg.file_count }} 个文件</div>
+              <div class="text-slate-600 dark:text-slate-400">{{ msg.file_count }} 个文件</div>
             </div>
           </div>
         </div>

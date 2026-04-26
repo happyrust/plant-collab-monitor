@@ -56,7 +56,7 @@
         <div class="flex items-center gap-3 flex-wrap">
           <!-- 节点角色 -->
           <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-base-300 shadow-sm">
-            <span class="text-xs text-slate-600 font-medium">节点角色:</span>
+            <span class="text-xs text-slate-600 dark:text-slate-400 font-medium">节点角色:</span>
             <span class="text-sm font-bold px-2 py-0.5 rounded" :class="mqttStatus.is_master_node ? 'text-purple-600 bg-purple-50' : 'text-blue-600 bg-blue-50'">
               {{ mqttStatus.is_master_node ? '主节点' : '从节点' }}
             </span>
@@ -132,7 +132,7 @@
                 class="w-2.5 h-2.5 rounded-full"
                 :class="mqttStatus.is_subscription_running ? 'bg-success animate-pulse' : 'bg-slate-300'"
               ></div>
-              <span class="text-xs font-semibold text-slate-700">订阅:</span>
+              <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">订阅:</span>
               <span class="text-xs font-bold" :class="mqttStatus.is_subscription_running ? 'text-success' : 'text-slate-500'">
                 {{ mqttStatus.is_subscription_running ? '已订阅' : '未订阅' }}
               </span>
@@ -226,16 +226,16 @@
         <div class="flex items-center gap-3">
           <div class="stats stats-horizontal shadow-sm bg-white dark:bg-slate-800 border border-base-200">
             <div class="stat py-2 px-4">
-              <div class="stat-title text-xs text-slate-600">在线节点</div>
+              <div class="stat-title text-xs text-slate-600 dark:text-slate-400">在线节点</div>
               <div class="stat-value text-2xl text-success font-bold">{{ summary.online }}</div>
             </div>
             <div class="stat py-2 px-4 border-l border-base-200">
-              <div class="stat-title text-xs text-slate-600">离线节点</div>
+              <div class="stat-title text-xs text-slate-600 dark:text-slate-400">离线节点</div>
               <div class="stat-value text-2xl text-error font-bold">{{ summary.offline }}</div>
             </div>
             <div class="stat py-2 px-4 border-l border-base-200">
-              <div class="stat-title text-xs text-slate-600">总节点数</div>
-              <div class="stat-value text-2xl text-slate-700 font-bold">{{ summary.total }}</div>
+              <div class="stat-title text-xs text-slate-600 dark:text-slate-400">总节点数</div>
+              <div class="stat-value text-2xl text-slate-700 dark:text-slate-300 font-bold">{{ summary.total }}</div>
             </div>
           </div>
         </div>
@@ -294,7 +294,7 @@
       <!-- Left: Node List -->
       <div class="w-2/5 border-r border-base-200 flex flex-col">
         <div class="px-4 py-3 border-b border-base-200 bg-slate-50/50">
-          <h4 class="font-bold text-sm text-slate-700 flex items-center gap-2">
+          <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <i class="fas fa-server"></i>
             {{ mqttStatus.is_master_node ? '已连接从节点' : '订阅的主节点' }} ({{ nodes.length }})
           </h4>
@@ -351,7 +351,7 @@
                     </button>
                   </div>
                 </div>
-                <div class="text-xs text-slate-600 space-y-1">
+                <div class="text-xs text-slate-600 dark:text-slate-400 space-y-1">
                   <div class="flex items-center gap-2">
                     <i class="fas fa-map-marker-alt w-4"></i>
                     <span class="font-mono">{{ node.location }}</span>
@@ -379,7 +379,7 @@
       <!-- Right: Message Delivery Status -->
       <div class="flex-1 flex flex-col">
         <div class="px-4 py-3 border-b border-base-200 bg-slate-50/50 flex justify-between items-center">
-          <h4 class="font-bold text-sm text-slate-700 flex items-center gap-2">
+          <h4 class="font-bold text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <i class="fas fa-paper-plane"></i>
             消息投递状态
           </h4>
@@ -427,7 +427,7 @@
 
                 <!-- Receivers -->
                 <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                  <div class="text-xs font-semibold text-slate-600 mb-2">接收状态:</div>
+                  <div class="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">接收状态:</div>
                   <div class="flex flex-wrap gap-2">
                     <div
                       v-for="receiver in msg.receivers"
@@ -768,7 +768,7 @@ function getReceiverClass(receiver) {
     case 'failed':
       return 'bg-error/20 text-error border border-error/30';
     default:
-      return 'bg-slate-100 text-slate-600 border border-slate-200';
+      return 'bg-slate-100 text-slate-600 dark:text-slate-400 border border-slate-200';
   }
 }
 
