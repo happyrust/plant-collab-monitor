@@ -165,7 +165,7 @@
               <span class="text-xs" :class="mqttStatus.connection_status.connected ? 'text-success font-semibold' : 'text-error'">
                 {{ mqttStatus.connection_status.connected ? '已连接主节点' : '未连接主节点' }}
               </span>
-              <span v-if="mqttStatus.connection_status.master_location" class="text-xs text-gray-500">
+              <span v-if="mqttStatus.connection_status.master_location" class="text-xs text-gray-500 dark:text-slate-400">
                 ({{ mqttStatus.connection_status.master_location }})
               </span>
             </div>
