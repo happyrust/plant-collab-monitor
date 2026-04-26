@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   NModal,
   NForm,
@@ -72,9 +73,11 @@ import {
 } from 'naive-ui';
 import { adminAuthApi } from '@/api';
 import { useAdminAuthStore } from '@/stores/adminAuth';
+import { consumeRedirectAfterLogin } from '@/router';
 
 const store = useAdminAuthStore();
 const message = useMessage();
+const router = useRouter();
 
 const username = ref('');
 const password = ref('');
@@ -89,6 +92,12 @@ async function handleLogin(): Promise<void> {
     store.dismissLogin();
     password.value = '';
     message.success(`欢迎，${session.username}`);
+    const redirect = consumeRedirectAfterLogin();
+    if (redirect && redirect !== router.currentRoute.value.fullPath) {
+      router.push(redirect).catch(() => {
+        // 路由跳转失败（例如目标路由依然 guard 拒绝）静默吞掉
+      });
+    }
   } catch (err: unknown) {
     const errMsg =
       typeof err === 'object' && err !== null && 'message' in err

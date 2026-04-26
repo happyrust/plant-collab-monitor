@@ -37,7 +37,9 @@ import { NButton } from 'naive-ui';
 import LogViewer from '@/components/LogViewer.vue';
 import { remoteSyncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
+import { useAdminAuthStore } from '@/stores/adminAuth';
 
+const adminAuth = useAdminAuthStore();
 const logs = ref([]);
 const loading = ref(false);
 const errorMsg = ref('');
@@ -57,6 +59,7 @@ async function refresh() {
 }
 
 const sse = useSse('/api/sync/events/stream', {
+  getToken: () => adminAuth.token,
   onMessage(e) {
     try {
       const event = JSON.parse(e.data);
