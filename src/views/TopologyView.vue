@@ -1272,7 +1272,6 @@ const handleViewSiteDetails = async (site) => {
   try {
     // 跨站点查询对端 site/info：绝对 URL，保留 fetch
     const apiUrl = `${site.http_host}/api/site/info`;
-    console.log('正在请求站点信息:', apiUrl);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -1282,8 +1281,6 @@ const handleViewSiteDetails = async (site) => {
       // 设置超时
       signal: AbortSignal.timeout(5000),
     });
-
-    console.log('响应状态:', response.status, response.statusText);
 
     if (!response.ok) {
       // 尝试读取错误响应体
@@ -1300,7 +1297,6 @@ const handleViewSiteDetails = async (site) => {
     }
 
     const data = await response.json();
-    console.log('获取到站点信息:', data);
     siteDetails.value = data;
   } catch (error) {
     console.error('获取站点详情失败:', error?.message || error, {

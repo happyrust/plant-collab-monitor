@@ -198,11 +198,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { syncApi } from '@/api';
 
-const DEFAULTS = Object.freeze({
+interface SettingsFormData {
+  autoDetect: boolean;
+  detectionInterval: number;
+  autoSync: boolean;
+  batchSyncSize: number;
+  enableNotifications: boolean;
+  logRetentionDays: number;
+  maxConcurrentSyncs: number;
+}
+
+type SettingsErrors = Partial<Record<keyof SettingsFormData, string>>;
+
+const DEFAULTS: Readonly<SettingsFormData> = Object.freeze({
   autoDetect: false,
   detectionInterval: 30,
   autoSync: false,
@@ -212,9 +224,9 @@ const DEFAULTS = Object.freeze({
   maxConcurrentSyncs: 3,
 });
 
-const formData = ref({ ...DEFAULTS });
-const lastLoadedSnapshot = ref({ ...DEFAULTS });
-const errors = ref({});
+const formData = ref<SettingsFormData>({ ...DEFAULTS });
+const lastLoadedSnapshot = ref<SettingsFormData>({ ...DEFAULTS });
+const errors = ref<SettingsErrors>({});
 
 const loading = ref(false);
 const saving = ref(false);
@@ -223,7 +235,7 @@ const saveError = ref('');
 const saveSuccess = ref(false);
 
 // 后端字段（snake_case）↔ 前端字段（camelCase）映射
-const FIELD_MAP = {
+const FIELD_MAP: Record<keyof SettingsFormData, string> = {
   autoDetect: 'auto_detect',
   detectionInterval: 'detection_interval_minutes',
   autoSync: 'auto_sync',
@@ -233,29 +245,47 @@ const FIELD_MAP = {
   maxConcurrentSyncs: 'max_concurrent_syncs',
 };
 
-function fromBackend(raw) {
-  if (!raw || typeof raw !== 'object') return { ...DEFAULTS };
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
+function fromBackend(raw: unknown): SettingsFormData {
+  if (!isPlainObject(raw)) return { ...DEFAULTS };
   // 后端返回可能直接是 config 对象，也可能套一层 { config: {...} }
-  const src = raw.config && typeof raw.config === 'object' ? raw.config : raw;
-  const out = { ...DEFAULTS };
-  for (const [uiKey, beKey] of Object.entries(FIELD_MAP)) {
-    if (src[uiKey] !== undefined) out[uiKey] = src[uiKey];
-    else if (src[beKey] !== undefined) out[uiKey] = src[beKey];
-  }
+  const src: Record<string, unknown> = isPlainObject(raw.config) ? raw.config : raw;
+  const out: SettingsFormData = { ...DEFAULTS };
+  (Object.entries(FIELD_MAP) as [keyof SettingsFormData, string][]).forEach(([uiKey, beKey]) => {
+    const candidate = src[uiKey] !== undefined ? src[uiKey] : src[beKey];
+    if (candidate === undefined) return;
+    // 数值字段：保留 number；布尔字段：保留 boolean。其余忽略，使用默认值。
+    const defaultVal = DEFAULTS[uiKey];
+    if (typeof defaultVal === 'number' && typeof candidate === 'number') {
+      out[uiKey] = candidate as never;
+    } else if (typeof defaultVal === 'boolean' && typeof candidate === 'boolean') {
+      out[uiKey] = candidate as never;
+    }
+  });
   return out;
 }
 
-function toBackend(form) {
+function toBackend(form: SettingsFormData): Record<string, unknown> {
   // 同时发送 snake_case + camelCase，向后端兼容（后端忽略多余字段）
-  const out = {};
-  for (const [uiKey, beKey] of Object.entries(FIELD_MAP)) {
+  const out: Record<string, unknown> = {};
+  (Object.entries(FIELD_MAP) as [keyof SettingsFormData, string][]).forEach(([uiKey, beKey]) => {
     out[beKey] = form[uiKey];
     out[uiKey] = form[uiKey];
-  }
+  });
   return out;
 }
 
-async function loadConfig() {
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+async function loadConfig(): Promise<void> {
   loading.value = true;
   loadError.value = '';
   saveSuccess.value = false;
@@ -265,13 +295,13 @@ async function loadConfig() {
     formData.value = normalized;
     lastLoadedSnapshot.value = { ...normalized };
   } catch (err) {
-    loadError.value = err?.message || String(err);
+    loadError.value = errorMessage(err);
   } finally {
     loading.value = false;
   }
 }
 
-const validate = () => {
+function validate(): boolean {
   errors.value = {};
   let isValid = true;
   if (formData.value.batchSyncSize < 1 || formData.value.batchSyncSize > 100) {
@@ -283,9 +313,9 @@ const validate = () => {
     isValid = false;
   }
   return isValid;
-};
+}
 
-const handleSave = async () => {
+async function handleSave(): Promise<void> {
   saveSuccess.value = false;
   saveError.value = '';
   if (!validate()) return;
@@ -301,18 +331,18 @@ const handleSave = async () => {
     lastLoadedSnapshot.value = { ...formData.value };
     saveSuccess.value = true;
   } catch (err) {
-    saveError.value = err?.message || String(err);
+    saveError.value = errorMessage(err);
   } finally {
     saving.value = false;
   }
-};
+}
 
-const handleReset = () => {
+function handleReset(): void {
   formData.value = { ...lastLoadedSnapshot.value };
   errors.value = {};
   saveSuccess.value = false;
   saveError.value = '';
-};
+}
 
 onMounted(loadConfig);
 </script>

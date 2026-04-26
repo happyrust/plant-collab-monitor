@@ -26,35 +26,48 @@
   </section>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { NButton, NModal } from 'naive-ui';
 import SyncHistory from '@/components/SyncHistory.vue';
 import { syncApi } from '@/api';
 
-const history = ref([]);
+type HistoryItem = Record<string, unknown>;
+
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
+
+const history = ref<HistoryItem[]>([]);
 const currentPage = ref(1);
 const loading = ref(false);
 const errorMsg = ref('');
-const detail = ref(null);
+const detail = ref<HistoryItem | null>(null);
 const detailJson = computed(() => (detail.value ? JSON.stringify(detail.value, null, 2) : ''));
 
-function onDetail(item) {
+function onDetail(item: HistoryItem): void {
   detail.value = item;
 }
 
-async function refresh() {
+async function refresh(): Promise<void> {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const data = await syncApi.history();
-    history.value = Array.isArray(data?.history)
-      ? data.history
-      : Array.isArray(data)
-      ? data
-      : [];
+    const data: unknown = await syncApi.history();
+    const list = (() => {
+      if (data && typeof data === 'object' && 'history' in data) {
+        const h = (data as { history?: unknown }).history;
+        if (Array.isArray(h)) return h as HistoryItem[];
+      }
+      if (Array.isArray(data)) return data as HistoryItem[];
+      return [];
+    })();
+    history.value = list;
   } catch (err) {
-    errorMsg.value = `加载同步历史失败: ${err?.message || err}`;
+    errorMsg.value = `加载同步历史失败: ${errorMessage(err)}`;
   } finally {
     loading.value = false;
   }
