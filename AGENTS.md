@@ -200,7 +200,8 @@ Phase 7-Plus 验证要点：
 - SiteConfig 保存确认弹窗：非破坏性取消验证通过（writeRequests = 0）
 - Topology 删除确认弹窗：skipped（本地环境无可删除拓扑项，非 failure）
 
-**剩余**：B6+ rs-core 真热加载（跨仓独立会话）。
+**G7 100% 闭环**：Phase 20 rs-core `OnceCell<DbOption>` → `RwLock<Arc<DbOption>>` 真热加载已落地。
+`POST /api/site-config/reload` 对 hot 字段变更返回 `actions: ["hot_reloaded"]`，无需重启。
 
 ---
 
