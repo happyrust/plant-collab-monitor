@@ -207,8 +207,15 @@ location /ws/ {
 | Phase 14 (本会话) | NTooltip + SSE 状态徽标 + console.error 序列化 + Topology NMessage/NDialog | ✅ `936a09e` |
 | Phase 15 (本会话) | manualChunks 函数化 + SiteConfig confirm → NDialog + Phase 7-Plus 准备文档 + README 更新 | ✅ `0b111c1` + 后续 commit |
 | Phase 16 / G10 闭环 | naive-ui 按需引入 + AGENTS.md/HANDOFF.md + 11 视图 ts + 6 components ts + Phase 19 mini API smoke 17/17 + Phase 20 rs-core 真热加载计划 + CHANGELOG | ✅ `a144d0f` `1d6ce75` `cbc7a68` `da08158` `60097f6` `751d6ea` `f53586b` |
-| Phase 7-Plus | 带后端真实联调（admin login flow + SSE token + 11 视图）| ⏳ 待外部 chrome-devtools，参见 `docs/plans/2026-04-26-phase7-plus-preparation.md` |
-| 后端 Sprint B | B1/B2/B3/B4/**B5**/B6/B7 ✅（20/20 PASS）；B6+ 真热加载 ⏳跨仓 rs-core | 参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md` |
+| Phase 7-Plus | 带后端真实联调（admin login flow + SSE token + 11 视图）| ✅ passed · `scripts/phase7-plus-smoke.mjs` |
+| 后端 Sprint B | B1-B7 ✅（20/20 PASS）+ B6+ 真热加载 ✅ Phase 20 | 参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-verification-report.md` |
+| Phase 20 | rs-core `OnceCell<DbOption>` → `RwLock<Arc<DbOption>>` 真热加载 | ✅ 跨仓 3 仓 |
+| Phase 21 | Dark Mode（全视图 + 组件 + echarts + 侧栏切换）| ✅ 7 commits |
+| Phase 22 | 后端连接健康检测 + 断连横幅 | ✅ |
+| Phase 23 | 浏览器标签页告警标题 | ✅ |
+| Phase 24 | 侧栏可折叠（64px/256px + localStorage）| ✅ |
+| Phase 25 | 键盘快捷键（Alt+D 主题, Alt+B 侧栏）| ✅ |
+| Phase 26 | Desktop 通知（Notification API）| ✅ |
 
 ## 相关文档
 
