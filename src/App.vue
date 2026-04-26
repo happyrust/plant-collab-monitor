@@ -103,6 +103,9 @@
             <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0"></span>
             <span v-if="!sidebarCollapsed">后端离线</span>
           </div>
+          <div class="px-3 py-1 text-center font-mono text-xs tabular-nums text-slate-400 dark:text-slate-500" :class="sidebarCollapsed ? 'text-[10px]' : ''">
+            {{ clockTime }}
+          </div>
           <div class="px-2 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 flex items-center" :class="sidebarCollapsed ? 'flex-col gap-2' : 'justify-between px-4'">
             <span class="flex items-center gap-2" :class="sidebarCollapsed ? 'flex-col' : ''">
               <button
@@ -186,6 +189,12 @@ useFaviconBadge();
 const SIDEBAR_KEY = 'sidebar_collapsed';
 const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === '1');
 
+const clockTime = ref('');
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+function updateClock() {
+  clockTime.value = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
 function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value;
   localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value ? '1' : '0');
@@ -227,6 +236,8 @@ function handleKeydown(e: KeyboardEvent) {
 
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown);
+  updateClock();
+  clockTimer = setInterval(updateClock, 1000);
   if (adminAuth.token) {
     try {
       const profile = await adminAuthApi.me();
@@ -239,6 +250,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
+  if (clockTimer) clearInterval(clockTimer);
 });
 
 const route = useRoute();
