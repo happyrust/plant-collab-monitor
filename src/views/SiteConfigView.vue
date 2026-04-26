@@ -35,6 +35,14 @@
             <i class="fas fa-save"></i>
             保存配置
           </button>
+          <button
+            @click="reloadConfig"
+            class="btn btn-sm gap-1 bg-amber-500 text-white border-0 hover:bg-amber-600 rounded-none"
+            :disabled="reloading"
+          >
+            <i class="fas fa-redo" :class="{ 'fa-spin': reloading }"></i>
+            重载配置
+          </button>
         </div>
       </div>
 
@@ -574,6 +582,7 @@ import { siteConfigApi, http } from '@/api';
 const dialog = useDialog();
 const loading = ref(false);
 const saving = ref(false);
+const reloading = ref(false);
 const validating = ref(false);
 const validationErrors = ref([]);
 const showDbnoDropdown = ref(false);
@@ -805,6 +814,33 @@ async function saveConfig() {
     saving.value = false;
   }
 }
+
+const reloadConfig = async () => {
+  reloading.value = true;
+  setActionError('');
+  try {
+    const data = await siteConfigApi.reload();
+    const actions = data?.actions ?? [];
+    if (actions.includes('hot_reloaded')) {
+      flashSuccess(`热加载成功：${(data.hot_changed_keys ?? []).join(', ')}，无需重启`);
+    } else if (actions.includes('no_change')) {
+      flashSuccess(data.message || '配置无变更');
+    } else if (actions.includes('graceful_shutdown_triggered')) {
+      flashSuccess('静态配置已变更，服务正在优雅重启…');
+    } else if (actions.includes('manual_restart_required')) {
+      setActionError('检测到静态字段变更，需手动重启后端服务');
+    } else if (actions.includes('hot_reload_failed')) {
+      setActionError(data.message || '热加载失败，旧配置保持不变');
+    } else {
+      flashSuccess(data.message || '重载完成');
+    }
+  } catch (error) {
+    console.error('重载配置失败:', error?.message || error);
+    setActionError('重载失败：' + (error?.message || String(error)));
+  } finally {
+    reloading.value = false;
+  }
+};
 
 // 获取服务器IP地址（从后端API）
 const getServerIP = async () => {
