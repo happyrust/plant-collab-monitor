@@ -62,11 +62,19 @@
 - AppStatusBar 右侧 🔔 按钮请求通知权限
 - `tag: 'plant-monitor'` 去重避免堆积
 
+#### Phase 27-31 · 生产级加固
+
+- **全局错误处理**（Phase 27）：Vue `errorHandler` + Router `onError` + `unhandledrejection`
+- **页面过渡动画**（Phase 28）：RouterView `<Transition name="page" mode="out-in">` 150ms 淡入淡出
+- **滚动位置恢复**（Phase 29）：`scrollBehavior` 支持 savedPosition + hash 锚点
+- **面包屑条**（Phase 30）：`PLANT · COLLAB › 当前页面`，dark mode 适配
+- **Admin 路由锁标记**（Phase 31）：5 个 admin-gated 路由侧栏显示 🔒
+
 #### 验证
 
 - `npm run type-check` 全程 0 errors
 - `npm run smoke:phase7-plus` 多次 passed（11 路由 + SSE + 登录 + 弹窗确认）
-- `npm run build` 成功
+- `npm run build` 成功（总 JS ~1.44MB / gzip ~272KB）
 
 ---
 
