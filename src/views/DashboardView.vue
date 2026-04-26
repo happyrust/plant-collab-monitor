@@ -150,8 +150,8 @@
       <div v-else-if="recentEvents.length === 0" class="p-8 text-center text-slate-400 text-sm">
         暂无事件
       </div>
-      <ul v-else class="divide-y divide-slate-100">
-        <li v-for="(ev, idx) in recentEvents" :key="ev.id || idx" class="px-5 py-3 flex items-center gap-4 text-sm hover:bg-slate-50 transition-colors">
+      <ul v-else class="divide-y divide-slate-100 dark:divide-slate-700">
+        <li v-for="(ev, idx) in recentEvents" :key="ev.id || idx" class="px-5 py-3 flex items-center gap-4 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
           <span
             class="text-xs px-2 py-0.5 rounded font-mono"
             :class="eventBadgeClass(ev)"
@@ -248,7 +248,7 @@ const DashCard: Component = {
         'div',
         {
           class: [
-            'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 dark:border-slate-700 shadow-sm p-4 border-l-4 transition-all',
+            'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 border-l-4 transition-all',
             accentMap[props.accent as string] || accentMap.slate,
             props.status === 'loading' ? 'opacity-70' : '',
           ],
@@ -258,7 +258,7 @@ const DashCard: Component = {
             'div',
             { class: 'flex items-center justify-between mb-2' },
             [
-              h('span', { class: 'text-xs font-semibold text-slate-500 uppercase tracking-wide' }, props.title),
+              h('span', { class: 'text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide' }, props.title),
               renderStatusBadge(),
             ],
           ),
