@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance Cleanup · 移除未使用 VueUse direct dependency（本次提交）
+### Maintenance Cleanup · 移除未使用 VueUse direct dependency（1 commit · `15aade2`）
 
 > 继续处理 S3 后剩余的低风险项：确认业务源码未直接使用 `@vueuse/core` 后，移除 direct dependency，而不是升级未使用 API。
 
@@ -241,4 +241,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance Cleanup 移除未使用 VueUse direct dependency（提交见 git log）
+- 最新记录到：`15aade2`（Maintenance Cleanup 移除未使用 VueUse direct dependency）
