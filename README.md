@@ -156,10 +156,30 @@ location /ws/ {
 
 | 项 | 说明 |
 |---|---|
-| `/api/remote-sync/*` 503 | 后端 admin 鉴权保护，需先登录拿 JWT。前端登录流程待后续迭代补齐 |
-| `/api/site-config/reload` 不生效 | 后端 stub，保存配置后需手动重启 web_server |
+| ~~`/api/remote-sync/*` 503~~ | ✅ **已闭环** — `LoginDialog` + 路由级 `requiresAdmin` guard + `LocalAdminAuth` token store + SSE Bearer token 路径（`useSse` `getToken` 选项 + fetch + ReadableStream） |
+| `/api/site-config/reload` 仅诊断 | 后端 Phase 11 已落 diff + 分类响应；真热加载需 rs-core `OnceCell` → `RwLock<Arc<DbOption>>` 改造（跨仓 Phase 11-Plus 待） |
+| `/api/site-config/save` 后无 graceful restart | 后端 Phase 10 待（B5 main.rs + AppState 重构 2d）|
 | MBD `layout_result` 为 null | 后端未开启 `mbd-iso` feature（依赖 rs-core 未发布的 API）|
-| 部分 view（Tasks/SyncHistory/Logs）用 placeholder 壳 | 后续接 SSE/WebSocket 后接入完整 UX |
+
+**所有 11 视图均已实装真 API 调用，无 placeholder 壳。** Sprint A Phase 1-5 + Sprint C Phase 6/7 + Phase 12-Plus + Phase 13/14/15 累计 17 个 commits 收口。
+
+## admin login flow（G8 完整闭环）
+
+进入需要管理员的视图（`/topology` `/mqtt/nodes` `/archives` `/site-config` `/settings`）时：
+
+```
+未登录访问 admin 视图
+  → router.beforeEach 检测 meta.requiresAdmin
+  → sessionStorage 写 admin_redirect_after_login = '/topology'
+  → adminAuth.promptLogin('该页面需要管理员登录')
+  → router 跳 /dashboard
+  → LoginDialog 弹起
+  → 输 admin/admin → POST /api/admin/auth/login → token 入 store
+  → handleLogin: consumeRedirectAfterLogin() 取出 '/topology'
+  → router.push('/topology') → 视图加载 + axios interceptor 自动注入 Bearer token + SSE 流也带 token
+```
+
+后端 `ADMIN_USER` / `ADMIN_PASS` 通过环境变量配置（默认 `admin` / `admin`）。
 
 ## 状态
 
@@ -170,13 +190,35 @@ location /ws/ {
 | P2 | 本项目脚手架 + 11 视图移植 | ✅ M2 完成 |
 | P3 | 端到端联通验证 | ✅ M1 冒烟 6/8 通过，2 admin-gated 503 |
 | P4 | 文档 + 部署脚本 | ✅（本 README + nginx example + MIGRATION_NOTICE）|
+| Sprint A · P1-P5 | API 三轨收口 + Dashboard + Settings + admin login + StatusBar | ✅ 5 commits |
+| Sprint C · P6 | useFormatters → ts + 孤儿组件清理 + deploy.sh | ✅ |
+| Sprint C · P7 | e2e-smoke 验收报告（11/11 视图，无后端基线） | ✅ `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md` |
+| Phase 12-Plus | MqttNodesView 订阅 SSE 自动 reload（B4 跨仓闭环） | ✅ `e9aab96` |
+| Phase 13 (本会话) | base url + tsconfig fix + topology cleanup + SiteConfig P2-1 + SyncTrendChart ts + admin route guard + SSE token + LoginDialog redirect + appStatus.trackEvent | ✅ 6 commits |
+| Phase 14 (本会话) | NTooltip + SSE 状态徽标 + console.error 序列化 + Topology NMessage/NDialog | ✅ `936a09e` |
+| Phase 15 (本会话) | manualChunks 函数化 + SiteConfig confirm → NDialog + Phase 7-Plus 准备文档 + README 更新 | ✅ `0b111c1` + 后续 commit |
+| Phase 7-Plus | 带后端真实联调（admin login flow + SSE token + 11 视图）| ⏳ 待外部 chrome-devtools，参见 `docs/plans/2026-04-26-phase7-plus-preparation.md` |
+| 后端 Sprint B | B1/B2/B3/B4/B6 ✅；B5/B6+ ⏳ | 跨仓 `plant-model-gen`，参见 `../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md` |
 
 ## 相关文档
 
+### 本仓
+| 文档 | 位置 |
+|---|---|
+| 异地站点 PRD | `docs/prd/2026-04-26-remote-site-prd.md` |
+| 整体能力规范 PRD | `docs/prd/2026-04-25-collab-monitor-prd.md` |
+| Gap 清单 | `docs/plans/2026-04-25-collab-monitor-completion-gap.md` |
+| 无后端基线 e2e-smoke 报告 | `docs/e2e-smoke/2026-04-26-e2e-smoke-report.md` |
+| **Phase 7-Plus 浏览器联调准备清单** | `docs/plans/2026-04-26-phase7-plus-preparation.md` |
+| Sprint A/C 计划 | `docs/plans/2026-04-26-next-step-plan.md` `docs/plans/2026-04-26-sprint-bc-plan.md` |
+| Phase 12-Plus（MqttNodes SSE 订阅）| `docs/plans/2026-04-26-phase12-plus-mqtt-sse-subscribe.md` |
+
+### 跨仓
 | 文档 | 位置 |
 |---|---|
 | 异地协同 API 汇总清单（81 端点）| `../plant-model-gen/docs/architecture/异地协同API汇总清单.md` |
 | 父计划（14h · 5 阶段）| `../plant-model-gen/docs/plans/2026-04-22-异地协同前端独立与API汇总计划.md` |
+| Sprint B 后端计划（B1-B7）| `../plant-model-gen/docs/plans/2026-04-26-sprint-b-plan.md` |
 | Phase 1 精细执行清单 | `../plant-model-gen/docs/plans/2026-04-22-phase-1-execution-checklist.md` |
 | Phase 3/4 精细执行清单 | `../plant-model-gen/docs/plans/2026-04-22-phase-3-phase-4-execution-checklist.md` |
 | M1 冒烟结果 | `../plant-model-gen/docs/plans/2026-04-22-m1-smoke-test-result.md` |
