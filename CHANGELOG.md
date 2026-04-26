@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance S3 · Vite 安全修复（本次提交）
+### Maintenance S3 · Vite 安全修复（1 commit · `0deb43d`）
 
 > 按维护 backlog 完成 Vite/esbuild moderate 漏洞闭环：升级 Vite 主链路，保留现有构建配置语义。
 
@@ -220,4 +220,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance S3 Vite 安全修复（提交见 git log）
+- 最新记录到：`0deb43d`（Maintenance S3 Vite 安全修复）
