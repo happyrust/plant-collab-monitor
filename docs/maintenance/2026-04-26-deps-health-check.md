@@ -64,8 +64,9 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 | `vue-router` | 5.0.6 | 5.0.6 | 5.0.6 | major | 中 ✅ 已应用 |
 | `vite` | 8.0.10 | 8.0.10 | 8.0.10 | major × 3 | 高 ✅ 已应用 |
 | `@vitejs/plugin-vue` | 6.0.6 | 6.0.6 | 6.0.6 | major | 中 ✅ 已应用 |
-| `daisyui` | 4.12.24 | 4.12.24 | 5.5.19 | major | **高**（与 tailwind 4 配套）|
-| `tailwindcss` | 3.4.19 | 3.4.19 | 4.2.4 | major | **高**（rewrite，配置格式大改）|
+| `tailwindcss` | 4.2.4 | 4.2.4 | 4.2.4 | major | 高 ✅ 已应用 |
+| `@tailwindcss/postcss` | 4.2.4 | 4.2.4 | 4.2.4 | new | 高 ✅ 已应用 |
+| `daisyui` | 5.5.19 | 5.5.19 | 5.5.19 | major | 高 ✅ 已应用 |
 
 ### 已应用 ✅
 
@@ -74,14 +75,11 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 - **S2 路由 + 状态升级完成**：`vue-router` 4 → 5、`pinia` 2 → 3。现有 `router.beforeEach` admin guard、RouteMeta 扩展、`adminAuth` / `appStatus` setup store 均无需代码改动；`type-check` + `build` 全绿。
 - **S3 Vite 安全修复完成**：`vite` 5 → 8、`@vitejs/plugin-vue` 5 → 6。现有 `base`、proxy、manualChunks、auto-import / components 插件配置无需代码改动；`type-check` + `build` + `npm audit` 全绿。
 - **未使用 direct dependency 清理完成**：业务源码与 `vite.config.ts` 均未直接使用 `@vueuse/core`，移除 direct dependency 后仍由 `unplugin-auto-import` 保留传递依赖；`type-check` + `build` + `npm audit` 全绿。
+- **S4 样式系统升级完成**：`tailwindcss` 3 → 4、`daisyui` 4 → 5，并新增 `@tailwindcss/postcss`。`postcss.config.js` 改用 `@tailwindcss/postcss`；`src/styles/main.css` 迁移到 CSS-first `@import "tailwindcss"` + `@plugin "daisyui"`；`tailwind.config.js` 保留 theme/content，移除 DaisyUI JS plugin 配置。
 
-### 暂不升级（待独立 sprint 评估）
+### 暂不升级
 
-按 risk 排序：
-
-#### 高风险 backlog（成套升级）
-
-- **`tailwindcss` 3 → 4 + `daisyui` 4 → 5**：配置格式从 `tailwind.config.js` 改 CSS-first，需要 rewrite 整个样式入口。
+无。`npm outdated` 当前无剩余输出。
 
 ---
 
@@ -109,10 +107,12 @@ S3 · vite + esbuild 安全修复（已完成）
   - 检查 manualChunks 函数签名 + base url + proxy + auto-import 插件
   - npm run type-check + npm run build + npm audit 全绿
 
-S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
+S4 · 样式系统 rewrite（已完成）
   - tailwindcss@^4 + daisyui@^5
-  - 配置从 JS 改 CSS-first（@tailwind/utilities 改 @import "tailwindcss"）
+  - 配置从 JS 改 CSS-first（@tailwind base/components/utilities 改 @import "tailwindcss"）
   - 全视图 hover / focus / class 兼容性回归
+  - npm run type-check + npm run build + npm audit 全绿
+  - npm outdated 无剩余输出
 ```
 
 ---
@@ -124,8 +124,8 @@ S4 · 样式系统 rewrite（独立 sprint · 评估 ~3-5h）
 | 当前是否有 critical / high 漏洞？ | **否**（npm audit 0 vulnerabilities） |
 | 生产产物是否受影响？ | **否** |
 | 必须立即升级？ | **否**（S3 已关闭 audit 漏洞） |
-| 推荐何时升级？ | 剩余 Tailwind/daisyUI 需独立样式 rewrite sprint |
-| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级 + S3 Vite 安全修复 + 未使用 direct dependency 清理完成 |
+| 推荐何时升级？ | 无剩余依赖升级项 |
+| 本轮是否做了什么？ | postcss 8.5.10 → 8.5.12（zero-risk patch）+ S1 类型工具链升级 + S2 路由/状态升级 + S3 Vite 安全修复 + 未使用 direct dependency 清理 + S4 样式系统升级完成 |
 
 ---
 

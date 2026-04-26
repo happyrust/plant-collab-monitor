@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark;
+  logs: false;
+}
 
 :root {
   font-family:

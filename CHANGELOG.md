@@ -8,6 +8,31 @@
 
 ## 2026-04-26
 
+### Maintenance S4 · Tailwind / DaisyUI 样式系统升级（本次提交）
+
+> 完成最后一组依赖升级：Tailwind 3 → 4、DaisyUI 4 → 5，并迁移到 Tailwind v4 的 PostCSS 与 CSS-first 配置。
+
+#### Dependencies
+
+- **`tailwindcss` 3 → 4**：升级到 `tailwindcss` 4.2.4。
+- **`daisyui` 4 → 5**：升级到 `daisyui` 5.5.19。
+- **新增 `@tailwindcss/postcss`**：Tailwind v4 PostCSS 插件独立拆包，`postcss.config.js` 改用 `@tailwindcss/postcss`。
+
+#### Config
+
+- **CSS-first 迁移**：`src/styles/main.css` 从 `@tailwind base/components/utilities` 改为 `@import "tailwindcss"`，并通过 `@plugin "daisyui"` 配置 light/dark theme 与关闭 logs。
+- **JS config 收窄**：`tailwind.config.js` 保留 content + font theme 扩展，移除 DaisyUI JS plugin 配置。
+
+#### Verification
+
+- `npm run type-check` PASS。
+- `npm run build` PASS（vite 8.0.10，3487 modules transformed，built in 1.61s）。
+- 产物确认包含 DaisyUI 全局类（如 `btn-primary` / `modal-box` / `input-bordered` / `badge-success` / `stats-horizontal`）。
+- `npm audit --registry=https://registry.npmjs.org/` PASS：0 vulnerabilities。
+- `npm outdated` 无剩余输出。
+
+---
+
 ### Maintenance Cleanup · 移除未使用 VueUse direct dependency（1 commit · `15aade2`）
 
 > 继续处理 S3 后剩余的低风险项：确认业务源码未直接使用 `@vueuse/core` 后，移除 direct dependency，而不是升级未使用 API。
@@ -241,4 +266,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：`15aade2`（Maintenance Cleanup 移除未使用 VueUse direct dependency）
+- 最新记录到：Maintenance S4 Tailwind / DaisyUI 样式系统升级（提交见 git log）

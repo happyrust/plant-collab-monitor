@@ -23,7 +23,7 @@
 
 - Vue 3.5 (Composition API · `<script setup lang="ts">`)
 - Vite 8.0 · TypeScript 6.0 · vue-tsc strict
-- Naive UI 2.40 + Tailwind 3.4 + DaisyUI 4（完全继承自 web-server 旧栈）
+- Naive UI 2.40 + Tailwind 4.2 + DaisyUI 5.5
 - Pinia 3.0 + vue-router 5.0
 - axios 1.7
 - echarts 6（独立 vendor chunk · 按需 import）
