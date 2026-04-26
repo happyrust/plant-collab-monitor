@@ -35,15 +35,19 @@
               v-slot="{ isActive }"
               custom
             >
-              <button
-                class="nav-link w-full"
-                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}` : undefined"
-                @click="$router.push(item.path)"
-              >
-                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
-              </button>
+              <NTooltip :disabled="!sidebarCollapsed" placement="right" :show-arrow="false">
+                <template #trigger>
+                  <button
+                    class="nav-link w-full"
+                    :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                    @click="$router.push(item.path)"
+                  >
+                    <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                    <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
+                  </button>
+                </template>
+                {{ item.label }}{{ item.admin ? ' 🔒' : '' }}
+              </NTooltip>
             </RouterLink>
 
             <div v-if="!sidebarCollapsed" class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -57,19 +61,23 @@
               v-slot="{ isActive }"
               custom
             >
-              <button
-                class="nav-link w-full relative"
-                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}${item.name === 'tasks' && appStatus.queue.failed > 0 ? ` (${appStatus.queue.failed} 失败)` : ''}` : undefined"
-                @click="$router.push(item.path)"
-              >
-                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed" class="flex-1 flex items-center justify-between">
-                  <span>{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
-                  <span v-if="item.name === 'tasks' && appStatus.queue.failed > 0" class="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full leading-none">{{ appStatus.queue.failed }}</span>
-                </span>
-                <span v-if="sidebarCollapsed && item.name === 'tasks' && appStatus.queue.failed > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ appStatus.queue.failed }}</span>
-              </button>
+              <NTooltip :disabled="!sidebarCollapsed" placement="right" :show-arrow="false">
+                <template #trigger>
+                  <button
+                    class="nav-link w-full relative"
+                    :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                    @click="$router.push(item.path)"
+                  >
+                    <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                    <span v-if="!sidebarCollapsed" class="flex-1 flex items-center justify-between">
+                      <span>{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
+                      <span v-if="item.name === 'tasks' && appStatus.queue.failed > 0" class="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full leading-none">{{ appStatus.queue.failed }}</span>
+                    </span>
+                    <span v-if="sidebarCollapsed && item.name === 'tasks' && appStatus.queue.failed > 0" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{{ appStatus.queue.failed }}</span>
+                  </button>
+                </template>
+                {{ item.label }}{{ item.admin ? ' 🔒' : '' }}{{ item.name === 'tasks' && appStatus.queue.failed > 0 ? ` (${appStatus.queue.failed} 失败)` : '' }}
+              </NTooltip>
             </RouterLink>
 
             <div v-if="!sidebarCollapsed" class="px-3 mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -83,15 +91,19 @@
               v-slot="{ isActive }"
               custom
             >
-              <button
-                class="nav-link w-full"
-                :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
-                :title="sidebarCollapsed ? `${item.label}${item.admin ? ' 🔒' : ''}` : undefined"
-                @click="$router.push(item.path)"
-              >
-                <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
-                <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
-              </button>
+              <NTooltip :disabled="!sidebarCollapsed" placement="right" :show-arrow="false">
+                <template #trigger>
+                  <button
+                    class="nav-link w-full"
+                    :class="[{ active: isActive }, sidebarCollapsed ? 'justify-center px-2' : '']"
+                    @click="$router.push(item.path)"
+                  >
+                    <span class="w-6 text-center shrink-0">{{ item.icon }}</span>
+                    <span v-if="!sidebarCollapsed">{{ item.label }}<span v-if="item.admin" class="ml-1 text-[10px] opacity-50">🔒</span></span>
+                  </button>
+                </template>
+                {{ item.label }}{{ item.admin ? ' 🔒' : '' }}
+              </NTooltip>
             </RouterLink>
           </nav>
 
