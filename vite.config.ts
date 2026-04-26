@@ -38,14 +38,23 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       emptyOutDir: true,
       sourcemap: true,
-      chunkSizeWarningLimit: 800,
+      // vendor-naive 单 chunk ~1.36MB（gzip ~365KB）是 first-load 必备的 UI 库，
+      // 按需引入 naive-ui 是另一项独立改造；先抬高阈值消除噪音警告
+      chunkSizeWarningLimit: 1500,
       rollupOptions: {
         output: {
           // 手工分块: 把体积较大的第三方库拆到独立 chunk, 降低主 bundle 尺寸
-          manualChunks: {
-            'vendor-vue': ['vue', 'vue-router', 'pinia'],
-            'vendor-naive': ['naive-ui'],
-            'vendor-http': ['axios', '@vueuse/core'],
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined;
+            if (/[\\/]node_modules[\\/](echarts|zrender)[\\/]/.test(id)) return 'vendor-echarts';
+            if (/[\\/]node_modules[\\/]naive-ui[\\/]/.test(id)) return 'vendor-naive';
+            if (/[\\/]node_modules[\\/]vooks[\\/]/.test(id)) return 'vendor-naive';
+            if (/[\\/]node_modules[\\/]vueuc[\\/]/.test(id)) return 'vendor-naive';
+            if (/[\\/]node_modules[\\/]seemly[\\/]/.test(id)) return 'vendor-naive';
+            if (/[\\/]node_modules[\\/]treemate[\\/]/.test(id)) return 'vendor-naive';
+            if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vue)[\\/]/.test(id)) return 'vendor-vue';
+            if (/[\\/]node_modules[\\/](axios|@vueuse)[\\/]/.test(id)) return 'vendor-http';
+            return undefined;
           },
         },
       },

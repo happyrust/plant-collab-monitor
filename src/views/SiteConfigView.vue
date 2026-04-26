@@ -569,8 +569,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useDialog } from 'naive-ui';
 import { siteConfigApi, http } from '@/api';
 
+const dialog = useDialog();
 const loading = ref(false);
 const saving = ref(false);
 const validating = ref(false);
@@ -768,9 +770,19 @@ async function validateConfig() {
 }
 
 async function saveConfig() {
-  if (!confirm('确定要保存配置吗？某些配置需要重启服务器后生效。')) {
-    return;
-  }
+  const confirmed = await new Promise((resolve) => {
+    dialog.warning({
+      title: '确认保存配置',
+      content: '某些配置需要重启服务器后生效，是否继续？',
+      positiveText: '保存',
+      negativeText: '取消',
+      onPositiveClick: () => { resolve(true); },
+      onNegativeClick: () => { resolve(false); },
+      onClose: () => { resolve(false); },
+      onMaskClick: () => { resolve(false); },
+    });
+  });
+  if (!confirmed) return;
 
   saving.value = true;
   setActionError('');
