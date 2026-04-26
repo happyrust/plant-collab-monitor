@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance S2 · 路由与状态依赖升级（本次提交）
+### Maintenance S2 · 路由与状态依赖升级（1 commit · `4e9fd60`）
 
 > 继续按维护 backlog 推进中风险但局部可控的路由 + 状态升级，先把 Vue Router / Pinia major 版本收口；Vite/esbuild 安全修复仍保留到 S3 独立处理。
 
@@ -26,7 +26,7 @@
 
 ---
 
-### Maintenance S1 · 类型工具链升级（本次提交）
+### Maintenance S1 · 类型工具链升级（1 commit · `9818c7e`）
 
 > 按维护 backlog 继续推进 S1：先完成类型工具链升级，并顺手补齐最新 PostCSS patch；高风险 Vite / Tailwind 大版本仍保留为后续独立 sprint。
 
@@ -197,4 +197,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance S2 路由与状态依赖升级（提交见 git log）
+- 最新记录到：`4e9fd60`（Maintenance S2 路由与状态依赖升级）
