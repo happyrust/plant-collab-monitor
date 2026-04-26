@@ -8,7 +8,7 @@
 
 ## 2026-04-26
 
-### Maintenance Memory · 固化依赖升级结论（本次提交）
+### Maintenance Memory · 固化依赖升级结论（1 commit · `9e837eb`）
 
 > 将 S1-S4 与 preview smoke 的稳定结论迁移到 `AGENTS.md`，让后续 agent 直接继承最新技术栈与配置禁忌。
 
@@ -291,4 +291,4 @@
 ## 仓库
 
 - 远端：https://github.com/happyrust/plant-collab-monitor
-- 最新记录到：Maintenance Memory 固化依赖升级结论（提交见 git log）
+- 最新记录到：`9e837eb`（Maintenance Memory 固化依赖升级结论）
