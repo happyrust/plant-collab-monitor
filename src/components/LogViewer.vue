@@ -76,101 +76,103 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, nextTick, onMounted } from 'vue';
 
-const props = defineProps({
-  logs: {
-    type: Array,
-    default: () => []
-  }
+interface LogEntry {
+  level?: string;
+  message?: string;
+  timestamp?: string | number;
+  [key: string]: unknown;
+}
+
+const props = withDefaults(defineProps<{ logs?: LogEntry[] }>(), {
+  logs: () => [],
 });
 
-const emit = defineEmits(['clear']);
+const emit = defineEmits<{ clear: [] }>();
 
-const logContainer = ref(null);
-const autoScroll = ref(true);
+const logContainer = ref<HTMLElement | null>(null);
+const autoScroll = ref<boolean>(true);
 
-const getLogIcon = (log) => {
-  const level = (log.level || 'INFO').toUpperCase();
-  const icons = {
-    INFO: 'fa-info-circle',
-    SUCCESS: 'fa-check-circle',
-    WARN: 'fa-exclamation-triangle',
-    WARNING: 'fa-exclamation-triangle',
-    ERROR: 'fa-times-circle',
-    DEBUG: 'fa-bug'
-  };
-  return icons[level] || 'fa-circle';
+const ICON_MAP: Record<string, string> = {
+  INFO: 'fa-info-circle',
+  SUCCESS: 'fa-check-circle',
+  WARN: 'fa-exclamation-triangle',
+  WARNING: 'fa-exclamation-triangle',
+  ERROR: 'fa-times-circle',
+  DEBUG: 'fa-bug',
 };
 
-const getLogClass = (log) => {
+function getLogIcon(log: LogEntry): string {
+  const level = (log.level || 'INFO').toUpperCase();
+  return ICON_MAP[level] ?? 'fa-circle';
+}
+
+function getLogClass(log: LogEntry): Record<string, boolean> {
   const level = (log.level || 'INFO').toUpperCase();
   return {
     'log-modern-error': level === 'ERROR',
     'log-modern-warning': level === 'WARN' || level === 'WARNING',
     'log-modern-success': level === 'SUCCESS',
     'log-modern-debug': level === 'DEBUG',
-    'log-modern-info': level === 'INFO'
+    'log-modern-info': level === 'INFO',
   };
-};
+}
 
-const formatLogTime = (timestamp) => {
+function formatLogTime(timestamp: string | number | undefined): string {
   if (!timestamp) return '';
   const date = new Date(timestamp);
   return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   });
-};
+}
 
-const toggleAutoScroll = () => {
+function scrollToBottom(): void {
+  if (!autoScroll.value) return;
+  nextTick(() => {
+    const el = logContainer.value;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: 'smooth',
+    });
+  });
+}
+
+function toggleAutoScroll(): void {
   autoScroll.value = !autoScroll.value;
   if (autoScroll.value) {
     scrollToBottom();
   }
-};
+}
 
-const clearLogs = () => {
+function clearLogs(): void {
   emit('clear');
-};
+}
 
-const scrollToBottom = () => {
-  if (!autoScroll.value) return;
-
-  nextTick(() => {
-    if (logContainer.value) {
-      logContainer.value.scrollTo({
-        top: logContainer.value.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
-  });
-};
-
-const handleScroll = () => {
-  if (!logContainer.value) return;
-
-  const { scrollTop, scrollHeight, clientHeight } = logContainer.value;
+function handleScroll(): void {
+  const el = logContainer.value;
+  if (!el) return;
+  const { scrollTop, scrollHeight, clientHeight } = el;
   const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
 
-  // 如果用户手动滚动到底部，重新启用自动滚动
+  // 如果用户手动滚动到底部，重新启用自动滚动；
+  // 如果用户向上滚动，禁用自动滚动。
   if (isAtBottom && !autoScroll.value) {
     autoScroll.value = true;
-  }
-  // 如果用户向上滚动，禁用自动滚动
-  else if (!isAtBottom && autoScroll.value) {
+  } else if (!isAtBottom && autoScroll.value) {
     autoScroll.value = false;
   }
-};
+}
 
-// 监听日志变化，自动滚动
 watch(
   () => props.logs.length,
   () => {
     scrollToBottom();
-  }
+  },
 );
 
 onMounted(() => {

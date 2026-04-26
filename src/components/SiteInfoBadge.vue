@@ -47,42 +47,52 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { siteConfigApi } from '@/api';
 
-const siteName = ref('加载中...');
-const location = ref('');
-const isMaster = ref(false);
-const siteUrl = ref('');
+function errorMessage(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message);
+  }
+  return String(err);
+}
 
-const displayName = computed(() => {
+const siteName = ref<string>('加载中...');
+const location = ref<string>('');
+const isMaster = ref<boolean>(false);
+const siteUrl = ref<string>('');
+
+const displayName = computed<string>(() => {
   if (!location.value) return siteName.value;
   return `${siteName.value} / ${location.value}`;
 });
 
-const roleText = computed(() => {
-  return isMaster.value ? '主站（可发布 MQTT）' : '从站（订阅）';
-});
+const roleText = computed<string>(() =>
+  isMaster.value ? '主站（可发布 MQTT）' : '从站（订阅）',
+);
 
-const roleClass = computed(() => {
-  return isMaster.value
+const roleClass = computed<string>(() =>
+  isMaster.value
     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    : 'bg-blue-50 text-blue-700 border-blue-200';
-});
+    : 'bg-blue-50 text-blue-700 border-blue-200',
+);
 
-// 加载站点配置
-async function loadSiteConfig() {
+async function loadSiteConfig(): Promise<void> {
   try {
-    const data = await siteConfigApi.get();
-    const config = data?.config || data || {};
+    const data: unknown = await siteConfigApi.get();
+    const obj = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+    const cfg = (obj.config && typeof obj.config === 'object' ? obj.config : obj) as Record<string, unknown>;
 
-    siteName.value = config.project_name || config.project_code || '未命名站点';
-    location.value = config.location || '未配置地区';
-    isMaster.value = !!config.sync_live;
+    siteName.value =
+      (typeof cfg.project_name === 'string' && cfg.project_name) ||
+      (typeof cfg.project_code === 'string' && cfg.project_code) ||
+      '未命名站点';
+    location.value = typeof cfg.location === 'string' && cfg.location ? cfg.location : '未配置地区';
+    isMaster.value = !!cfg.sync_live;
     siteUrl.value = window.location.origin;
   } catch (err) {
-    console.error('加载站点配置失败:', err?.message || err);
+    console.error('加载站点配置失败:', errorMessage(err));
     siteName.value = '加载失败';
   }
 }

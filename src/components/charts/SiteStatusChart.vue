@@ -8,7 +8,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import * as echarts from 'echarts/core';
 import { PieChart } from 'echarts/charts';
@@ -17,27 +17,42 @@ import { CanvasRenderer } from 'echarts/renderers';
 
 echarts.use([PieChart, TooltipComponent, LegendComponent, CanvasRenderer]);
 
-const props = defineProps({
-  title: {
-    type: String,
-    default: '站点状态分布',
-  },
-  // 通用 segments：[{ name, value, color? }]
-  segments: {
-    type: Array,
-    default: () => [],
-  },
-  // 旧版兼容字段（idle/scanning/completed/error），如果 segments 为空则使用
-  data: {
-    type: Object,
-    default: () => ({ idle: 0, scanning: 0, completed: 0, error: 0 }),
-  },
-});
+interface Segment {
+  name: string;
+  value: number;
+  color?: string;
+}
 
-const FALLBACK_COLORS = ['#10b981', '#ef4444', '#a855f7', '#3b82f6', '#f59e0b', '#94a3b8'];
+interface LegacyData {
+  idle?: number;
+  scanning?: number;
+  completed?: number;
+  error?: number;
+}
 
-const effectiveSegments = computed(() => {
-  if (props.segments && props.segments.length > 0) {
+const props = withDefaults(
+  defineProps<{
+    title?: string;
+    segments?: Segment[];
+    data?: LegacyData;
+  }>(),
+  {
+    title: '站点状态分布',
+    segments: () => [],
+    data: () => ({ idle: 0, scanning: 0, completed: 0, error: 0 }),
+  },
+);
+
+const FALLBACK_COLORS = ['#10b981', '#ef4444', '#a855f7', '#3b82f6', '#f59e0b', '#94a3b8'] as const;
+
+interface PieDatum {
+  name: string;
+  value: number;
+  itemStyle: { color: string };
+}
+
+const effectiveSegments = computed<PieDatum[]>(() => {
+  if (props.segments.length > 0) {
     return props.segments.map((s, idx) => ({
       name: s.name,
       value: s.value || 0,
@@ -53,55 +68,57 @@ const effectiveSegments = computed(() => {
   ];
 });
 
-const chartContainer = ref(null);
-let chartInstance = null;
+const chartContainer = ref<HTMLElement | null>(null);
+let chartInstance: echarts.ECharts | null = null;
 
-const buildOption = () => ({
-  tooltip: {
-    trigger: 'item',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderColor: '#e2e8f0',
-    borderWidth: 1,
-    textStyle: { color: '#334155' },
-  },
-  legend: {
-    orient: 'vertical',
-    right: '10%',
-    top: 'center',
-    textStyle: { color: '#64748b', fontSize: 12 },
-  },
-  series: [
-    {
-      name: props.title,
-      type: 'pie',
-      radius: ['40%', '70%'],
-      center: ['35%', '50%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false, position: 'center' },
-      emphasis: {
-        label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#334155' },
-      },
-      labelLine: { show: false },
-      data: effectiveSegments.value,
+function buildOption() {
+  return {
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: '#e2e8f0',
+      borderWidth: 1,
+      textStyle: { color: '#334155' },
     },
-  ],
-});
+    legend: {
+      orient: 'vertical',
+      right: '10%',
+      top: 'center',
+      textStyle: { color: '#64748b', fontSize: 12 },
+    },
+    series: [
+      {
+        name: props.title,
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false, position: 'center' },
+        emphasis: {
+          label: { show: true, fontSize: 16, fontWeight: 'bold', color: '#334155' },
+        },
+        labelLine: { show: false },
+        data: effectiveSegments.value,
+      },
+    ],
+  };
+}
 
-const initChart = () => {
+function initChart(): void {
   if (!chartContainer.value) return;
   chartInstance = echarts.init(chartContainer.value);
   chartInstance.setOption(buildOption());
-};
+}
 
-const handleResize = () => {
-  if (chartInstance) chartInstance.resize();
-};
+function handleResize(): void {
+  chartInstance?.resize();
+}
 
 watch(
   () => [props.segments, props.data, props.title],
   () => {
-    if (chartInstance) chartInstance.setOption(buildOption());
+    chartInstance?.setOption(buildOption());
   },
   { deep: true },
 );
@@ -113,7 +130,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
-  if (chartInstance) chartInstance.dispose();
+  chartInstance?.dispose();
+  chartInstance = null;
 });
 </script>
 

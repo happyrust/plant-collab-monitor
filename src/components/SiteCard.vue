@@ -132,24 +132,54 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useFormatters } from '@/composables/useFormatters';
 
-const props = defineProps({
-  site: {
-    type: Object,
-    required: true
-  }
-});
+interface ChangedFile {
+  path: string;
+  change_type?: string;
+  size?: number;
+}
 
-defineEmits(['detect', 'sync', 'abort', 'detail']);
+interface Site {
+  site_id?: string | number;
+  site_name?: string;
+  detection_status?: string;
+  last_sync_time?: string | number;
+  pending_items?: number;
+  synced_items?: number;
+  increment_size?: number;
+  changed_files?: ChangedFile[];
+  sync_progress?: number;
+  [key: string]: unknown;
+}
 
-const { formatTime, formatSize, getStatusClass, getStatusText, getStatusIcon, getChangeTypeClass, getChangeTypeLabel, getChangeTypeIcon } = useFormatters();
+const props = defineProps<{ site: Site }>();
 
-const changedFiles = computed(() => props.site.changed_files || []);
-const displayFiles = computed(() => changedFiles.value.slice(0, 4));
-const moreFilesCount = computed(() => Math.max(0, changedFiles.value.length - displayFiles.value.length));
+defineEmits<{
+  detect: [siteId: string | number | undefined];
+  sync: [siteId: string | number | undefined];
+  abort: [siteId: string | number | undefined];
+  detail: [siteId: string | number | undefined];
+}>();
+
+const {
+  formatTime,
+  formatSize,
+  getStatusClass,
+  getStatusText,
+  getStatusIcon,
+  getChangeTypeClass,
+  getChangeTypeLabel,
+  getChangeTypeIcon,
+} = useFormatters();
+
+const changedFiles = computed<ChangedFile[]>(() => props.site.changed_files ?? []);
+const displayFiles = computed<ChangedFile[]>(() => changedFiles.value.slice(0, 4));
+const moreFilesCount = computed<number>(() =>
+  Math.max(0, changedFiles.value.length - displayFiles.value.length),
+);
 </script>
 
 <style scoped>

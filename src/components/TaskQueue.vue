@@ -53,27 +53,39 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useFormatters } from '@/composables/useFormatters';
 
-defineProps({
-  tasks: {
-    type: Array,
-    default: () => []
-  }
+interface TaskItem {
+  id?: string | number;
+  file_name?: string;
+  file_size?: number;
+  status?: string;
+  priority?: number;
+  created_at?: string | number;
+  site_name?: string;
+  site_id?: string | number;
+  notes?: string;
+  [key: string]: unknown;
+}
+
+withDefaults(defineProps<{ tasks?: TaskItem[] }>(), {
+  tasks: () => [],
 });
 
 const { formatTime, formatSize } = useFormatters();
 
-const getTaskStatusClass = (status) => {
-  const map = {
-    'Pending': 'bg-amber-100 text-amber-700 border border-amber-200',
-    'Running': 'bg-blue-100 text-blue-700 border border-blue-200',
-    'Completed': 'bg-green-100 text-green-700 border border-green-200',
-    'Failed': 'bg-red-100 text-red-700 border border-red-200'
-  };
-  return map[status] || 'bg-slate-100 text-slate-700 border border-slate-200';
+const STATUS_CLASS_MAP: Record<string, string> = {
+  Pending: 'bg-amber-100 text-amber-700 border border-amber-200',
+  Running: 'bg-blue-100 text-blue-700 border border-blue-200',
+  Completed: 'bg-green-100 text-green-700 border border-green-200',
+  Failed: 'bg-red-100 text-red-700 border border-red-200',
 };
+
+function getTaskStatusClass(status: string | undefined): string {
+  if (!status) return 'bg-slate-100 text-slate-700 border border-slate-200';
+  return STATUS_CLASS_MAP[status] ?? 'bg-slate-100 text-slate-700 border border-slate-200';
+}
 </script>
 
 <style scoped>

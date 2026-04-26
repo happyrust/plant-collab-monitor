@@ -148,113 +148,123 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { useFormatters } from '@/composables/useFormatters';
 
-const props = defineProps({
-  history: {
-    type: Array,
-    default: () => []
-  },
-  currentPage: {
-    type: Number,
-    default: 1
-  },
-  totalPages: {
-    type: Number,
-    default: 1
-  }
-});
+interface SyncRecord {
+  id?: string | number;
+  timestamp?: string | number;
+  location?: string;
+  is_full_sync?: boolean;
+  total_added?: number;
+  total_modified?: number;
+  total_deleted?: number;
+  file_names?: string[];
+  file_count?: number;
+  [key: string]: unknown;
+}
 
-defineEmits(['detail', 'prev-page', 'next-page']);
+interface DateGroup {
+  key: string;
+  label: string;
+  sortKey: number;
+}
+
+interface HistoryGroup {
+  label: string;
+  records: SyncRecord[];
+  sortKey: number;
+}
+
+const props = withDefaults(
+  defineProps<{
+    history?: SyncRecord[];
+    currentPage?: number;
+    totalPages?: number;
+  }>(),
+  {
+    history: () => [],
+    currentPage: 1,
+    totalPages: 1,
+  },
+);
+
+defineEmits<{
+  detail: [record: SyncRecord];
+  'prev-page': [];
+  'next-page': [];
+}>();
 
 const { formatTime } = useFormatters();
 
-// 按日期分组历史记录
-const groupedHistory = computed(() => {
-  const groups = new Map();
-
-  props.history.forEach(record => {
-    const dateGroup = getDateGroup(record.timestamp);
-
-    if (!groups.has(dateGroup.key)) {
-      groups.set(dateGroup.key, {
-        label: dateGroup.label,
-        records: [],
-        sortKey: dateGroup.sortKey
-      });
-    }
-
-    groups.get(dateGroup.key).records.push(record);
-  });
-
-  // 转换为数组并按时间排序
-  return Array.from(groups.values()).sort((a, b) => a.sortKey - b.sortKey);
-});
-
-// 根据时间戳获取日期分组
-const getDateGroup = (timestamp) => {
-  const date = new Date(timestamp);
+function getDateGroup(timestamp: string | number | undefined): DateGroup {
+  const date = new Date(timestamp ?? 0);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
   const recordDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.floor((today - recordDate) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor((today.getTime() - recordDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  // 今天
   if (recordDate.getTime() === today.getTime()) {
     return { key: 'today', label: '今天', sortKey: 0 };
   }
-
-  // 昨天
   if (recordDate.getTime() === yesterday.getTime()) {
     return { key: 'yesterday', label: '昨天', sortKey: 1 };
   }
-
-  // 本周（最近7天）
   if (diffDays < 7) {
     return { key: 'this-week', label: '本周', sortKey: 2 };
   }
-
-  // 本月
   if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
     return { key: 'this-month', label: '本月', sortKey: 3 };
   }
-
-  // 上个月
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
   if (date.getMonth() === lastMonth.getMonth() && date.getFullYear() === lastMonth.getFullYear()) {
     return { key: 'last-month', label: '上个月', sortKey: 4 };
   }
-
-  // 更早（按年月分组）
   const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   return {
     key: yearMonth,
     label: `${date.getFullYear()}年${date.getMonth() + 1}月`,
-    sortKey: 1000 - date.getTime() / 1000000000 // 越早的月份 sortKey 越大
+    sortKey: 1000 - date.getTime() / 1000000000, // 越早的月份 sortKey 越大
   };
-};
+}
 
-const hasStats = (record) => {
-  return (record.total_added || 0) > 0 ||
-         (record.total_modified || 0) > 0 ||
-         (record.total_deleted || 0) > 0;
-};
+const groupedHistory = computed<HistoryGroup[]>(() => {
+  const groups = new Map<string, HistoryGroup>();
 
-const displayFileNames = (record) => {
-  const fileNames = record.file_names || [];
-  return fileNames.slice(0, 3);
-};
+  props.history.forEach((record) => {
+    const dateGroup = getDateGroup(record.timestamp);
+    let g = groups.get(dateGroup.key);
+    if (!g) {
+      g = { label: dateGroup.label, records: [], sortKey: dateGroup.sortKey };
+      groups.set(dateGroup.key, g);
+    }
+    g.records.push(record);
+  });
 
-const moreFilesCount = (record) => {
-  const fileNames = record.file_names || [];
-  const fileCount = record.file_count || fileNames.length || 0;
+  return Array.from(groups.values()).sort((a, b) => a.sortKey - b.sortKey);
+});
+
+function hasStats(record: SyncRecord): boolean {
+  return (
+    (record.total_added ?? 0) > 0 ||
+    (record.total_modified ?? 0) > 0 ||
+    (record.total_deleted ?? 0) > 0
+  );
+}
+
+function displayFileNames(record: SyncRecord): string[] {
+  return (record.file_names ?? []).slice(0, 3);
+}
+
+function moreFilesCount(record: SyncRecord): number {
+  const fileNames = record.file_names ?? [];
+  const fileCount = record.file_count ?? fileNames.length;
   return Math.max(0, fileCount - 3);
-};
+}
 </script>
 
 <style scoped>
