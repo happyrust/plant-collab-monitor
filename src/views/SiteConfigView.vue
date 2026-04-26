@@ -803,7 +803,7 @@ const getServerIP = async () => {
       return data.ip;
     }
   } catch (error) {
-    console.error('获取服务器IP失败:', error);
+    console.error('获取服务器IP失败:', error?.message || error);
   }
   // 如果API失败，fallback到127.0.0.1
   return '127.0.0.1';
@@ -890,7 +890,7 @@ const loadAvailableDbnos = async () => {
     availableDbnos.value = Array.isArray(data) ? data : [];
     availableDbnos.value.sort((a, b) => a.db_num - b.db_num);
   } catch (error) {
-    console.error('获取数据库列表失败:', error);
+    console.error('获取数据库列表失败:', error?.message || error);
   } finally {
     loadingDbnos.value = false;
   }

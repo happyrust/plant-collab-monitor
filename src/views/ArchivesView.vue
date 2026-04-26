@@ -168,7 +168,7 @@ const loadCurrentSiteConfig = async () => {
       location_dbs: config.location_dbs || []
     };
   } catch (err) {
-    console.error('加载站点配置失败:', err);
+    console.error('加载站点配置失败:', err?.message || err);
     currentSiteConfig.value = {
       location: '',
       location_dbs: []
@@ -264,7 +264,7 @@ const loadData = async () => {
       applyFilter();
     }
   } catch (e) {
-    console.error("Failed to load archives", e);
+    console.error('加载归档失败:', e?.message || e);
   } finally {
     loading.value = false;
   }

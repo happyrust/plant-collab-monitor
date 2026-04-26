@@ -715,7 +715,26 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useDialog, useMessage } from 'naive-ui';
 import { remoteSyncApi, siteConfigApi } from '@/api';
+
+const dialog = useDialog();
+const message = useMessage();
+
+function confirmDialog(title, content, type = 'warning') {
+  return new Promise((resolve) => {
+    dialog[type]({
+      title,
+      content,
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: () => { resolve(true); },
+      onNegativeClick: () => { resolve(false); },
+      onClose: () => { resolve(false); },
+      onMaskClick: () => { resolve(false); },
+    });
+  });
+}
 
 const emit = defineEmits(['site-added']);
 // 后端 admin-gated remote-sync API 由 axios interceptor 自动注入 admin token
@@ -794,7 +813,7 @@ const loadCurrentSiteConfig = async () => {
       notes: config.notes || ''
     };
   } catch (err) {
-    console.error('加载当前站点配置失败:', err);
+    console.error('加载当前站点配置失败:', err?.message || err);
     // 使用默认值
     currentSiteConfig.value = {
       name: '当前站点',
@@ -825,7 +844,7 @@ const loadEnvs = async () => {
       }
     }
   } catch (e) {
-    console.error(e);
+    console.error('加载环境列表失败:', e?.message || e);
   } finally {
     loadingEnvs.value = false;
   }
@@ -907,7 +926,7 @@ const selectEnv = async (env) => {
     // 加载站点列表后，检查在线状态
     await checkAllSitesStatus();
   } catch (e) {
-    console.error(e);
+    console.error('加载站点列表失败:', e?.message || e);
   } finally {
     loadingSites.value = false;
   }
@@ -921,7 +940,7 @@ const getServerIP = async () => {
       return data.ip;
     }
   } catch (error) {
-    console.error('获取服务器IP失败:', error);
+    console.error('获取服务器IP失败:', error?.message || error);
   }
   // 如果API失败，fallback到127.0.0.1
   return '127.0.0.1';
@@ -1018,7 +1037,7 @@ const handleSubmitEnv = async () => {
   submitting.value = true;
   try {
     if (!envForm.value.location_dbs || !envForm.value.location_dbs.trim()) {
-      alert('请填写环境对应的 location_dbs（dbnums）。');
+      message.warning('请填写环境对应的 location_dbs（dbnums）。');
       submitting.value = false;
       return;
     }
@@ -1068,19 +1087,25 @@ const handleSubmitEnv = async () => {
       await selectEnv(newEnv);
     }
   } catch (e) {
-    alert('创建环境失败: ' + e.message);
+    message.error('创建环境失败: ' + (e?.message || String(e)));
   } finally {
     submitting.value = false;
   }
 };
 
 const handleDeleteEnv = async (id) => {
-  if (!confirm('确定要删除此环境吗？将会同时删除其下所有站点配置！')) return;
+  const ok = await confirmDialog(
+    '确认删除环境',
+    '将会同时删除其下所有站点配置，操作不可恢复。',
+    'warning',
+  );
+  if (!ok) return;
   try {
     await deleteRemoteEnv(id);
     await loadEnvs();
+    message.success('已删除环境');
   } catch (e) {
-    alert('删除失败: ' + e.message);
+    message.error('删除失败: ' + (e?.message || String(e)));
   }
 };
 
@@ -1138,7 +1163,7 @@ const handleImportSiteConfig = async () => {
     siteImportInput.value = '';
     importSiteError.value = null;
   } catch (error) {
-    console.error('导入站点配置失败:', error);
+    console.error('导入站点配置失败:', error?.message || error);
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
       importSiteError.value = '请求超时，站点可能未响应或无法访问';
     } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
@@ -1189,7 +1214,7 @@ const handleSubmitSite = async () => {
   submitting.value = true;
   try {
     if (!siteForm.value.dbnums || !siteForm.value.dbnums.trim()) {
-      alert('请填写站点负责的 dbnums。');
+      message.warning('请填写站点负责的 dbnums。');
       submitting.value = false;
       return;
     }
@@ -1205,31 +1230,35 @@ const handleSubmitSite = async () => {
     await selectEnv(selectedEnv.value); // Reload sites
     emit('site-added');
   } catch (e) {
-    alert('创建站点失败: ' + e.message);
+    message.error('创建站点失败: ' + (e?.message || String(e)));
   } finally {
     submitting.value = false;
   }
 };
 
 const handleDeleteSite = async (id) => {
-  // 查找要删除的站点
   const siteToDelete = sites.value.find(s => s.id === id);
-  
-  // 检查是否是主站点
+
   if (siteToDelete && isCurrentSite(siteToDelete)) {
-    alert('❌ 无法删除主站点！主站点是当前运行的站点，不能删除。');
+    message.error('无法删除主站点：主站点是当前运行的站点，不能删除。');
     return;
   }
-  
-  if (!confirm(`确定要删除站点 "${siteToDelete?.name || '未知站点'}" 吗？`)) return;
-  
+
+  const ok = await confirmDialog(
+    '确认删除站点',
+    `将删除站点 "${siteToDelete?.name || '未知站点'}"，操作不可恢复。`,
+    'warning',
+  );
+  if (!ok) return;
+
   try {
     await deleteRemoteSite(id);
     if (selectedEnv.value) {
       await selectEnv(selectedEnv.value);
     }
+    message.success('已删除站点');
   } catch (e) {
-    alert('删除失败: ' + e.message);
+    message.error('删除失败: ' + (e?.message || String(e)));
   }
 };
 
@@ -1274,11 +1303,9 @@ const handleViewSiteDetails = async (site) => {
     console.log('获取到站点信息:', data);
     siteDetails.value = data;
   } catch (error) {
-    console.error('获取站点详情失败:', error);
-    console.error('错误详情:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
+    console.error('获取站点详情失败:', error?.message || error, {
+      name: error?.name,
+      stack: error?.stack,
     });
     
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {

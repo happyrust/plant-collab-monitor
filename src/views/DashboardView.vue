@@ -174,7 +174,7 @@
 
 <script setup lang="ts">
 import { computed, ref, h, type Component } from 'vue';
-import { NButton, NSwitch } from 'naive-ui';
+import { NButton, NSwitch, NTooltip } from 'naive-ui';
 import { RouterLink } from 'vue-router';
 import SyncTrendChart from '@/components/charts/SyncTrendChart.vue';
 import SiteStatusChart from '@/components/charts/SiteStatusChart.vue';
@@ -215,6 +215,33 @@ const DashCard: Component = {
       purple: 'border-l-purple-400',
       slate: 'border-l-slate-300',
     };
+    const renderDot = () =>
+      h('span', {
+        class: [
+          'w-2 h-2 rounded-full inline-block cursor-help',
+          props.status === 'success' ? 'bg-emerald-400' :
+          props.status === 'loading' ? 'bg-amber-400 animate-pulse' :
+          props.status === 'error' ? 'bg-rose-400' :
+          'bg-slate-300',
+        ],
+        // 仅在 error 时由 NTooltip 接管；其余状态保留原生 title 以便快速识别
+        title: props.status !== 'error' ? props.status : undefined,
+      });
+
+    const renderStatusBadge = () => {
+      if (props.status === 'error' && props.error) {
+        return h(NTooltip, {
+          trigger: 'hover',
+          placement: 'top',
+          style: 'max-width: 320px; white-space: pre-wrap; word-break: break-word;',
+        }, {
+          trigger: () => renderDot(),
+          default: () => props.error,
+        });
+      }
+      return renderDot();
+    };
+
     return () =>
       h(
         'div',
@@ -231,16 +258,7 @@ const DashCard: Component = {
             { class: 'flex items-center justify-between mb-2' },
             [
               h('span', { class: 'text-xs font-semibold text-slate-500 uppercase tracking-wide' }, props.title),
-              h('span', {
-                class: [
-                  'w-2 h-2 rounded-full',
-                  props.status === 'success' ? 'bg-emerald-400' :
-                  props.status === 'loading' ? 'bg-amber-400 animate-pulse' :
-                  props.status === 'error' ? 'bg-rose-400' :
-                  'bg-slate-300',
-                ],
-                title: props.error || props.status,
-              }),
+              renderStatusBadge(),
             ],
           ),
           h('div', { class: 'min-h-[3rem]' }, slots.default ? slots.default() : []),

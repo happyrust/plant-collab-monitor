@@ -9,17 +9,28 @@
       <div class="flex items-center gap-3">
         <span
           v-if="sse.status.value === 'error'"
-          class="text-xs text-rose-600"
-          :title="`重连尝试 #${sse.reconnectAttempt.value}`"
-        >● 实时连接断开</span>
+          class="text-xs text-rose-600 inline-flex items-center gap-1"
+          title="实时通道断开，正在按指数退避重连"
+        >
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+          重连中
+          <span v-if="sse.reconnectAttempt.value > 0" class="text-rose-500/70">#{{ sse.reconnectAttempt.value }}</span>
+        </span>
         <span
           v-else-if="sse.status.value === 'open'"
-          class="text-xs text-emerald-600"
-        >● 实时</span>
+          class="text-xs text-emerald-600 inline-flex items-center gap-1"
+          title="SSE 实时通道已连接"
+        >
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          实时
+        </span>
         <span
           v-else-if="sse.status.value === 'connecting'"
-          class="text-xs text-amber-600"
-        >● 正在连接</span>
+          class="text-xs text-amber-600 inline-flex items-center gap-1"
+        >
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          正在连接
+        </span>
         <NButton :loading="loading" @click="refresh">刷新</NButton>
         <NButton type="error" ghost @click="logs = []">清空</NButton>
       </div>

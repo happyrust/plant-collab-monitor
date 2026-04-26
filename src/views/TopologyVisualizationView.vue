@@ -844,7 +844,7 @@ async function loadData() {
       console.warn('加载拓扑配置失败:', topologyResult.reason);
     }
   } catch (error) {
-    console.error('加载拓扑数据失败:', error);
+    console.error('加载拓扑数据失败:', error?.message || error);
     topology.value = { environments: [], sites: [], connections: [] };
   } finally {
     loading.value = false;

@@ -1,6 +1,7 @@
 <template>
   <NConfigProvider :theme="isDark ? darkTheme : null" :locale="zhCN" :date-locale="dateZhCN">
     <NMessageProvider>
+      <NDialogProvider>
       <div class="min-h-screen flex h-screen overflow-hidden bg-slate-50 text-slate-900">
         <!-- 侧栏 -->
         <aside
@@ -112,6 +113,7 @@
 
         <LoginDialog />
       </div>
+      </NDialogProvider>
     </NMessageProvider>
   </NConfigProvider>
 </template>
@@ -122,6 +124,7 @@ import { RouterLink, RouterView } from 'vue-router';
 import {
   NConfigProvider,
   NMessageProvider,
+  NDialogProvider,
   darkTheme,
   zhCN,
   dateZhCN,

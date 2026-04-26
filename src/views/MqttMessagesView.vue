@@ -323,7 +323,7 @@ async function loadMessages() {
     applyFiltersInPlace();
   } catch (error) {
     errorMsg.value = `加载 MQTT 消息失败: ${error?.message || error}`;
-    console.error('加载 MQTT 消息失败:', error);
+    console.error('加载 MQTT 消息失败:', error?.message || error);
   } finally {
     loading.value = false;
   }

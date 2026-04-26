@@ -82,7 +82,7 @@ async function loadSiteConfig() {
     isMaster.value = !!config.sync_live;
     siteUrl.value = window.location.origin;
   } catch (err) {
-    console.error('加载站点配置失败:', err);
+    console.error('加载站点配置失败:', err?.message || err);
     siteName.value = '加载失败';
   }
 }
