@@ -452,33 +452,108 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { mqttApi, syncApi } from '@/api';
 import { useSse } from '@/composables/useSse';
 import { useAdminAuthStore } from '@/stores/adminAuth';
 import { useAppStatusStore } from '@/stores/appStatus';
 
+type ApiObject = Record<string, unknown> & {
+  status?: string;
+  success?: boolean;
+  message?: string;
+  error?: string;
+  nodes?: unknown[];
+  messages?: unknown[];
+  logs?: unknown[];
+  summary?: MqttSummary;
+};
+type TimestampValue = string | number | Date | null | undefined;
+type ConfirmDialogType = 'warning' | 'error' | 'info' | 'success';
+
+interface MqttSummary {
+  total: number;
+  online: number;
+  offline: number;
+}
+
+interface MqttStatus {
+  is_subscription_running: boolean;
+  is_server_running: boolean;
+  mqtt_server_port: number | null;
+  location: string;
+  is_master_node: boolean;
+  node_role: string;
+  connection_status: MqttConnectionStatus | null;
+  master_info: MqttMasterInfo | null;
+}
+
+interface MqttConnectionStatus extends ApiObject {
+  connected?: boolean;
+  diagnostic_message?: string;
+  master_location?: string;
+  master_host?: string;
+  master_port?: number;
+  master_online?: boolean;
+}
+
+interface MqttMasterInfo extends ApiObject {
+  location?: string;
+  host?: string;
+  port?: number;
+}
+
+interface MqttNode extends ApiObject {
+  location: string;
+  node_name?: string;
+  mqtt_host?: string;
+  mqtt_port?: number;
+  messages_received?: number;
+  last_heartbeat?: TimestampValue;
+}
+
+interface MqttReceiver extends ApiObject {
+  location: string;
+  status?: string;
+  received_at?: string | null;
+}
+
+interface MqttMessage extends ApiObject {
+  message_id?: string | number;
+  sender_location?: string;
+  session_range?: string;
+  sent_at?: TimestampValue;
+  file_count?: number;
+  receivers: MqttReceiver[];
+}
+
+interface MqttLog extends ApiObject {
+  level?: string;
+}
+
 const adminAuth = useAdminAuthStore();
 const appStatus = useAppStatusStore();
-const nodes = ref([]);
-const messages = ref([]);
-const selectedNode = ref(null);
+const dialog = useDialog();
+const message = useMessage();
+const nodes = ref<MqttNode[]>([]);
+const messages = ref<MqttMessage[]>([]);
+const selectedNode = ref<MqttNode | null>(null);
 const loading = ref(false);
 const mqttLoading = ref(false);
 const roleLoading = ref(false);
 const removeLoading = ref(false);
 const showLogs = ref(false);
 const logsLoading = ref(false);
-const logs = ref([]);
+const logs = ref<MqttLog[]>([]);
 
-const summary = ref({
+const summary = ref<MqttSummary>({
   total: 0,
   online: 0,
   offline: 0
 });
 
-const mqttStatus = ref({
+const mqttStatus = ref<MqttStatus>({
   is_subscription_running: false,
   is_server_running: false,
   mqtt_server_port: null,
@@ -489,14 +564,20 @@ const mqttStatus = ref({
   master_info: null
 });
 
-const filteredMessages = computed(() => {
-  if (!selectedNode.value) return messages.value;
+const filteredMessages = computed<MqttMessage[]>(() => {
+  const selected = selectedNode.value;
+  if (!selected) return messages.value;
 
   return messages.value.filter(msg => {
-    if (msg.sender_location === selectedNode.value.location) return true;
-    return msg.receivers.some(r => r.location === selectedNode.value.location);
+    if (msg.sender_location === selected.location) return true;
+    const receivers = Array.isArray(msg.receivers) ? msg.receivers : [];
+    return receivers.some(r => r.location === selected.location);
   });
 });
+
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
 
 async function loadData() {
   loading.value = true;
@@ -508,17 +589,17 @@ async function loadData() {
     ]);
 
     if (statusResult.status === 'fulfilled') {
-      const statusData = statusResult.value || {};
+      const statusData = (statusResult.value || {}) as unknown as ApiObject;
       if (statusData.status === 'success') {
         mqttStatus.value = {
-          is_subscription_running: statusData.is_subscription_running || false,
-          is_server_running: statusData.is_server_running || false,
-          mqtt_server_port: statusData.mqtt_server_port || null,
-          location: statusData.location || '',
-          is_master_node: statusData.is_master_node || false,
-          node_role: statusData.node_role || 'client',
-          connection_status: statusData.connection_status || null,
-          master_info: statusData.master_info || null,
+          is_subscription_running: Boolean(statusData.is_subscription_running),
+          is_server_running: Boolean(statusData.is_server_running),
+          mqtt_server_port: typeof statusData.mqtt_server_port === 'number' ? statusData.mqtt_server_port : null,
+          location: typeof statusData.location === 'string' ? statusData.location : '',
+          is_master_node: Boolean(statusData.is_master_node),
+          node_role: typeof statusData.node_role === 'string' ? statusData.node_role : 'client',
+          connection_status: (statusData.connection_status as MqttConnectionStatus | null) || null,
+          master_info: (statusData.master_info as MqttMasterInfo | null) || null,
         };
       }
     } else {
@@ -526,25 +607,25 @@ async function loadData() {
     }
 
     if (nodesResult.status === 'fulfilled') {
-      const nodesData = nodesResult.value || {};
+      const nodesData = (nodesResult.value || {}) as unknown as ApiObject;
       if (nodesData.success || Array.isArray(nodesData.nodes)) {
-        nodes.value = nodesData.nodes || [];
-        summary.value = nodesData.summary || { total: nodes.value.length, online: 0, offline: 0 };
+        nodes.value = Array.isArray(nodesData.nodes) ? nodesData.nodes as MqttNode[] : [];
+        summary.value = (nodesData.summary as MqttSummary | undefined) || { total: nodes.value.length, online: 0, offline: 0 };
       }
     } else {
       console.warn('加载 MQTT 节点失败:', nodesResult.reason);
     }
 
     if (messagesResult.status === 'fulfilled') {
-      const messagesData = messagesResult.value || {};
+      const messagesData = (messagesResult.value || {}) as unknown as ApiObject;
       if (messagesData.success || Array.isArray(messagesData.messages)) {
-        messages.value = (messagesData.messages || []).slice(0, 100);
+        messages.value = Array.isArray(messagesData.messages) ? (messagesData.messages as MqttMessage[]).slice(0, 100) : [];
       }
     } else {
       console.warn('加载 MQTT 消息失败:', messagesResult.reason);
     }
   } catch (error) {
-    console.error('加载 MQTT 监控数据失败:', error?.message || error);
+    console.error('加载 MQTT 监控数据失败:', formatError(error));
   } finally {
     loading.value = false;
   }
@@ -553,16 +634,16 @@ async function loadData() {
 async function loadLogs() {
   logsLoading.value = true;
   try {
-    const data = await mqttApi.brokerLogs();
+    const data = await mqttApi.brokerLogs() as unknown as ApiObject;
 
     if (data?.status === 'success' && Array.isArray(data?.logs)) {
-      logs.value = data.logs;
+      logs.value = data.logs as MqttLog[];
     } else {
       // 后端未实现 / 返回非预期：保持空，由 UI 的 "暂无日志" 占位呈现，禁止伪造日志
       logs.value = [];
     }
   } catch (error) {
-    console.error('加载日志失败:', error?.message || error);
+    console.error('加载日志失败:', formatError(error));
     logs.value = [];
   } finally {
     logsLoading.value = false;
@@ -573,63 +654,83 @@ function clearLogs() {
   logs.value = [];
 }
 
-function getLogClass(log) {
+function getLogClass(log: MqttLog) {
   if (log.level === 'ERROR') return 'text-red-400';
   if (log.level === 'WARN') return 'text-yellow-400';
   if (log.level === 'INFO') return 'text-green-400';
   return 'text-slate-300';
 }
 
-function getLogLevelClass(level) {
+function getLogLevelClass(level?: string) {
   if (level === 'ERROR') return 'text-red-500 font-bold';
   if (level === 'WARN') return 'text-yellow-500 font-bold';
   if (level === 'INFO') return 'text-green-500 font-bold';
   return 'text-slate-400 font-bold';
 }
 
-function isOk(data) {
+function isOk(data: ApiObject | null | undefined) {
   return data && (data.status === 'success' || data.success === true);
 }
 
-function pickMessage(data, fallback) {
-  return (data && (data.message || data.error)) || fallback;
+function pickMessage(data: ApiObject | null | undefined, fallback: string) {
+  const picked = data && (data.message || data.error);
+  return typeof picked === 'string' ? picked : fallback;
+}
+
+function confirmDialog(title: string, content: string, type: ConfirmDialogType = 'warning') {
+  return new Promise<boolean>((resolve) => {
+    dialog[type]({
+      title,
+      content,
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: () => { resolve(true); },
+      onNegativeClick: () => { resolve(false); },
+      onClose: () => { resolve(false); },
+      onMaskClick: () => { resolve(false); },
+    });
+  });
 }
 
 async function startMqttSubscription() {
   mqttLoading.value = true;
   try {
-    const data = await mqttApi.subscriptionStart({});
+    const data = await mqttApi.subscriptionStart({}) as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, '订阅已启动'));
+      message.success(pickMessage(data, '订阅已启动'));
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '启动失败'));
+      message.error(pickMessage(data, '启动失败'));
     }
   } catch (error) {
-    console.error('启动 MQTT 订阅失败:', error?.message || error);
-    alert('❌ 启动失败: ' + (error?.message || error));
+    console.error('启动 MQTT 订阅失败:', formatError(error));
+    message.error('启动失败: ' + formatError(error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function stopMqttSubscription() {
-  if (!confirm('确定要停止 MQTT 订阅吗？停止后将不再接收远程消息。')) {
+  const confirmed = await confirmDialog(
+    '停止 MQTT 订阅',
+    '确定要停止 MQTT 订阅吗？停止后将不再接收远程消息。',
+  );
+  if (!confirmed) {
     return;
   }
 
   mqttLoading.value = true;
   try {
-    const data = await mqttApi.subscriptionStop();
+    const data = await mqttApi.subscriptionStop() as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, '订阅已停止'));
+      message.success(pickMessage(data, '订阅已停止'));
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '停止失败'));
+      message.error(pickMessage(data, '停止失败'));
     }
   } catch (error) {
-    console.error('停止 MQTT 订阅失败:', error?.message || error);
-    alert('❌ 停止失败: ' + (error?.message || error));
+    console.error('停止 MQTT 订阅失败:', formatError(error));
+    message.error('停止失败: ' + formatError(error));
   } finally {
     mqttLoading.value = false;
   }
@@ -637,128 +738,138 @@ async function stopMqttSubscription() {
 
 async function startMqttServer() {
   if (!mqttStatus.value.is_master_node) {
-    alert('❌ 只有主节点可以启动 MQTT Broker！请先设置为主节点。');
+    message.warning('只有主节点可以启动 MQTT Broker，请先设置为主节点。');
     return;
   }
 
   mqttLoading.value = true;
   try {
-    const data = await syncApi.mqttStart({ port: 1883 });
+    const data = await syncApi.mqttStart({ port: 1883 }) as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, 'Broker 已启动'));
+      message.success(pickMessage(data, 'Broker 已启动'));
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '启动失败'));
+      message.error(pickMessage(data, '启动失败'));
     }
   } catch (error) {
-    console.error('启动 MQTT Broker 失败:', error?.message || error);
-    alert('❌ 启动失败: ' + (error?.message || error));
+    console.error('启动 MQTT Broker 失败:', formatError(error));
+    message.error('启动失败: ' + formatError(error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function stopMqttServer() {
-  if (!confirm('确定要停止 MQTT Broker 吗？')) {
+  const confirmed = await confirmDialog('停止 MQTT Broker', '确定要停止 MQTT Broker 吗？');
+  if (!confirmed) {
     return;
   }
 
   mqttLoading.value = true;
   try {
-    const data = await syncApi.mqttStop();
+    const data = await syncApi.mqttStop() as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, 'Broker 已停止'));
+      message.success(pickMessage(data, 'Broker 已停止'));
       showLogs.value = false;
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '停止失败'));
+      message.error(pickMessage(data, '停止失败'));
     }
   } catch (error) {
-    console.error('停止 MQTT Broker 失败:', error?.message || error);
-    alert('❌ 停止失败: ' + (error?.message || error));
+    console.error('停止 MQTT Broker 失败:', formatError(error));
+    message.error('停止失败: ' + formatError(error));
   } finally {
     mqttLoading.value = false;
   }
 }
 
 async function setAsMasterNode() {
-  if (!confirm('确定要将当前节点设为主节点吗？主节点可以启动 MQTT Broker。')) {
+  const confirmed = await confirmDialog(
+    '设置为主节点',
+    '确定要将当前节点设为主节点吗？主节点可以启动 MQTT Broker。',
+  );
+  if (!confirmed) {
     return;
   }
 
   roleLoading.value = true;
   try {
-    const data = await mqttApi.setMaster({});
+    const data = await mqttApi.setMaster({}) as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, '已设为主节点'));
+      message.success(pickMessage(data, '已设为主节点'));
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '设置失败'));
+      message.error(pickMessage(data, '设置失败'));
     }
   } catch (error) {
-    console.error('设置主节点失败:', error?.message || error);
-    alert('❌ 设置失败: ' + (error?.message || error));
+    console.error('设置主节点失败:', formatError(error));
+    message.error('设置失败: ' + formatError(error));
   } finally {
     roleLoading.value = false;
   }
 }
 
 async function setAsClientNode() {
-  if (!confirm('确定要将当前节点设为从节点吗？从节点只能作为 MQTT 客户端订阅消息。')) {
+  const confirmed = await confirmDialog(
+    '设置为从节点',
+    '确定要将当前节点设为从节点吗？从节点只能作为 MQTT 客户端订阅消息。',
+  );
+  if (!confirmed) {
     return;
   }
 
   roleLoading.value = true;
   try {
-    const data = await mqttApi.setClient({});
+    const data = await mqttApi.setClient({}) as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, '已设为从节点'));
+      message.success(pickMessage(data, '已设为从节点'));
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '设置失败'));
+      message.error(pickMessage(data, '设置失败'));
     }
   } catch (error) {
-    console.error('设置从节点失败:', error?.message || error);
-    alert('❌ 设置失败: ' + (error?.message || error));
+    console.error('设置从节点失败:', formatError(error));
+    message.error('设置失败: ' + formatError(error));
   } finally {
     roleLoading.value = false;
   }
 }
 
-async function removeNode(node) {
+async function removeNode(node: MqttNode) {
   const confirmMsg = mqttStatus.value.is_master_node
     ? `确定要从监控列表中移除节点 "${node.node_name}" 吗？`
     : `确定要取消订阅主节点 "${node.node_name}" 吗？取消后将不再接收该主节点的消息。`;
 
-  if (!confirm(confirmMsg)) {
+  const confirmed = await confirmDialog('移除 MQTT 节点', confirmMsg);
+  if (!confirmed) {
     return;
   }
 
   removeLoading.value = true;
   try {
-    const data = await mqttApi.removeNode(node.location);
+    const data = await mqttApi.removeNode(node.location) as unknown as ApiObject;
     if (isOk(data)) {
-      alert('✅ ' + pickMessage(data, '已移除节点'));
+      message.success(pickMessage(data, '已移除节点'));
       if (selectedNode.value?.location === node.location) {
         selectedNode.value = null;
       }
       await loadData();
     } else {
-      alert('❌ ' + pickMessage(data, '移除失败'));
+      message.error(pickMessage(data, '移除失败'));
     }
   } catch (error) {
-    console.error('移除节点失败:', error?.message || error);
-    alert('❌ 移除失败: ' + (error?.message || error));
+    console.error('移除节点失败:', formatError(error));
+    message.error('移除失败: ' + formatError(error));
   } finally {
     removeLoading.value = false;
   }
 }
 
-function selectNode(node) {
+function selectNode(node: MqttNode) {
   selectedNode.value = node;
 }
 
-function getReceiverClass(receiver) {
+function getReceiverClass(receiver: MqttReceiver) {
   switch (receiver.status) {
     case 'completed':
       return 'bg-success/20 text-success border border-success/30';
@@ -772,7 +883,7 @@ function getReceiverClass(receiver) {
   }
 }
 
-function getReceiverIcon(receiver) {
+function getReceiverIcon(receiver: MqttReceiver) {
   switch (receiver.status) {
     case 'completed':
       return 'fas fa-check-circle';
@@ -787,13 +898,13 @@ function getReceiverIcon(receiver) {
   }
 }
 
-function formatTime(timestamp) {
+function formatTime(timestamp?: TimestampValue) {
   if (!timestamp) return '未知';
 
   try {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
 
     if (diff < 60 * 1000) {
       return '刚刚';
@@ -804,33 +915,33 @@ function formatTime(timestamp) {
     } else {
       return date.toLocaleDateString('zh-CN');
     }
-  } catch (e) {
-    return timestamp;
+  } catch {
+    return String(timestamp);
   }
 }
 
-function formatShortTime(timestamp) {
+function formatShortTime(timestamp?: TimestampValue) {
   if (!timestamp) return '';
 
   try {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) {
+  } catch {
     return '';
   }
 }
 
-let refreshInterval = null;
-let logsInterval = null;
+let refreshInterval: number | null = null;
+let logsInterval: number | null = null;
 
 // SSE 实时通道：订阅 plant-model-gen 后端 commit 5463e41 推送的
 // MqttSubscriptionStatusChanged 事件，触发后立即 reload，避免等下一次轮询
 // 字段口径与 GET /api/mqtt/subscription/status 完全一致，无需差量解析
 const sse = useSse('/api/sync/events/stream', {
   getToken: () => adminAuth.token,
-  onMessage(e) {
+  onMessage(e: MessageEvent) {
     try {
-      const event = JSON.parse(e.data);
+      const event = JSON.parse(e.data) as ApiObject;
       appStatus.trackEvent();
       if (event?.type === 'MqttSubscriptionStatusChanged') {
         loadData();
@@ -842,7 +953,7 @@ const sse = useSse('/api/sync/events/stream', {
 });
 
 const nowMs = ref(Date.now());
-let nowTicker = null;
+let nowTicker: number | null = null;
 const retrySeconds = computed(() => {
   const t = sse.nextRetryAt.value;
   if (!t) return 0;
@@ -857,8 +968,8 @@ watch(showLogs, (newValue) => {
 
 onMounted(() => {
   loadData();
-  refreshInterval = setInterval(loadData, 30000);
-  logsInterval = setInterval(() => {
+  refreshInterval = window.setInterval(loadData, 30000);
+  logsInterval = window.setInterval(() => {
     if (showLogs.value && mqttStatus.value.is_server_running) {
       loadLogs();
     }
@@ -868,13 +979,13 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (refreshInterval) {
-    clearInterval(refreshInterval);
+    window.clearInterval(refreshInterval);
   }
   if (logsInterval) {
-    clearInterval(logsInterval);
+    window.clearInterval(logsInterval);
   }
   if (nowTicker) {
-    clearInterval(nowTicker);
+    window.clearInterval(nowTicker);
     nowTicker = null;
   }
 });

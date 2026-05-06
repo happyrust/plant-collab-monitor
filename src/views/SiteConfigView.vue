@@ -575,47 +575,70 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { siteConfigApi, http } from '@/api';
+import type { SiteConfig } from '@/api/siteConfigApi';
+
+type ApiObject = Record<string, unknown> & {
+  status?: string;
+  message?: string;
+  config?: Partial<SiteConfig>;
+  errors?: unknown[];
+  actions?: unknown[];
+  hot_changed_keys?: unknown[];
+  ip?: string;
+};
+
+interface DatabaseInfo extends ApiObject {
+  db_num: number;
+}
 
 const dialog = useDialog();
 const loading = ref(false);
 const saving = ref(false);
 const reloading = ref(false);
 const validating = ref(false);
-const validationErrors = ref([]);
+const validationErrors = ref<string[]>([]);
 const showDbnoDropdown = ref(false);
 const loadingDbnos = ref(false);
-const availableDbnos = ref([]);
-const dbnoDropdownRef = ref(null);
+const availableDbnos = ref<DatabaseInfo[]>([]);
+const dbnoDropdownRef = ref<HTMLElement | null>(null);
 
 // P2-1: inline banner 替代 legacy alert()，与 SettingsView 风格一致
 const loadError = ref('');
 const actionError = ref('');
 const actionSuccess = ref('');
-let successTimer = null;
+let successTimer: number | null = null;
 
-function flashSuccess(msg) {
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function stringList(value: unknown[]) {
+  return value.map((item) => String(item)).join(', ');
+}
+
+function flashSuccess(msg: string) {
   actionSuccess.value = msg;
   actionError.value = '';
-  if (successTimer) clearTimeout(successTimer);
-  successTimer = setTimeout(() => {
+  if (successTimer) window.clearTimeout(successTimer);
+  successTimer = window.setTimeout(() => {
     actionSuccess.value = '';
     successTimer = null;
   }, 5000);
 }
 
-function setActionError(msg) {
+function setActionError(msg: string) {
   actionError.value = msg;
   actionSuccess.value = '';
   if (successTimer) {
-    clearTimeout(successTimer);
+    window.clearTimeout(successTimer);
     successTimer = null;
   }
 }
 
-const config = ref({
+const config = ref<SiteConfig>({
   // 项目设置
   project_path: '',
   included_projects: [],
@@ -658,28 +681,28 @@ const config = ref({
 // 将数组转为逗号分隔的字符串（用于输入框）
 const includedProjectsText = computed({
   get: () => config.value.included_projects.join(', '),
-  set: (val) => {
+  set: (val: string) => {
     config.value.included_projects = val.split(',').map(s => s.trim()).filter(s => s);
   }
 });
 
 const locationDbsText = computed({
   get: () => config.value.location_dbs.join(', '),
-  set: (val) => {
+  set: (val: string) => {
     config.value.location_dbs = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
   }
 });
 
 const syncPushDbTypesText = computed({
   get: () => config.value.sync_push_db_types.join(', '),
-  set: (val) => {
+  set: (val: string) => {
     config.value.sync_push_db_types = val.split(',').map(s => s.trim()).filter(s => s);
   }
 });
 
 // 检测是否是 Windows 路径
 // 兼容配置文件中的各种格式：D:/path, D:\path, D:\\path
-function isWindowsPath(path) {
+function isWindowsPath(path: string) {
   if (!path) return false;
   // Windows 绝对路径：以盘符开头（如 D:/ 或 D:\ 或 D:\\）
   // 注意：TOML 中的 D:\\path 会被解析为 D:\path（单个反斜杠）
@@ -696,7 +719,7 @@ function isWindowsPath(path) {
 
 // 将 Windows 路径格式转换为显示格式（\\ -> /）
 // 只在是 Windows 路径时才转换
-function normalizePathForDisplay(path) {
+function normalizePathForDisplay(path: string) {
   if (!path) return path;
   // 只在是 Windows 路径时才转换反斜杠
   if (isWindowsPath(path)) {
@@ -707,7 +730,7 @@ function normalizePathForDisplay(path) {
 
 // 将显示格式转换为 Windows 路径格式（/ -> \\）
 // 只在是 Windows 路径时才转换
-function normalizePathForSave(path) {
+function normalizePathForSave(path: string) {
   if (!path) return path;
   
   // 排除 URL 路径（http://, https://, ftp:// 等）
@@ -735,9 +758,12 @@ async function loadConfig() {
   loading.value = true;
   loadError.value = '';
   try {
-    const data = await siteConfigApi.get();
+    const data = await siteConfigApi.get() as unknown as ApiObject;
     if (data?.status === 'success' || data?.config) {
-      config.value = data.config;
+      config.value = {
+        ...config.value,
+        ...data.config,
+      };
       if (config.value?.project_path) {
         config.value.project_path = normalizePathForDisplay(config.value.project_path);
       }
@@ -745,8 +771,8 @@ async function loadConfig() {
       loadError.value = data?.message || '未返回有效配置';
     }
   } catch (error) {
-    console.error('加载配置失败:', error?.message || error);
-    loadError.value = error?.message || String(error);
+    console.error('加载配置失败:', formatError(error));
+    loadError.value = formatError(error);
   } finally {
     loading.value = false;
   }
@@ -763,22 +789,24 @@ async function validateConfig() {
       project_path: normalizePathForSave(config.value.project_path)
     };
 
-    const data = await siteConfigApi.validate(configToValidate);
+    const data = await siteConfigApi.validate(configToValidate) as unknown as ApiObject;
     if (data?.status === 'success') {
       flashSuccess(data.message || '校验通过');
     } else {
-      validationErrors.value = data?.errors || [data?.message || '校验失败'];
+      validationErrors.value = Array.isArray(data?.errors)
+        ? data.errors.map((item) => String(item))
+        : [data?.message || '校验失败'];
     }
   } catch (error) {
-    console.error('验证配置失败:', error?.message || error);
-    setActionError('验证失败：' + (error?.message || String(error)));
+    console.error('验证配置失败:', formatError(error));
+    setActionError('验证失败：' + formatError(error));
   } finally {
     validating.value = false;
   }
 }
 
 async function saveConfig() {
-  const confirmed = await new Promise((resolve) => {
+  const confirmed = await new Promise<boolean>((resolve) => {
     dialog.warning({
       title: '确认保存配置',
       content: '某些配置需要重启服务器后生效，是否继续？',
@@ -800,7 +828,7 @@ async function saveConfig() {
       project_path: normalizePathForSave(config.value.project_path)
     };
 
-    const data = await siteConfigApi.save(configToSave);
+    const data = await siteConfigApi.save(configToSave) as unknown as ApiObject;
     if (data?.status === 'success') {
       flashSuccess(data.message || '保存成功');
       config.value.project_path = normalizePathForDisplay(configToSave.project_path);
@@ -808,8 +836,8 @@ async function saveConfig() {
       setActionError(data?.message || '保存失败');
     }
   } catch (error) {
-    console.error('保存配置失败:', error?.message || error);
-    setActionError('保存失败：' + (error?.message || String(error)));
+    console.error('保存配置失败:', formatError(error));
+    setActionError('保存失败：' + formatError(error));
   } finally {
     saving.value = false;
   }
@@ -819,10 +847,10 @@ const reloadConfig = async () => {
   reloading.value = true;
   setActionError('');
   try {
-    const data = await siteConfigApi.reload();
-    const actions = data?.actions ?? [];
+    const data = await siteConfigApi.reload() as unknown as ApiObject;
+    const actions = Array.isArray(data?.actions) ? data.actions : [];
     if (actions.includes('hot_reloaded')) {
-      flashSuccess(`热加载成功：${(data.hot_changed_keys ?? []).join(', ')}，无需重启`);
+      flashSuccess(`热加载成功：${stringList(data.hot_changed_keys ?? [])}，无需重启`);
     } else if (actions.includes('no_change')) {
       flashSuccess(data.message || '配置无变更');
     } else if (actions.includes('graceful_shutdown_triggered')) {
@@ -835,8 +863,8 @@ const reloadConfig = async () => {
       flashSuccess(data.message || '重载完成');
     }
   } catch (error) {
-    console.error('重载配置失败:', error?.message || error);
-    setActionError('重载失败：' + (error?.message || String(error)));
+    console.error('重载配置失败:', formatError(error));
+    setActionError('重载失败：' + formatError(error));
   } finally {
     reloading.value = false;
   }
@@ -845,19 +873,19 @@ const reloadConfig = async () => {
 // 获取服务器IP地址（从后端API）
 const getServerIP = async () => {
   try {
-    const data = await siteConfigApi.serverIp();
+    const data = await siteConfigApi.serverIp() as unknown as ApiObject;
     if (data?.status === 'success' && data?.ip) {
-      return data.ip;
+      return String(data.ip);
     }
   } catch (error) {
-    console.error('获取服务器IP失败:', error?.message || error);
+    console.error('获取服务器IP失败:', formatError(error));
   }
   // 如果API失败，fallback到127.0.0.1
   return '127.0.0.1';
 };
 
 // 填充本机IP到指定字段
-const fillLocalIP = async (field) => {
+const fillLocalIP = async (field: 'ip' | 'mqtt_host' | 'server_release_ip' | 'file_server_host') => {
   const serverIP = await getServerIP();
   const port = window.location.port;
   const protocol = window.location.protocol;
@@ -894,7 +922,7 @@ const fillLocalIP = async (field) => {
           // 保留协议、端口和路径，只替换hostname
           url.hostname = serverIP;
           config.value.file_server_host = url.toString();
-        } catch (e) {
+        } catch {
           // 如果不是有效URL，尝试从字符串中提取信息
           const currentValue = config.value.file_server_host;
           // 尝试匹配 http://IP:PORT/path 或 IP:PORT/path 格式
@@ -933,23 +961,23 @@ const loadAvailableDbnos = async () => {
   try {
     // /api/databases 暂未纳入 site-config api 模块，临时用 http 直调；
     // 后续若纳入异地协同领域，应迁入 incrementalApi 或新建 databasesApi。
-    const data = await http.get('/api/databases');
-    availableDbnos.value = Array.isArray(data) ? data : [];
+    const data = await http.get('/api/databases') as unknown;
+    availableDbnos.value = Array.isArray(data) ? data as DatabaseInfo[] : [];
     availableDbnos.value.sort((a, b) => a.db_num - b.db_num);
   } catch (error) {
-    console.error('获取数据库列表失败:', error?.message || error);
+    console.error('获取数据库列表失败:', formatError(error));
   } finally {
     loadingDbnos.value = false;
   }
 };
 
 // 检查数据库编号是否已选中
-const isDbnoSelected = (dbNum) => {
+const isDbnoSelected = (dbNum: number) => {
   return config.value.location_dbs.includes(dbNum);
 };
 
 // 切换数据库编号选择状态
-const toggleDbno = (dbNum) => {
+const toggleDbno = (dbNum: number) => {
   const index = config.value.location_dbs.indexOf(dbNum);
   if (index > -1) {
     config.value.location_dbs.splice(index, 1);
@@ -960,13 +988,13 @@ const toggleDbno = (dbNum) => {
 };
 
 // 选择数据库编号（点击整行）
-const selectDbno = (dbNum) => {
+const selectDbno = (dbNum: number) => {
   toggleDbno(dbNum);
 };
 
 // 点击外部关闭下拉列表
-const handleClickOutside = (event) => {
-  if (dbnoDropdownRef.value && !dbnoDropdownRef.value.contains(event.target)) {
+const handleClickOutside = (event: MouseEvent) => {
+  if (dbnoDropdownRef.value && event.target instanceof Node && !dbnoDropdownRef.value.contains(event.target)) {
     showDbnoDropdown.value = false;
   }
 };
@@ -980,7 +1008,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
   if (successTimer) {
-    clearTimeout(successTimer);
+    window.clearTimeout(successTimer);
     successTimer = null;
   }
 });

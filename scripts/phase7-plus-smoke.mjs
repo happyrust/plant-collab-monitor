@@ -38,6 +38,22 @@ async function snapshot(page, name) {
   });
 }
 
+function isExpectedRequestFailure(entry) {
+  if (entry.method !== 'GET' || entry.failure !== 'net::ERR_ABORTED') {
+    return false;
+  }
+
+  const url = new URL(entry.url);
+
+  // Route changes and browser shutdown can abort in-flight dev assets,
+  // polling, and SSE streams without indicating an application failure.
+  return (
+    url.pathname.startsWith('/node_modules/.vite/deps/') ||
+    url.pathname === '/api/sync/metrics' ||
+    url.pathname === '/api/sync/events/stream'
+  );
+}
+
 async function tryCancelDeleteDialog(page) {
   await page.goto(`${baseUrl}/topology`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1200);
@@ -201,6 +217,10 @@ async function main() {
     deleteConfirm: await tryCancelDeleteDialog(page),
     siteConfigSaveConfirm: await tryCancelSiteConfigSave(page, writeRequests),
   };
+  const expectedRequestFailures = requestFailures.filter(isExpectedRequestFailure);
+  const unexpectedRequestFailures = requestFailures.filter(
+    (entry) => !isExpectedRequestFailure(entry),
+  );
 
   const result = {
     baseUrl,
@@ -212,6 +232,8 @@ async function main() {
     consoleErrors,
     pageErrors,
     requestFailures,
+    expectedRequestFailures,
+    unexpectedRequestFailures,
     httpErrors,
     writeRequests,
     dialogChecks,
@@ -231,6 +253,7 @@ async function main() {
     dialogChecks.siteConfigSaveConfirm.status === 'passed' &&
     dialogChecks.deleteConfirm.status !== 'failed' &&
     pageErrors.length === 0 &&
+    unexpectedRequestFailures.length === 0 &&
     httpErrors.length === 0;
 
   Object.assign(result, {

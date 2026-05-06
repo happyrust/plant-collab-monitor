@@ -713,15 +713,93 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { remoteSyncApi, siteConfigApi } from '@/api';
+
+type ApiObject = Record<string, unknown> & {
+  status?: string;
+  error?: string;
+  message?: string;
+  items?: unknown[];
+  config?: ApiObject;
+  ip?: string;
+  project_name?: string;
+  project_code?: string;
+  location?: string;
+  location_dbs?: unknown;
+  file_server_host?: string;
+  mqtt_host?: string;
+  mqtt_port?: number;
+  notes?: string;
+};
+type ConfirmDialogType = 'warning' | 'error' | 'info' | 'success';
+type SiteOnlineStatus = 'unknown' | 'checking' | 'online' | 'offline';
+
+interface RemoteEnv extends ApiObject {
+  id: string | number;
+  name?: string;
+  location?: string;
+}
+
+interface RemoteSite extends ApiObject {
+  id: string | number;
+  env_id?: string | number;
+  name?: string;
+  location?: string;
+  http_host?: string;
+  online_status?: SiteOnlineStatus;
+}
+
+interface EnvForm extends Record<string, unknown> {
+  name: string;
+  file_server_host: string;
+  mqtt_host: string;
+  mqtt_port: number;
+  location: string;
+  location_dbs: string;
+}
+
+interface SiteForm extends Record<string, unknown> {
+  name: string;
+  location: string;
+  http_host: string;
+  dbnums: string;
+  notes: string;
+}
+
+interface CurrentSiteConfig extends ApiObject {
+  name: string;
+  location: string;
+  http_host: string;
+  file_server_host: string;
+  mqtt_host: string;
+  mqtt_port: number;
+  location_dbs: string;
+  notes: string;
+}
+
+interface SiteDetails extends Record<string, unknown> {
+  status?: {
+    online?: boolean;
+    uptime?: string;
+    version?: string;
+  };
+}
 
 const dialog = useDialog();
 const message = useMessage();
 
-function confirmDialog(title, content, type = 'warning') {
-  return new Promise((resolve) => {
+function formatError(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown) {
+  return error instanceof Error ? error.name : '';
+}
+
+function confirmDialog(title: string, content: string, type: ConfirmDialogType = 'warning') {
+  return new Promise<boolean>((resolve) => {
     dialog[type]({
       title,
       content,
@@ -735,18 +813,21 @@ function confirmDialog(title, content, type = 'warning') {
   });
 }
 
-const emit = defineEmits(['site-added']);
+const emit = defineEmits<{
+  (e: 'site-added'): void;
+}>();
 // 后端 admin-gated remote-sync API 由 axios interceptor 自动注入 admin token
-const fetchRemoteEnvs = () => remoteSyncApi.listEnvs();
-const createRemoteEnv = (payload) => remoteSyncApi.createEnv(payload);
-const deleteRemoteEnv = (id) => remoteSyncApi.deleteEnv(id);
-const fetchRemoteSites = (envId) => remoteSyncApi.listSites(envId);
-const createRemoteSite = (envId, payload) => remoteSyncApi.createSite(envId, payload);
-const deleteRemoteSite = (id) => remoteSyncApi.deleteSite(id);
+const fetchRemoteEnvs = async () => remoteSyncApi.listEnvs() as unknown as Promise<ApiObject>;
+const createRemoteEnv = async (payload: EnvForm) => remoteSyncApi.createEnv(payload) as unknown as Promise<ApiObject>;
+const deleteRemoteEnv = (id: string | number) => remoteSyncApi.deleteEnv(id);
+const fetchRemoteSites = async (envId: string | number) => remoteSyncApi.listSites(envId) as unknown as Promise<ApiObject>;
+const createRemoteSite = (envId: string | number, payload: SiteForm | Record<string, unknown>) =>
+  remoteSyncApi.createSite(envId, payload) as unknown as Promise<ApiObject>;
+const deleteRemoteSite = (id: string | number) => remoteSyncApi.deleteSite(id);
 
-const envs = ref([]);
-const sites = ref([]);
-const selectedEnv = ref(null);
+const envs = ref<RemoteEnv[]>([]);
+const sites = ref<RemoteSite[]>([]);
+const selectedEnv = ref<RemoteEnv | null>(null);
 const loadingEnvs = ref(false);
 const loadingSites = ref(false);
 const submitting = ref(false);
@@ -758,22 +839,22 @@ const showAddSite = ref(false);
 const showSiteDetails = ref(false);
 
 // Forms
-const envForm = ref({ name: '', file_server_host: '', mqtt_host: '', mqtt_port: 1883, location: '', location_dbs: '' });
-const siteForm = ref({ name: '', location: '', http_host: '', dbnums: '', notes: '' });
+const envForm = ref<EnvForm>({ name: '', file_server_host: '', mqtt_host: '', mqtt_port: 1883, location: '', location_dbs: '' });
+const siteForm = ref<SiteForm>({ name: '', location: '', http_host: '', dbnums: '', notes: '' });
 const siteImportInput = ref('');
 const importingSiteConfig = ref(false);
-const importSiteError = ref(null);
+const importSiteError = ref<string | null>(null);
 
 // Site Details
-const selectedSite = ref(null);
-const siteDetails = ref(null);
+const selectedSite = ref<RemoteSite | null>(null);
+const siteDetails = ref<SiteDetails | null>(null);
 const loadingSiteDetails = ref(false);
-const siteDetailsError = ref(null);
+const siteDetailsError = ref<string | null>(null);
 
 // Current site config cache
-const currentSiteConfig = ref(null);
+const currentSiteConfig = ref<CurrentSiteConfig | null>(null);
 
-const normalizeDbList = (value) => {
+const normalizeDbList = (value: unknown) => {
   if (!value) return '';
   if (Array.isArray(value)) {
     return value.join(',');
@@ -788,13 +869,13 @@ const normalizeDbList = (value) => {
 const loadCurrentSiteConfig = async () => {
   try {
     // 获取站点配置
-    const configData = await siteConfigApi.get();
-    const config = configData?.config || configData || {};
+    const configData = await siteConfigApi.get() as unknown as ApiObject;
+    const config = (configData?.config || configData || {}) as ApiObject;
 
     // 尝试获取站点详细信息（包含 file_server_host 和 mqtt 配置）
-    let siteInfo = null;
+    let siteInfo: ApiObject | null = null;
     try {
-      siteInfo = await siteConfigApi.info();
+      siteInfo = await siteConfigApi.info() as unknown as ApiObject;
     } catch (e) {
       // 如果 /api/site/info 不存在或失败，使用默认值
       console.warn('无法获取站点详细信息:', e);
@@ -807,12 +888,12 @@ const loadCurrentSiteConfig = async () => {
       http_host: window.location.origin,
       file_server_host: siteInfo?.file_server_host || config.file_server_host || window.location.origin,
       mqtt_host: siteInfo?.mqtt_host || config.mqtt_host || '',
-      mqtt_port: siteInfo?.mqtt_port || config.mqtt_port || 1883,
+      mqtt_port: Number(siteInfo?.mqtt_port || config.mqtt_port || 1883),
       location_dbs: normalizeDbList(config.location_dbs) || normalizeDbList(siteInfo?.location_dbs),
       notes: config.notes || ''
     };
   } catch (err) {
-    console.error('加载当前站点配置失败:', err?.message || err);
+    console.error('加载当前站点配置失败:', formatError(err));
     // 使用默认值
     currentSiteConfig.value = {
       name: '当前站点',
@@ -831,10 +912,11 @@ const loadEnvs = async () => {
   loadingEnvs.value = true;
   try {
     const res = await fetchRemoteEnvs();
-    envs.value = res.items || [];
+    envs.value = Array.isArray(res.items) ? res.items as RemoteEnv[] : [];
     // If selected env still exists, reload its sites, else deselect
     if (selectedEnv.value) {
-      const stillExists = envs.value.find(e => e.id === selectedEnv.value.id);
+      const selectedId = selectedEnv.value.id;
+      const stillExists = envs.value.find(e => e.id === selectedId);
       if (stillExists) {
         selectEnv(stillExists);
       } else {
@@ -843,14 +925,14 @@ const loadEnvs = async () => {
       }
     }
   } catch (e) {
-    console.error('加载环境列表失败:', e?.message || e);
+    console.error('加载环境列表失败:', formatError(e));
   } finally {
     loadingEnvs.value = false;
   }
 };
 
 // 检查站点在线状态
-const checkSiteOnlineStatus = async (site) => {
+const checkSiteOnlineStatus = async (site: RemoteSite) => {
   if (!site.http_host) {
     site.online_status = 'unknown';
     return;
@@ -902,13 +984,13 @@ const checkAllSitesStatus = async () => {
   }
 };
 
-const selectEnv = async (env) => {
+const selectEnv = async (env: RemoteEnv) => {
   selectedEnv.value = env;
   loadingSites.value = true;
   sites.value = []; // clear prev sites
   try {
     const res = await fetchRemoteSites(env.id);
-    sites.value = (res.items || []).map(site => ({
+    sites.value = (Array.isArray(res.items) ? res.items as RemoteSite[] : []).map((site) => ({
       ...site,
       online_status: 'unknown' // 初始状态
     }));
@@ -925,7 +1007,7 @@ const selectEnv = async (env) => {
     // 加载站点列表后，检查在线状态
     await checkAllSitesStatus();
   } catch (e) {
-    console.error('加载站点列表失败:', e?.message || e);
+    console.error('加载站点列表失败:', formatError(e));
   } finally {
     loadingSites.value = false;
   }
@@ -934,12 +1016,12 @@ const selectEnv = async (env) => {
 // 获取服务器IP地址（从后端API）
 const getServerIP = async () => {
   try {
-    const data = await siteConfigApi.serverIp();
+    const data = await siteConfigApi.serverIp() as unknown as ApiObject;
     if (data?.status === 'success' && data?.ip) {
-      return data.ip;
+      return String(data.ip);
     }
   } catch (error) {
-    console.error('获取服务器IP失败:', error?.message || error);
+    console.error('获取服务器IP失败:', formatError(error));
   }
   // 如果API失败，fallback到127.0.0.1
   return '127.0.0.1';
@@ -1025,7 +1107,7 @@ const handleOpenAddEnv = async () => {
 };
 
 // 判断站点是否是当前站点（主站点）
-const isCurrentSite = (site) => {
+const isCurrentSite = (site?: RemoteSite | null) => {
   if (!site || !site.http_host) return false;
   const currentOrigin = window.location.origin;
   // 比较 http_host 和当前站点的 origin，支持带/不带尾部斜杠的情况
@@ -1052,7 +1134,7 @@ const handleSubmitEnv = async () => {
     // 创建环境
     const res = await createRemoteEnv(envForm.value);
     if (!res || (res.status && res.status !== 'success')) {
-      throw new Error(res?.error || '创建环境失败');
+      throw new Error(res?.error || res?.message || '创建环境失败');
     }
 
     showAddEnv.value = false;
@@ -1086,13 +1168,13 @@ const handleSubmitEnv = async () => {
       await selectEnv(newEnv);
     }
   } catch (e) {
-    message.error('创建环境失败: ' + (e?.message || String(e)));
+    message.error('创建环境失败: ' + formatError(e));
   } finally {
     submitting.value = false;
   }
 };
 
-const handleDeleteEnv = async (id) => {
+const handleDeleteEnv = async (id: string | number) => {
   const ok = await confirmDialog(
     '确认删除环境',
     '将会同时删除其下所有站点配置，操作不可恢复。',
@@ -1104,7 +1186,7 @@ const handleDeleteEnv = async (id) => {
     await loadEnvs();
     message.success('已删除环境');
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || String(e)));
+    message.error('删除失败: ' + formatError(e));
   }
 };
 
@@ -1146,8 +1228,8 @@ const handleImportSiteConfig = async () => {
       throw new Error(`无法连接到站点: HTTP ${configResponse.status}`);
     }
 
-    const configData = await configResponse.json();
-    const config = configData.config || {};
+    const configData = await configResponse.json() as ApiObject;
+    const config = (configData.config || {}) as ApiObject;
 
     // 自动填充表单
     siteForm.value = {
@@ -1162,13 +1244,15 @@ const handleImportSiteConfig = async () => {
     siteImportInput.value = '';
     importSiteError.value = null;
   } catch (error) {
-    console.error('导入站点配置失败:', error?.message || error);
-    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+    const msg = formatError(error);
+    const name = errorName(error);
+    console.error('导入站点配置失败:', msg);
+    if (name === 'AbortError' || name === 'TimeoutError') {
       importSiteError.value = '请求超时，站点可能未响应或无法访问';
-    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
       importSiteError.value = `无法连接到站点，请检查 IP:PORT 是否正确，或站点是否可访问`;
     } else {
-      importSiteError.value = error.message || '导入站点配置失败';
+      importSiteError.value = msg || '导入站点配置失败';
     }
   } finally {
     importingSiteConfig.value = false;
@@ -1220,7 +1304,7 @@ const handleSubmitSite = async () => {
 
     const res = await createRemoteSite(selectedEnv.value.id, siteForm.value);
     if (!res || (res.status && res.status !== 'success')) {
-      throw new Error(res?.error || '创建站点失败');
+      throw new Error(res?.error || res?.message || '创建站点失败');
     }
     showAddSite.value = false;
     siteForm.value = { name: '', location: '', http_host: '', dbnums: '', notes: '' };
@@ -1229,13 +1313,13 @@ const handleSubmitSite = async () => {
     await selectEnv(selectedEnv.value); // Reload sites
     emit('site-added');
   } catch (e) {
-    message.error('创建站点失败: ' + (e?.message || String(e)));
+    message.error('创建站点失败: ' + formatError(e));
   } finally {
     submitting.value = false;
   }
 };
 
-const handleDeleteSite = async (id) => {
+const handleDeleteSite = async (id: string | number) => {
   const siteToDelete = sites.value.find(s => s.id === id);
 
   if (siteToDelete && isCurrentSite(siteToDelete)) {
@@ -1257,11 +1341,11 @@ const handleDeleteSite = async (id) => {
     }
     message.success('已删除站点');
   } catch (e) {
-    message.error('删除失败: ' + (e?.message || String(e)));
+    message.error('删除失败: ' + formatError(e));
   }
 };
 
-const handleViewSiteDetails = async (site) => {
+const handleViewSiteDetails = async (site: RemoteSite) => {
   selectedSite.value = site;
   showSiteDetails.value = true;
   loadingSiteDetails.value = true;
@@ -1295,22 +1379,21 @@ const handleViewSiteDetails = async (site) => {
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const data = await response.json() as SiteDetails;
     siteDetails.value = data;
   } catch (error) {
-    console.error('获取站点详情失败:', error?.message || error, {
-      name: error?.name,
-      stack: error?.stack,
-    });
-    
-    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+    const msg = formatError(error);
+    const name = errorName(error);
+    console.error('获取站点详情失败:', msg);
+
+    if (name === 'AbortError' || name === 'TimeoutError') {
       siteDetailsError.value = `请求超时（5秒），站点 ${site.http_host} 可能未响应或响应过慢`;
-    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('CORS')) {
+    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
       siteDetailsError.value = `无法连接到站点: ${site.http_host}\n可能原因：\n1. 站点服务未运行\n2. CORS 跨域限制\n3. 网络连接问题\n\n请检查浏览器控制台获取详细错误信息`;
-    } else if (error.message.includes('404')) {
+    } else if (msg.includes('404')) {
       siteDetailsError.value = `站点 ${site.http_host} 未提供 /api/site/info 端点\n\n该站点可能运行的是旧版本，需要更新到支持此 API 的版本`;
     } else {
-      siteDetailsError.value = `${error.message || '获取站点信息失败'}\n\n站点地址: ${site.http_host}`;
+      siteDetailsError.value = `${msg || '获取站点信息失败'}\n\n站点地址: ${site.http_host}`;
     }
   } finally {
     loadingSiteDetails.value = false;

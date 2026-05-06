@@ -506,13 +506,90 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { mqttApi, remoteSyncApi } from '@/api';
 
-const nodes = ref([]);
-const messages = ref([]);
-const selectedNode = ref(null);
+type ApiObject = Record<string, unknown> & {
+  success?: boolean;
+  data?: ApiObject;
+  nodes?: unknown[];
+  messages?: unknown[];
+  environments?: unknown[];
+  sites?: unknown[];
+  connections?: unknown[];
+};
+type TimestampValue = string | number | Date | null | undefined;
+
+interface TopologyNode extends ApiObject {
+  location: string;
+  node_name?: string;
+  name?: string;
+  is_master_node?: boolean;
+  is_online?: boolean;
+  has_mqtt_subscription?: boolean;
+  broker_connected_sub?: boolean | null;
+  broker_connected_pub?: boolean | null;
+  subscribed_topics?: string[];
+  messages_received?: number;
+  last_heartbeat?: TimestampValue;
+}
+
+interface PositionedNode extends TopologyNode {
+  x: number;
+  y: number;
+}
+
+interface TopologyMessage extends ApiObject {
+  sender_location?: string;
+  sent_at?: TimestampValue;
+  file_count?: number;
+  receivers?: TopologyReceiver[];
+}
+
+interface TopologyReceiver extends ApiObject {
+  location: string;
+  status?: string;
+  received?: boolean;
+}
+
+interface TopologyEnv extends ApiObject {
+  id?: string;
+  location?: string;
+  name?: string;
+}
+
+interface TopologySite extends ApiObject {
+  id?: string;
+  env_id?: string;
+  location?: string;
+  name?: string;
+}
+
+interface TopologyData {
+  environments: TopologyEnv[];
+  sites: TopologySite[];
+  connections: ApiObject[];
+}
+
+interface TopologyConnection {
+  from: string;
+  to: string;
+  active: boolean;
+  subscribed: boolean;
+  online: boolean;
+  label: string;
+  status: 'subscribed' | 'online' | 'offline';
+}
+
+interface NodePosition {
+  x: number;
+  y: number;
+}
+
+const nodes = ref<TopologyNode[]>([]);
+const messages = ref<TopologyMessage[]>([]);
+const selectedNode = ref<PositionedNode | null>(null);
 const loading = ref(false);
 
 const viewBox = ref({
@@ -522,14 +599,14 @@ const viewBox = ref({
 });
 
 // SVG 引用（用于坐标换算）
-const svgCanvas = ref(null);
+const svgCanvas = ref<SVGSVGElement | null>(null);
 
 // 手动拖拽后的节点位置覆盖（以 location 为键）
-const nodePositions = ref({});
+const nodePositions = ref<Record<string, NodePosition>>({});
 
 // 正在拖拽的状态
 const isDragging = ref(false);
-const draggingNode = ref(null);
+const draggingNode = ref<PositionedNode | null>(null);
 const dragOffset = ref({ dx: 0, dy: 0 });
 
 function saveNodePositions() {
@@ -555,16 +632,17 @@ const isPanning = ref(false);
 const panStart = ref({ x: 0, y: 0 });
 
 // 计算节点位置（圆形布局）- 合并 MQTT 节点和拓扑配置节点
-const nodesWithPositions = computed(() => {
+const nodesWithPositions = computed<PositionedNode[]>(() => {
   const centerX = 400;
   const centerY = 300;
   const radius = 200;
 
   // 构建节点映射（以 location 为键）
-  const nodeMap = new Map();
+  const nodeMap = new Map<string, TopologyNode>();
 
   // 1. 从 MQTT 节点状态获取（优先级最高，包含实时状态）
   nodes.value.forEach(n => {
+    if (!n.location) return;
     nodeMap.set(n.location, {
       ...n,
       // 确保有默认值
@@ -577,8 +655,9 @@ const nodesWithPositions = computed(() => {
   // 2. 从拓扑配置补充（确保所有配置的节点都显示）
   // 添加环境节点（主节点）
   if (topology.value.environments) {
-    topology.value.environments.forEach(env => {
+    topology.value.environments.forEach((env) => {
       const loc = env.location || env.id;
+      if (!loc) return;
       if (!nodeMap.has(loc)) {
         nodeMap.set(loc, {
           location: loc,
@@ -594,6 +673,7 @@ const nodesWithPositions = computed(() => {
       } else {
         // 更新名称和主节点标记
         const existing = nodeMap.get(loc);
+        if (!existing) return;
         if (!existing.node_name || existing.node_name === loc) {
           existing.node_name = env.name;
         }
@@ -604,7 +684,7 @@ const nodesWithPositions = computed(() => {
 
   // 添加站点节点（从节点）
   if (topology.value.sites) {
-    topology.value.sites.forEach(site => {
+    topology.value.sites.forEach((site) => {
       const loc = site.location || site.id;
       if (!loc) return;  // 跳过无效位置
 
@@ -623,6 +703,7 @@ const nodesWithPositions = computed(() => {
       } else {
         // 更新名称
         const existing = nodeMap.get(loc);
+        if (!existing) return;
         if (!existing.node_name || existing.node_name === loc) {
           existing.node_name = site.name;
         }
@@ -637,7 +718,7 @@ const nodesWithPositions = computed(() => {
   const masterNodes = allNodes.filter(n => n.is_master_node);
   const clientNodes = allNodes.filter(n => !n.is_master_node);
 
-  const positionedNodes = [];
+  const positionedNodes: PositionedNode[] = [];
 
   // 主节点放在中心
   if (masterNodes.length === 1) {
@@ -670,7 +751,7 @@ const nodesWithPositions = computed(() => {
 
   // 应用手动拖拽后的坐标覆盖（localStorage 持久化）
   const overrides = nodePositions.value || {};
-  const withOverride = positionedNodes.map(n => {
+  const withOverride = positionedNodes.map((n) => {
     const o = overrides[n.location];
     return o ? { ...n, x: o.x, y: o.y } : n;
   });
@@ -679,29 +760,31 @@ const nodesWithPositions = computed(() => {
 });
 
 // 拓扑配置数据（环境和站点）
-const topology = ref({ environments: [], sites: [], connections: [] });
+const topology = ref<TopologyData>({ environments: [], sites: [], connections: [] });
 
 // 计算订阅连接 - 显示所有配置的拓扑连接，用颜色区分订阅状态
-const connections = computed(() => {
-  const conns = [];
-  const connKeys = new Set();
+const connections = computed<TopologyConnection[]>(() => {
+  const conns: TopologyConnection[] = [];
+  const connKeys = new Set<string>();
 
   // 构建节点位置到MQTT状态的映射
-  const nodeStatusMap = new Map();
-  nodes.value.forEach(n => {
+  const nodeStatusMap = new Map<string, TopologyNode>();
+  nodes.value.forEach((n) => {
+    if (!n.location) return;
     nodeStatusMap.set(n.location, n);
   });
 
   // 1. 首先从拓扑配置获取所有主从连接（这是配置的拓扑结构）
   // 环境节点作为主节点，站点作为从节点
   if (topology.value.environments && topology.value.sites) {
-    topology.value.environments.forEach(env => {
+    topology.value.environments.forEach((env) => {
       const envLocation = env.location || env.id;
+      if (!envLocation) return;
 
       // 找到属于这个环境的所有站点
       const envSites = topology.value.sites.filter(site => site.env_id === env.id);
 
-      envSites.forEach(site => {
+      envSites.forEach((site) => {
         const siteLocation = site.location || site.id;
         if (!siteLocation) return;
 
@@ -712,9 +795,10 @@ const connections = computed(() => {
 
           // 检查从节点的MQTT订阅状态
           const siteNode = nodeStatusMap.get(siteLocation);
-          const isSubscribed = siteNode && siteNode.is_online &&
-            (siteNode.broker_connected_sub === true || siteNode.has_mqtt_subscription);
-          const isOnline = siteNode && siteNode.is_online;
+          const isOnline = Boolean(siteNode?.is_online);
+          const isSubscribed = Boolean(
+            isOnline && (siteNode?.broker_connected_sub === true || siteNode?.has_mqtt_subscription),
+          );
 
           conns.push({
             from: envLocation,
@@ -744,26 +828,29 @@ const connections = computed(() => {
         connKeys.add(key);
 
         const clientMqttNode = nodeStatusMap.get(client.location);
-        const isSubscribed = clientMqttNode && clientMqttNode.is_online &&
-          (clientMqttNode.broker_connected_sub === true || clientMqttNode.has_mqtt_subscription);
+        const isOnline = Boolean(client.is_online);
+        const isSubscribed = Boolean(
+          clientMqttNode?.is_online &&
+            (clientMqttNode.broker_connected_sub === true || clientMqttNode.has_mqtt_subscription),
+        );
 
         conns.push({
           from: master.location,
           to: client.location,
           active: false,
           subscribed: isSubscribed,
-          online: client.is_online,
-          label: isSubscribed ? '✓' : (client.is_online ? '○' : '✗'),
-          status: isSubscribed ? 'subscribed' : (client.is_online ? 'online' : 'offline')
+          online: isOnline,
+          label: isSubscribed ? '✓' : (isOnline ? '○' : '✗'),
+          status: isSubscribed ? 'subscribed' : (isOnline ? 'online' : 'offline')
         });
       }
     });
   });
 
   // 3. 从消息记录更新活跃状态
-  messages.value.forEach(msg => {
+  messages.value.forEach((msg) => {
     if (!msg.receivers) return;
-    msg.receivers.forEach(receiver => {
+    msg.receivers.forEach((receiver) => {
       const key = `${msg.sender_location}-${receiver.location}`;
       const conn = conns.find(c => `${c.from}-${c.to}` === key);
       if (conn) {
@@ -778,16 +865,16 @@ const connections = computed(() => {
   return conns;
 });
 
-function getNodePosition(location) {
+function getNodePosition(location: string) {
   const node = nodesWithPositions.value.find(n => n.location === location);
   return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
 }
 
-function getRecentMessages(location) {
+function getRecentMessages(location: string) {
   return messages.value
     .filter(msg => {
       return msg.sender_location === location ||
-             msg.receivers.some(r => r.location === location);
+             (msg.receivers || []).some(r => r.location === location);
     })
     .slice(0, 5);
 }
@@ -804,11 +891,11 @@ async function loadData() {
 
     // 加载节点状态
     if (nodesResult.status === 'fulfilled') {
-      const nodesData = nodesResult.value || {};
+      const nodesData = (nodesResult.value || {}) as unknown as ApiObject;
       if (nodesData.success || Array.isArray(nodesData.nodes)) {
-        nodes.value = nodesData.nodes || [];
+        nodes.value = Array.isArray(nodesData.nodes) ? nodesData.nodes as TopologyNode[] : [];
       } else if (Array.isArray(nodesData)) {
-        nodes.value = nodesData;
+        nodes.value = nodesData as TopologyNode[];
       }
     } else {
       console.warn('加载 MQTT 节点失败:', nodesResult.reason);
@@ -816,11 +903,11 @@ async function loadData() {
 
     // 加载消息投递状态
     if (messagesResult.status === 'fulfilled') {
-      const messagesData = messagesResult.value || {};
+      const messagesData = (messagesResult.value || {}) as unknown as ApiObject;
       if (messagesData.success || Array.isArray(messagesData.messages)) {
-        messages.value = (messagesData.messages || []).slice(0, 50);
+        messages.value = Array.isArray(messagesData.messages) ? (messagesData.messages as TopologyMessage[]).slice(0, 50) : [];
       } else if (Array.isArray(messagesData)) {
-        messages.value = messagesData.slice(0, 50);
+        messages.value = (messagesData as TopologyMessage[]).slice(0, 50);
       }
     } else {
       console.warn('加载消息记录失败:', messagesResult.reason);
@@ -828,13 +915,13 @@ async function loadData() {
 
     // 加载拓扑配置
     if (topologyResult.status === 'fulfilled') {
-      const topologyData = topologyResult.value || {};
-      const data = topologyData.data || topologyData;
+      const topologyData = (topologyResult.value || {}) as unknown as ApiObject;
+      const data = (topologyData.data || topologyData) as ApiObject;
       if (data && (data.environments || data.sites || data.connections)) {
         topology.value = {
-          environments: data.environments || [],
-          sites: data.sites || [],
-          connections: data.connections || [],
+          environments: Array.isArray(data.environments) ? data.environments as TopologyEnv[] : [],
+          sites: Array.isArray(data.sites) ? data.sites as TopologySite[] : [],
+          connections: Array.isArray(data.connections) ? data.connections as ApiObject[] : [],
         };
       } else {
         topology.value = { environments: [], sites: [], connections: [] };
@@ -844,24 +931,24 @@ async function loadData() {
       console.warn('加载拓扑配置失败:', topologyResult.reason);
     }
   } catch (error) {
-    console.error('加载拓扑数据失败:', error?.message || error);
+    console.error('加载拓扑数据失败:', error instanceof Error ? error.message : String(error));
     topology.value = { environments: [], sites: [], connections: [] };
   } finally {
     loading.value = false;
   }
 }
 
-function selectNode(node) {
+function selectNode(node: PositionedNode) {
   selectedNode.value = node;
 }
 
 // Pan & Zoom controls
-function startPan(event) {
+function startPan(event: MouseEvent) {
   isPanning.value = true;
   panStart.value = { x: event.clientX - viewBox.value.x, y: event.clientY - viewBox.value.y };
 }
 
-function pan(event) {
+function pan(event: MouseEvent) {
   if (!isPanning.value) return;
   viewBox.value.x = event.clientX - panStart.value.x;
   viewBox.value.y = event.clientY - panStart.value.y;
@@ -872,7 +959,7 @@ function endPan() {
 }
 
 // 屏幕坐标转 SVG 内部坐标（考虑当前 pan/scale）
-function toLocalCoords(event) {
+function toLocalCoords(event: MouseEvent) {
   const svg = svgCanvas.value;
   if (!svg) return { x: 0, y: 0 };
   const rect = svg.getBoundingClientRect();
@@ -881,7 +968,7 @@ function toLocalCoords(event) {
   return { x, y };
 }
 
-function startNodeDrag(event, node) {
+function startNodeDrag(event: MouseEvent, node: PositionedNode) {
   isDragging.value = true;
   draggingNode.value = node;
   const p = toLocalCoords(event);
@@ -889,7 +976,7 @@ function startNodeDrag(event, node) {
 }
 
 // 顶层 mousemove handler：拖拽节点时更新坐标，否则回退到画布平移
-function onMouseMove(event) {
+function onMouseMove(event: MouseEvent) {
   if (isDragging.value && draggingNode.value) {
     const p = toLocalCoords(event);
     const nx = p.x + dragOffset.value.dx;
@@ -912,7 +999,7 @@ function endPanAndDrag() {
   endPan();
 }
 
-function zoom(event) {
+function zoom(event: WheelEvent) {
   event.preventDefault();
   const delta = event.deltaY > 0 ? 0.9 : 1.1;
   viewBox.value.scale = Math.max(0.5, Math.min(2, viewBox.value.scale * delta));
@@ -930,13 +1017,13 @@ function resetView() {
   viewBox.value = { x: 0, y: 0, scale: 1 };
 }
 
-function formatTime(timestamp) {
+function formatTime(timestamp?: TimestampValue) {
   if (!timestamp) return '未知';
 
   try {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = now - date;
+    const diff = now.getTime() - date.getTime();
 
     if (diff < 60 * 1000) {
       return '刚刚';
@@ -945,33 +1032,33 @@ function formatTime(timestamp) {
     } else {
       return date.toLocaleTimeString('zh-CN');
     }
-  } catch (e) {
-    return timestamp;
+  } catch {
+    return String(timestamp);
   }
 }
 
-function formatShortTime(timestamp) {
+function formatShortTime(timestamp?: TimestampValue) {
   if (!timestamp) return '';
 
   try {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) {
+  } catch {
     return '';
   }
 }
 
-let refreshInterval = null;
+let refreshInterval: number | null = null;
 
 onMounted(() => {
   loadNodePositions();
   loadData();
-  refreshInterval = setInterval(loadData, 30000);
+  refreshInterval = window.setInterval(loadData, 30000);
 });
 
 onUnmounted(() => {
   if (refreshInterval) {
-    clearInterval(refreshInterval);
+    window.clearInterval(refreshInterval);
   }
 });
 </script>

@@ -85,6 +85,11 @@
   "pageErrors": [],
   "requestFailures": [
     {
+      "url": "http://127.0.0.1:3200/node_modules/.vite/deps/naive-ui.js?v=95b33f46",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
       "url": "http://127.0.0.1:3200/api/sync/metrics",
       "method": "GET",
       "failure": "net::ERR_ABORTED"
@@ -100,6 +105,29 @@
       "failure": "net::ERR_ABORTED"
     }
   ],
+  "expectedRequestFailures": [
+    {
+      "url": "http://127.0.0.1:3200/node_modules/.vite/deps/naive-ui.js?v=95b33f46",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/metrics",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://127.0.0.1:3200/api/sync/events/stream",
+      "method": "GET",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "unexpectedRequestFailures": [],
   "httpErrors": [],
   "writeRequests": [],
   "dialogChecks": {
@@ -114,7 +142,7 @@
     }
   },
   "screenshots": "docs/e2e-smoke/screenshots/2026-04-26-phase7-plus",
-  "generatedAt": "2026-04-26T17:47:32.361Z",
+  "generatedAt": "2026-04-26T17:54:34.991Z",
   "passed": true,
   "sseAuthorized": true,
   "routeNavigationOk": true
