@@ -21,7 +21,7 @@ cargo run --bin web_server --features web_server     # 监听 :3100
 
 # 前端
 npm install
-npm run dev          # → http://localhost:3200
+npm run dev          # → http://localhost:4000
 npm run type-check   # vue-tsc -b · 必须 0 errors
 npm run build        # 产物 dist/ · base 默认 /monitor/
 ```

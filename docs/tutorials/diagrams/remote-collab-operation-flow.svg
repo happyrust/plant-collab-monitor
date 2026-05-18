@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 860" width="1400" height="860">
+<!-- Chinese labels are stored as XML numeric entities to avoid editor encoding loss. Export PNG with Chrome/Playwright, not rsvg-convert, because this environment lacks CJK fonts for rsvg. -->
+<style>text{font-family:Arial,sans-serif;fill:#111827}.title{font-size:30px;font-weight:700}.subtitle{font-size:15px;fill:#6b7280}.stage{fill:#f8fafc;stroke:#d1d5db;stroke-width:1.5;stroke-dasharray:8 6;rx:18;ry:18}.step{fill:#fff;stroke:#d1d5db;stroke-width:1.5;rx:14;ry:14}.blue{fill:#eff6ff;stroke:#bfdbfe}.green{fill:#f0fdf4;stroke:#bbf7d0}.purple{fill:#faf5ff;stroke:#e9d5ff}.orange{fill:#fff7ed;stroke:#fed7aa}.red{fill:#fef2f2;stroke:#fecaca}.decision{fill:#fff7ed;stroke:#fdba74;stroke-width:1.8}.step-title{font-size:17px;font-weight:700}.step-sub{font-size:13px;fill:#6b7280}.stage-title{font-size:15px;font-weight:700;fill:#374151}.label{font-size:13px;fill:#374151}.legend{font-size:13px;fill:#6b7280}.arrow{stroke:#2563eb;stroke-width:2.4;fill:none;marker-end:url(#arrow-blue)}.arrow-ok{stroke:#16a34a;stroke-width:2.4;fill:none;marker-end:url(#arrow-green)}.arrow-warn{stroke:#ea580c;stroke-width:2.4;fill:none;marker-end:url(#arrow-orange);stroke-dasharray:7 5}.arrow-loop{stroke:#9333ea;stroke-width:2.4;fill:none;marker-end:url(#arrow-purple);stroke-dasharray:7 5}</style>
+<defs><marker id="arrow-blue" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="#2563eb"/></marker><marker id="arrow-green" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="#16a34a"/></marker><marker id="arrow-orange" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="#ea580c"/></marker><marker id="arrow-purple" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,12 4,0 8" fill="#9333ea"/></marker></defs>
+<rect width="1400" height="860" fill="#ffffff"/>
+<text x="60" y="55" class="title">&#x5F02;&#x5730;&#x534F;&#x540C;&#x76D1;&#x63A7;&#x53F0;&#x64CD;&#x4F5C;&#x6D41;&#x7A0B;</text>
+<text x="60" y="84" class="subtitle">&#x542F;&#x52A8;&#x670D;&#x52A1;&#x3001;&#x767B;&#x5F55;&#x3001;&#x914D;&#x7F6E;&#x7AD9;&#x70B9;&#x3001;&#x5EFA;&#x7ACB;&#x62D3;&#x6251;&#x3001;&#x76D1;&#x63A7;&#x20;&#x4D;&#x51;&#x54;&#x54;&#x20;&#x548C;&#x6392;&#x969C;&#x7684;&#x63A8;&#x8350;&#x987A;&#x5E8F;</text>
+<rect x="50" y="120" width="1300" height="118" class="stage"/>
+<text x="75" y="147" class="stage-title">&#x51C6;&#x5907;&#x9636;&#x6BB5;</text>
+<rect x="100" y="166" width="210" height="48" class="step blue"/>
+<text x="205" y="191" text-anchor="middle" class="step-title">&#x542F;&#x52A8;&#x540E;&#x7AEF;</text>
+<text x="205" y="211" text-anchor="middle" class="step-sub">plant-model-gen :3100</text>
+<rect x="405" y="166" width="210" height="48" class="step blue"/>
+<text x="510" y="191" text-anchor="middle" class="step-title">&#x542F;&#x52A8;&#x524D;&#x7AEF;</text>
+<text x="510" y="211" text-anchor="middle" class="step-sub">npm run dev :4000</text>
+<rect x="710" y="166" width="210" height="48" class="step blue"/>
+<text x="815" y="191" text-anchor="middle" class="step-title">&#x6253;&#x5F00;&#x9996;&#x9875;</text>
+<text x="815" y="211" text-anchor="middle" class="step-sub">&#x67E5;&#x770B;&#x5168;&#x5C40;&#x6982;&#x89C8;</text>
+<rect x="1015" y="166" width="210" height="48" class="step orange"/>
+<text x="1120" y="191" text-anchor="middle" class="step-title">&#x7BA1;&#x7406;&#x5458;&#x767B;&#x5F55;</text>
+<text x="1120" y="211" text-anchor="middle" class="step-sub">&#x8FDB;&#x5165;&#x5E26;&#x9501;&#x9875;&#x9762;</text>
+<rect x="50" y="285" width="1300" height="185" class="stage"/>
+<text x="75" y="312" class="stage-title">&#x914D;&#x7F6E;&#x9636;&#x6BB5;</text>
+<rect x="100" y="345" width="220" height="64" class="step green"/>
+<text x="210" y="370" text-anchor="middle" class="step-title">&#x68C0;&#x67E5;&#x7AD9;&#x70B9;&#x914D;&#x7F6E;</text>
+<text x="210" y="390" text-anchor="middle" class="step-sub">&#x4F4D;&#x7F6E;&#x3001;&#x6570;&#x636E;&#x5E93;&#x3001;&#x4D;&#x51;&#x54;&#x54;&#x3001;&#x6587;&#x4EF6;&#x670D;&#x52A1;</text>
+<path d="M420 321 L500 377 L420 433 L340 377 Z" class="decision"/>
+<text x="420" y="374" text-anchor="middle" class="step-title">&#x914D;&#x7F6E;&#x901A;&#x8FC7;&#xFF1F;</text>
+<text x="420" y="394" text-anchor="middle" class="step-sub">&#x9A8C;&#x8BC1;&#x914D;&#x7F6E;</text>
+<rect x="570" y="345" width="220" height="64" class="step green"/>
+<text x="680" y="370" text-anchor="middle" class="step-title">&#x4FDD;&#x5B58;&#x5E76;&#x91CD;&#x8F7D;</text>
+<text x="680" y="390" text-anchor="middle" class="step-sub">&#x4F18;&#x5148;&#x4F7F;&#x7528;&#x70ED;&#x52A0;&#x8F7D;</text>
+<rect x="880" y="345" width="220" height="64" class="step green"/>
+<text x="990" y="370" text-anchor="middle" class="step-title">&#x521B;&#x5EFA;&#x534F;&#x540C;&#x73AF;&#x5883;</text>
+<text x="990" y="390" text-anchor="middle" class="step-sub">&#x4F8B;&#x5982;&#x534E;&#x4E1C;&#x534F;&#x540C;&#x73AF;&#x5883;</text>
+<rect x="1145" y="345" width="155" height="64" class="step green"/>
+<text x="1222.5" y="370" text-anchor="middle" class="step-title">&#x6DFB;&#x52A0;&#x7AD9;&#x70B9;</text>
+<text x="1222.5" y="390" text-anchor="middle" class="step-sub">HTTP &#x5730;&#x5740;</text>
+<rect x="50" y="520" width="1300" height="175" class="stage"/>
+<text x="75" y="547" class="stage-title">&#x8FD0;&#x884C;&#x89C2;&#x5BDF;&#x9636;&#x6BB5;</text>
+<rect x="100" y="585" width="220" height="64" class="step purple"/>
+<text x="210" y="610" text-anchor="middle" class="step-title">&#x5237;&#x65B0;&#x7AD9;&#x70B9;&#x72B6;&#x6001;</text>
+<text x="210" y="630" text-anchor="middle" class="step-sub">&#x786E;&#x8BA4;&#x8FDC;&#x7AEF;&#x20;&#x48;&#x54;&#x54;&#x50;&#x20;&#x53EF;&#x8FBE;</text>
+<rect x="410" y="585" width="220" height="64" class="step purple"/>
+<text x="520" y="610" text-anchor="middle" class="step-title">&#x67E5;&#x770B;&#x62D3;&#x6251;&#x56FE;</text>
+<text x="520" y="630" text-anchor="middle" class="step-sub">&#x5728;&#x7EBF;&#x3001;&#x79BB;&#x7EBF;&#x3001;&#x8BA2;&#x9605;&#x94FE;&#x8DEF;</text>
+<rect x="720" y="585" width="220" height="64" class="step purple"/>
+<text x="830" y="610" text-anchor="middle" class="step-title">&#x76D1;&#x63A7;&#x20;&#x4D;&#x51;&#x54;&#x54;&#x20;&#x8282;&#x70B9;</text>
+<text x="830" y="630" text-anchor="middle" class="step-sub">&#x5FC3;&#x8DF3;&#x3001;&#x42;&#x72;&#x6F;&#x6B;&#x65;&#x72;&#x3001;&#x8BA2;&#x9605;</text>
+<rect x="1030" y="585" width="220" height="64" class="step purple"/>
+<text x="1140" y="610" text-anchor="middle" class="step-title">&#x67E5;&#x770B;&#x6D88;&#x606F;&#x6295;&#x9012;</text>
+<text x="1140" y="630" text-anchor="middle" class="step-sub">&#x53D1;&#x9001;&#x65B9;&#x3001;&#x63A5;&#x6536;&#x65B9;&#x3001;&#x6587;&#x4EF6;&#x6570;</text>
+<rect x="50" y="735" width="1300" height="84" class="stage"/>
+<text x="75" y="762" class="stage-title">&#x5F02;&#x5E38;&#x5904;&#x7406;&#x9636;&#x6BB5;</text>
+<rect x="205" y="772" width="220" height="36" class="step red"/>
+<text x="315" y="797" text-anchor="middle" class="step-title">&#x540E;&#x7AEF;&#x20;&#x2F;&#x20;&#x767B;&#x5F55;&#x5F02;&#x5E38;</text>
+<rect x="525" y="772" width="220" height="36" class="step red"/>
+<text x="635" y="797" text-anchor="middle" class="step-title">&#x7AD9;&#x70B9;&#x79BB;&#x7EBF;</text>
+<rect x="845" y="772" width="220" height="36" class="step red"/>
+<text x="955" y="797" text-anchor="middle" class="step-title">&#x4D;&#x51;&#x54;&#x54;&#x20;&#x65E0;&#x6D88;&#x606F;</text>
+<path d="M310 190 L405 190" class="arrow"/>
+<path d="M615 190 L710 190" class="arrow"/>
+<path d="M920 190 L1015 190" class="arrow"/>
+<path d="M1120 214 L1120 260 L210 260 L210 345" class="arrow"/>
+<path d="M320 377 L340 377" class="arrow"/>
+<path d="M790 377 L880 377" class="arrow"/>
+<path d="M1100 377 L1145 377" class="arrow"/>
+<path d="M1222 409 L1222 500 L210 500 L210 585" class="arrow"/>
+<path d="M320 617 L410 617" class="arrow"/>
+<path d="M630 617 L720 617" class="arrow"/>
+<path d="M940 617 L1030 617" class="arrow"/>
+<path d="M500 377 L570 377" class="arrow-ok"/>
+<path d="M420 433 C410 490 330 545 210 585" class="arrow-warn"/>
+<path d="M1140 649 C1150 715 1000 740 955 772" class="arrow-warn"/>
+<path d="M315 772 C280 710 250 690 210 649" class="arrow-loop"/>
+<path d="M635 772 C600 715 560 690 520 649" class="arrow-loop"/>
+<path d="M955 772 C920 715 870 690 830 649" class="arrow-loop"/>
+<rect x="500" y="359" width="68" height="20" fill="#ffffff" opacity="0.96"/>
+<text x="534" y="374" text-anchor="middle" class="label">&#x901A;&#x8FC7;</text>
+<rect x="300" y="478" width="68" height="20" fill="#ffffff" opacity="0.96"/>
+<text x="334" y="493" text-anchor="middle" class="label">&#x4E0D;&#x901A;&#x8FC7;</text>
+<rect x="1018" y="703" width="68" height="20" fill="#ffffff" opacity="0.96"/>
+<text x="1052" y="718" text-anchor="middle" class="label">&#x53D1;&#x73B0;&#x5F02;&#x5E38;</text>
+<rect x="252" y="708" width="68" height="20" fill="#ffffff" opacity="0.96"/>
+<text x="286" y="723" text-anchor="middle" class="label">&#x4FEE;&#x590D;&#x540E;</text>
+<g transform="translate(70,835)"><line x1="0" y1="0" x2="38" y2="0" class="arrow"/><text x="50" y="5" class="legend">&#x6B63;&#x5E38;&#x64CD;&#x4F5C;&#x8DEF;&#x5F84;</text><line x1="190" y1="0" x2="228" y2="0" class="arrow-ok"/><text x="240" y="5" class="legend">&#x901A;&#x8FC7;&#x2F;&#x6210;&#x529F;</text><line x1="360" y1="0" x2="398" y2="0" class="arrow-warn"/><text x="410" y="5" class="legend">&#x5F02;&#x5E38;&#x2F;&#x6392;&#x67E5;</text><line x1="560" y1="0" x2="598" y2="0" class="arrow-loop"/><text x="610" y="5" class="legend">&#x4FEE;&#x590D;&#x540E;&#x56DE;&#x5230;&#x5DE1;&#x68C0;</text></g>
+</svg>

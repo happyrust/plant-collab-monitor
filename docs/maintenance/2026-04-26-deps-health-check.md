@@ -36,7 +36,7 @@ esbuild dev server 接受任意网站请求并读响应—— **仅 dev 期暴�
 
 ### 缓解措施
 
-- **当前**：vite dev server 默认 `host: true` 监听 `0.0.0.0:3200`（见 `vite.config.ts`）。生产部署用 nginx 反代静态产物，esbuild dev server 不起。
+- **当前**：vite dev server 默认 `host: true` 监听 `0.0.0.0:4000`（见 `vite.config.ts`）。生产部署用 nginx 反代静态产物，esbuild dev server 不起。
 - **本地开发**：开发者本地 vite dev 不要面向公网开放；如需共享，改 `host: 'localhost'` 或加防火墙。
 - **完整修复**：升级 vite 5.4 → 8.0（含 esbuild 修复版）—— **breaking change**，需独立 sprint 评估。
 

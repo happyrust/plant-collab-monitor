@@ -576,7 +576,10 @@ const filteredMessages = computed<MqttMessage[]>(() => {
 });
 
 function formatError(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
 }
 
 async function loadData() {

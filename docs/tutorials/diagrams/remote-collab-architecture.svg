@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720">
+  <style>
+    text { font-family: Arial, sans-serif; fill: #111827; }
+    .title { font-size: 24px; font-weight: 700; }
+    .subtitle { font-size: 13px; fill: #6b7280; }
+    .layer { fill: #f8fafc; stroke: #d1d5db; stroke-width: 1.5; stroke-dasharray: 8 5; }
+    .box { fill: #ffffff; stroke: #d1d5db; stroke-width: 1.5; rx: 10; ry: 10; }
+    .blue { fill: #eff6ff; stroke: #bfdbfe; }
+    .green { fill: #f0fdf4; stroke: #bbf7d0; }
+    .purple { fill: #faf5ff; stroke: #e9d5ff; }
+    .orange { fill: #fff7ed; stroke: #fed7aa; }
+    .red { fill: #fef2f2; stroke: #fecaca; }
+    .node-title { font-size: 15px; font-weight: 700; }
+    .node-sub { font-size: 12px; fill: #6b7280; }
+    .label { font-size: 12px; fill: #374151; }
+    .legend { font-size: 12px; fill: #6b7280; }
+    .arrow-blue { stroke: #2563eb; stroke-width: 2; fill: none; marker-end: url(#arrow-blue); }
+    .arrow-green { stroke: #16a34a; stroke-width: 2; fill: none; marker-end: url(#arrow-green); }
+    .arrow-orange { stroke: #ea580c; stroke-width: 2; fill: none; marker-end: url(#arrow-orange); }
+    .arrow-purple { stroke: #9333ea; stroke-width: 2; fill: none; marker-end: url(#arrow-purple); stroke-dasharray: 6 4; }
+    .arrow-gray { stroke: #6b7280; stroke-width: 1.8; fill: none; marker-end: url(#arrow-gray); stroke-dasharray: 5 4; }
+  </style>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="60" y="48" class="title">Remote Collaboration Monitor Architecture</text>
+  <text x="60" y="72" class="subtitle">How the Vue monitor, plant-model-gen backend, MQTT, and remote sites work together</text>
+
+  <rect x="40" y="105" width="1120" height="120" class="layer"/>
+  <text x="60" y="130" class="subtitle">Operator Layer</text>
+  <rect x="90" y="150" width="190" height="52" class="box blue"/>
+  <text x="185" y="172" text-anchor="middle" class="node-title">Browser</text>
+  <text x="185" y="191" text-anchor="middle" class="node-sub">Chrome / Edge</text>
+  <rect x="390" y="150" width="230" height="52" class="box blue"/>
+  <text x="505" y="172" text-anchor="middle" class="node-title">Vue 3 Monitor SPA</text>
+  <text x="505" y="191" text-anchor="middle" class="node-sub">Dashboard + admin views</text>
+  <rect x="750" y="150" width="250" height="52" class="box purple"/>
+  <text x="875" y="172" text-anchor="middle" class="node-title">Admin Session</text>
+  <text x="875" y="191" text-anchor="middle" class="node-sub">sessionStorage token</text>
+
+  <rect x="40" y="265" width="1120" height="150" class="layer"/>
+  <text x="60" y="290" class="subtitle">API Layer</text>
+  <rect x="90" y="325" width="180" height="58" class="box green"/>
+  <text x="180" y="348" text-anchor="middle" class="node-title">siteConfigApi</text>
+  <text x="180" y="368" text-anchor="middle" class="node-sub">local identity</text>
+  <rect x="335" y="325" width="180" height="58" class="box green"/>
+  <text x="425" y="348" text-anchor="middle" class="node-title">remoteSyncApi</text>
+  <text x="425" y="368" text-anchor="middle" class="node-sub">envs + sites</text>
+  <rect x="580" y="325" width="180" height="58" class="box green"/>
+  <text x="670" y="348" text-anchor="middle" class="node-title">mqttApi</text>
+  <text x="670" y="368" text-anchor="middle" class="node-sub">nodes + messages</text>
+  <rect x="825" y="325" width="220" height="58" class="box orange"/>
+  <text x="935" y="348" text-anchor="middle" class="node-title">SSE Stream</text>
+  <text x="935" y="368" text-anchor="middle" class="node-sub">live events + status bar</text>
+
+  <rect x="40" y="455" width="1120" height="175" class="layer"/>
+  <text x="60" y="480" class="subtitle">Backend and Site Layer</text>
+  <rect x="90" y="520" width="240" height="70" class="box orange"/>
+  <text x="210" y="546" text-anchor="middle" class="node-title">plant-model-gen web_server</text>
+  <text x="210" y="568" text-anchor="middle" class="node-sub">http://127.0.0.1:3100</text>
+  <rect x="415" y="520" width="180" height="70" class="box purple"/>
+  <text x="505" y="546" text-anchor="middle" class="node-title">MQTT Broker</text>
+  <text x="505" y="568" text-anchor="middle" class="node-sub">1883 / topics</text>
+  <rect x="680" y="500" width="180" height="58" class="box green"/>
+  <text x="770" y="523" text-anchor="middle" class="node-title">Remote Site A</text>
+  <text x="770" y="543" text-anchor="middle" class="node-sub">HTTP + MQTT client</text>
+  <rect x="680" y="580" width="180" height="58" class="box green"/>
+  <text x="770" y="603" text-anchor="middle" class="node-title">Remote Site B</text>
+  <text x="770" y="623" text-anchor="middle" class="node-sub">HTTP + MQTT client</text>
+  <rect x="940" y="540" width="160" height="58" class="box red"/>
+  <text x="1020" y="563" text-anchor="middle" class="node-title">Offline Site</text>
+  <text x="1020" y="583" text-anchor="middle" class="node-sub">shown as red</text>
+
+  <path d="M280 176 L390 176" class="arrow-blue"/>
+  <rect x="320" y="160" width="42" height="18" fill="#ffffff" opacity="0.95"/>
+  <text x="341" y="173" text-anchor="middle" class="label">open</text>
+  <path d="M620 176 L750 176" class="arrow-orange"/>
+  <rect x="660" y="160" width="54" height="18" fill="#ffffff" opacity="0.95"/>
+  <text x="687" y="173" text-anchor="middle" class="label">login</text>
+  <path d="M505 202 L180 325" class="arrow-blue"/>
+  <path d="M505 202 L425 325" class="arrow-blue"/>
+  <path d="M505 202 L670 325" class="arrow-blue"/>
+  <path d="M505 202 L935 325" class="arrow-purple"/>
+  <path d="M180 383 L210 520" class="arrow-blue"/>
+  <path d="M425 383 L210 520" class="arrow-blue"/>
+  <path d="M670 383 L505 520" class="arrow-green"/>
+  <path d="M935 383 L330 520" class="arrow-purple"/>
+  <path d="M330 555 L415 555" class="arrow-green"/>
+  <path d="M595 545 L680 529" class="arrow-green"/>
+  <path d="M595 575 L680 609" class="arrow-green"/>
+  <path d="M860 529 L940 558" class="arrow-gray"/>
+  <path d="M860 609 L940 580" class="arrow-gray"/>
+
+  <g transform="translate(60, 665)">
+    <line x1="0" y1="0" x2="34" y2="0" class="arrow-blue"/>
+    <text x="44" y="4" class="legend">HTTP API</text>
+    <line x1="150" y1="0" x2="184" y2="0" class="arrow-green"/>
+    <text x="194" y="4" class="legend">MQTT data</text>
+    <line x1="320" y1="0" x2="354" y2="0" class="arrow-purple"/>
+    <text x="364" y="4" class="legend">SSE live events</text>
+    <line x1="520" y1="0" x2="554" y2="0" class="arrow-gray"/>
+    <text x="564" y="4" class="legend">offline / unavailable</text>
+  </g>
+</svg>

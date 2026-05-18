@@ -931,7 +931,7 @@ async function loadData() {
       console.warn('加载拓扑配置失败:', topologyResult.reason);
     }
   } catch (error) {
-    console.error('加载拓扑数据失败:', error instanceof Error ? error.message : String(error));
+    console.error('加载拓扑数据失败:', formatError(error));
     topology.value = { environments: [], sites: [], connections: [] };
   } finally {
     loading.value = false;
@@ -1015,6 +1015,13 @@ function zoomOut() {
 
 function resetView() {
   viewBox.value = { x: 0, y: 0, scale: 1 };
+}
+
+function formatError(error: unknown) {
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
 }
 
 function formatTime(timestamp?: TimestampValue) {

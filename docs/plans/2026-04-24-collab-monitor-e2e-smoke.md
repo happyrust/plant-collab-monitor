@@ -98,7 +98,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 cd D:\work\plant-code\plant-collab-monitor
 npm run dev
 ```
-- 等待 `Local: http://localhost:3200/` 输出
+- 等待 `Local: http://localhost:4000/` 输出
 - 期望：HMR 就绪、vite 代理 `/api -> :3100` 生效
 
 ### Step 4 · chrome-devtools 浏览器冒烟（20 min · 只读）
@@ -165,7 +165,7 @@ npm run dev
 |---|---|---|
 | 运行中的 web_server 为旧构建 | 🔴 高 | Step 1 路由探测一旦 404 立即重启 |
 | cargo rebuild 慢（3–5 min）| 🟡 中 | 拉入 `pdms_transform_api.rs` 改动后是增量编译，可接受 |
-| :3200 被占 | 🟡 中 | `strictPort` 直接报错 → `netstat/taskkill` |
+| :4000 被占 | 🟡 中 | `strictPort` 直接报错 → `netstat/taskkill` |
 | chrome-devtools MCP 需 Chrome 调试端口 | 🟡 中 | 若不可用降级为 `curl` + 静态截图 |
 | FA 安装后 `type-check` 报 CSS 类型缺失 | 🟢 低 | `env.d.ts` 加 `declare module '*.css';` |
 | SSE 在 Vite HMR 下重复建连 | 🟢 低 | LogsView 已有 `onUnmounted { close() }` |

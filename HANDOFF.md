@@ -43,7 +43,7 @@ D:/work/plant-code/plant-model-gen/target/debug/web_server.exe
 
 # 2. 前端
 cd D:/work/plant-code/plant-collab-monitor
-npm run dev   # → http://localhost:3200
+npm run dev   # → http://localhost:4000
 
 # 3. 验证
 curl http://localhost:3100/api/site/info       # → 200

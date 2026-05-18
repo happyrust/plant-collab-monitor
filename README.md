@@ -16,7 +16,7 @@
 |---|---|---|
 | `plant-model-gen` | **唯一后端** · Rust + Axum · 暴露 `/api/*` | `http://127.0.0.1:3100` |
 | `plant-model-gen/ui/admin/#/collaboration` | 轻量管理入口（嵌入在 admin） | admin 子路由 |
-| **本项目 plant-collab-monitor** | 专业监控台（独立 SPA） | `http://localhost:3200`（dev） |
+| **本项目 plant-collab-monitor** | 专业监控台（独立 SPA） | `http://localhost:4000`（dev） |
 | `web-server` | **Legacy · 已废弃** · 作为迁移源头保留备份 | — |
 
 ## 技术栈
@@ -45,7 +45,7 @@ cargo run --bin web_server --features web_server
 # 2. 启动前端
 npm install
 npm run dev
-# -> http://localhost:3200
+# -> http://localhost:4000
 ```
 
 ## 环境变量
@@ -66,9 +66,9 @@ VITE_API_TARGET=http://staging.example.com:3100
 
 | 命令 | 功能 |
 |---|---|
-| `npm run dev` | 启动 vite dev server · port 3200 · HMR |
+| `npm run dev` | 启动 vite dev server · port 4000 · HMR |
 | `npm run build` | `vue-tsc -b` + `vite build` 生产构建（产出到 `dist/`）|
-| `npm run preview` | 预览 dist 产物（port 3200）|
+| `npm run preview` | 预览 dist 产物（port 4000）|
 | `npm run type-check` | 仅 TypeScript 严格检查 |
 
 ## 项目结构

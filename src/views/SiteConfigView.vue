@@ -612,7 +612,10 @@ const actionSuccess = ref('');
 let successTimer: number | null = null;
 
 function formatError(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
 }
 
 function stringList(value: unknown[]) {

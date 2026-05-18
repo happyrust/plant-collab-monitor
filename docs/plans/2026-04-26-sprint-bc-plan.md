@@ -120,7 +120,7 @@ echo "✓ deploy done: $REMOTE:$TARGET"
 
 1. 后端 plant-model-gen `web_server.exe` 在 `:3100` 运行
 2. 设 `ADMIN_USER=admin / ADMIN_PASS=admin` 解锁 admin-gated
-3. plant-collab-monitor `npm run dev` 在 `:3200`
+3. plant-collab-monitor `npm run dev` 在 `:4000`
 
 ### 3.2 11 视图截图覆盖矩阵
 
@@ -145,7 +145,7 @@ echo "✓ deploy done: $REMOTE:$TARGET"
 
 ## 环境
 - 后端 web_server.exe PID xxxx · :3100
-- 前端 dev server :3200
+- 前端 dev server :4000
 - ADMIN: admin/admin
 - Chrome 版本：xxx
 

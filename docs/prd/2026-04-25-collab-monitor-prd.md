@@ -29,7 +29,7 @@
 | 半 | 仓库 | 角色 |
 |----|------|------|
 | 后端 | `plant-model-gen` | 81 个 endpoint 的唯一来源 |
-| 前端 | `plant-collab-monitor`（本仓） | 独立 SPA，:3200，dev 代理 `/api` → `:3100` |
+| 前端 | `plant-collab-monitor`（本仓） | 独立 SPA，:4000，dev 代理 `/api` → `:3100` |
 
 ### 1.2 现状（2026-04-25 测绘）
 

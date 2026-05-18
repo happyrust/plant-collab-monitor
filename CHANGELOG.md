@@ -6,6 +6,30 @@
 
 ---
 
+## 2026-05-18
+
+### Maintenance · 前端端口与异地协同部署材料
+
+> 将监控台开发端口统一调整为 `4000`，补齐异地协同本地验证和运维教程材料，便于部署前复核。
+
+#### Changed
+
+- Vite dev / preview 默认端口从 `3200` 调整为 `4000`，并同步 README、AGENTS、HANDOFF、PRD 与 smoke 文档。
+- `phase7-plus` 浏览器 smoke 默认目标更新为 `http://127.0.0.1:4000`。
+- 拓扑、站点配置、MQTT 节点等视图的错误信息格式化改为 `unknown` 安全 narrowing，避免依赖 `instanceof Error`。
+
+#### Added
+
+- 新增本机双站点异地协同 smoke 计划与 PowerShell 脚本。
+- 新增异地协同监控台使用教程和架构/操作流程 SVG 图。
+
+#### Verification
+
+- `npm run type-check`
+- `npm run build`
+
+---
+
 ## 2026-04-27
 
 ### Phase 20-26 · 跨仓真热加载 + 监控台增强（~15 commits · `7fde6c9` → `e9e8f80`）

@@ -79,13 +79,13 @@ cd D:/work/plant-code/plant-model-gen
 ```powershell
 cd D:/work/plant-code/plant-collab-monitor
 npm run dev
-# → http://localhost:3200
+# → http://localhost:4000
 ```
 
 ### 1.3 浏览器（chrome-devtools MCP 自动化）
 
 ```text
-打开 http://localhost:3200/
+打开 http://localhost:4000/
 ```
 
 **默认重定向**：`/` → `/dashboard`（router/index.ts:5 配置）。
@@ -179,7 +179,7 @@ npm run dev
 
 ## 1. 测试环境
 - 后端 web_server.exe PID xxx · :3100
-- 前端 :3200
+- 前端 :4000
 - ADMIN: admin/admin
 - Chrome 版本：xxx
 

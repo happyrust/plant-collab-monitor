@@ -791,7 +791,10 @@ const dialog = useDialog();
 const message = useMessage();
 
 function formatError(error: unknown) {
-  return error instanceof Error ? error.message : String(error);
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
 }
 
 function errorName(error: unknown) {

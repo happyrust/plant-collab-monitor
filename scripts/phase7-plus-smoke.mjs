@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 
-const baseUrl = process.env.SMOKE_BASE_URL ?? 'http://127.0.0.1:3200';
+const baseUrl = process.env.SMOKE_BASE_URL ?? 'http://127.0.0.1:4000';
 const username = process.env.SMOKE_ADMIN_USER ?? 'admin';
 const password = process.env.SMOKE_ADMIN_PASS ?? 'admin';
 const screenshotDir =
