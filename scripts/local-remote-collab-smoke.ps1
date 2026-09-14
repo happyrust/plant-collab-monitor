@@ -9,6 +9,11 @@ param(
   [string]$FixtureDir = "",
   [string]$FixtureFileName = "",
   [int]$AppendBytes = 0,
+  [string]$SiteBFileServerHost = "",
+  [string]$SiteBHttpHost = "",
+  [string]$MosquittoDir = "",
+  [int]$MqttReceiveTimeoutSec = 0,
+  [switch]$KeepEnv,
   [switch]$FixtureOnly,
   [switch]$SkipMqttPublish,
   [switch]$Help
@@ -30,9 +35,22 @@ function Show-Help {
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101"
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -FixtureOnly -FixtureDir `$env:TEMP\remote-collab-fixture"
   Write-Output ""
+  Write-Output "Checks (LS-01..LS-22 in report order, see docs/e2e-smoke/remote-deploy-auto-test-cases.md section 5):"
+  Write-Output "  ports / identities / login / env+site create / test-mqtt / test-http / activate / runtime status / topology / logs"
+  Write-Output "  LS-15 remote-runtime-active-env      : runtime/status.active == true && env_id == created env (pws: envs[].active)"
+  Write-Output "  LS-20 mqtt-received-after-publish    : after mosquitto_pub, runtime/status.mqtt_connected turns true"
+  Write-Output "  LS-22 runtime-stop-clears-active     : POST runtime/stop -> runtime/status.active == false, then delete smoke site/env (skipped with -KeepEnv)"
+  Write-Output ""
+  Write-Output "Options:"
+  Write-Output "  -SiteBFileServerHost   env.file_server_host (default <SiteBBase>/files/output; GET must return 2xx, setup script drops index.html there)"
+  Write-Output "  -SiteBHttpHost         site.http_host (default <SiteBBase>/files/output; backend probes <http_host>/metadata.json)"
+  Write-Output "  -MosquittoDir          folder holding mosquitto_pub.exe when it is not on PATH (default probes C:\Program Files\mosquitto)"
+  Write-Output "  -MqttReceiveTimeoutSec seconds to wait for mqtt_connected after publish (default 20)"
+  Write-Output "  -KeepEnv               do not stop the runtime / delete the smoke env + site at the end"
+  Write-Output ""
   Write-Output "Environment overrides:"
   Write-Output "  SITE_A_BASE, SITE_B_BASE, MQTT_HOST, MQTT_PORT, ADMIN_USER, ADMIN_PASS, SMOKE_JSON_REPORT"
-  Write-Output "  SMOKE_FIXTURE_DIR, SMOKE_FIXTURE_FILE, SMOKE_APPEND_BYTES"
+  Write-Output "  SMOKE_FIXTURE_DIR, SMOKE_FIXTURE_FILE, SMOKE_APPEND_BYTES, SITE_B_FILE_SERVER_HOST, SITE_B_HTTP_HOST, MOSQUITTO_DIR"
 }
 
 if ($Help) {
@@ -232,6 +250,36 @@ $ReportPath = Get-ValueOrDefault $ReportPath "SMOKE_JSON_REPORT" "docs/e2e-smoke
 $FixtureDir = Get-ValueOrDefault $FixtureDir "SMOKE_FIXTURE_DIR" "runtime/local-remote-collab/site-b-files"
 $FixtureFileName = Get-ValueOrDefault $FixtureFileName "SMOKE_FIXTURE_FILE" "local-smoke-increment.e3d"
 $AppendBytes = Get-IntOrDefault $AppendBytes "SMOKE_APPEND_BYTES" 512
+# plant-model-gen 的探测语义：test-http 对 env.file_server_host 发 GET 要 2xx；sites/{id}/test-http 取 <http_host>/metadata.json。
+# 站点根路径两者都给不出，所以默认指向 Site B 的 /files/output（= 其 output_root，setup 脚本已放好 index.html + metadata.json）。
+$SiteBFileServerHost = Get-ValueOrDefault $SiteBFileServerHost "SITE_B_FILE_SERVER_HOST" ($SiteBBase.TrimEnd("/") + "/files/output")
+$SiteBHttpHost = Get-ValueOrDefault $SiteBHttpHost "SITE_B_HTTP_HOST" ($SiteBBase.TrimEnd("/") + "/files/output")
+$MosquittoDir = Get-ValueOrDefault $MosquittoDir "MOSQUITTO_DIR" ""
+$MqttReceiveTimeoutSec = Get-IntOrDefault $MqttReceiveTimeoutSec "SMOKE_MQTT_RECEIVE_TIMEOUT_SEC" 20
+
+function Find-MosquittoPub([string]$Dir) {
+  $cmd = Get-Command "mosquitto_pub" -ErrorAction SilentlyContinue
+  if ($null -ne $cmd) { return $cmd.Source }
+  foreach ($candidate in @($Dir, "C:\Program Files\mosquitto", "C:\Program Files (x86)\mosquitto")) {
+    if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+    $exe = Join-Path $candidate "mosquitto_pub.exe"
+    if (Test-Path $exe) { return $exe }
+  }
+  return $null
+}
+
+function Get-ActiveEnvIdFromEnvsResponse($Response) {
+  # plant-web-server：顶层 active.id 或 items[].active == true
+  $active = Get-NestedValue $Response @("active", "id")
+  if ($null -ne $active) { return [string]$active }
+  $items = Get-ObjectValue $Response @("items")
+  if ($null -ne $items) {
+    foreach ($item in $items) {
+      if ((Get-ObjectValue $item @("active")) -eq $true) { return [string](Get-ObjectValue $item @("id")) }
+    }
+  }
+  return ""
+}
 
 if ($FixtureOnly) {
   try {
@@ -312,7 +360,7 @@ $envPayload = @{
   name = $envName
   mqtt_host = $MqttHost
   mqtt_port = $MqttPort
-  file_server_host = $SiteBBase
+  file_server_host = $SiteBFileServerHost
   location = $siteALocation
   location_dbs = $null
 }
@@ -330,7 +378,7 @@ if (-not [string]::IsNullOrWhiteSpace($envId)) {
   $sitePayload = @{
     name = "site-b-local"
     location = $siteBLocation
-    http_host = $SiteBBase
+    http_host = $SiteBHttpHost
     dbnums = $null
     notes = "Created by local remote-collab smoke"
   }
@@ -368,6 +416,33 @@ if (-not [string]::IsNullOrWhiteSpace($envId)) {
 $runtime = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/runtime/status") $null $headers
 Add-Check $checks "remote-runtime-status" ($(if ($runtime.ok) { "passed" } else { "failed" })) @{ error = $runtime.error; response = $runtime.response }
 
+# LS-20 · 激活确实生效：plant-model-gen 看 runtime/status.active + env_id；plant-web-server 看 envs[].active
+$runtimeHasActiveField = $runtime.ok -and ($null -ne (Get-ObjectValue $runtime.response @("active")))
+if ([string]::IsNullOrWhiteSpace($envId)) {
+  Add-Check $checks "remote-runtime-active-env" "skipped" @{ reason = "env creation failed" }
+} elseif (-not $runtime.ok) {
+  Add-Check $checks "remote-runtime-active-env" "failed" @{ error = $runtime.error; expected_env_id = $envId }
+} elseif ($runtimeHasActiveField) {
+  $rtActive = Get-ObjectValue $runtime.response @("active")
+  $rtEnvId = [string](Get-ObjectValue $runtime.response @("env_id"))
+  Add-Check $checks "remote-runtime-active-env" ($(if ($rtActive -eq $true -and $rtEnvId -eq $envId) { "passed" } else { "failed" })) @{
+    backend = "plant-model-gen"
+    active = $rtActive
+    env_id = $rtEnvId
+    expected_env_id = $envId
+    mqtt_connected = (Get-ObjectValue $runtime.response @("mqtt_connected"))
+  }
+} else {
+  $envsAfterActivate = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/envs") $null $headers
+  $flagged = Get-ActiveEnvIdFromEnvsResponse $envsAfterActivate.response
+  Add-Check $checks "remote-runtime-active-env" ($(if ($envsAfterActivate.ok -and $flagged -eq $envId) { "passed" } else { "failed" })) @{
+    backend = "plant-web-server (runtime/status has no active field)"
+    active_env_id = $flagged
+    expected_env_id = $envId
+    running = (Get-ObjectValue $runtime.response @("running"))
+  }
+}
+
 $topology = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/topology") $null $headers
 Add-Check $checks "remote-topology" ($(if ($topology.ok) { "passed" } else { "failed" })) @{ error = $topology.error; response = $topology.response }
 
@@ -384,35 +459,102 @@ try {
   Add-Check $checks "incremental-fixture-append" "failed" @{ directory = $FixtureDir; file = $FixtureFileName; append_bytes = $AppendBytes; error = $_.Exception.Message }
 }
 
+$publishOk = $false
 if ($SkipMqttPublish) {
   Add-Check $checks "mqtt-publish-test" "skipped" @{ reason = "SkipMqttPublish was set" }
 } else {
-  $publisher = Get-Command "mosquitto_pub" -ErrorAction SilentlyContinue
-  if ($null -eq $publisher) {
-    Add-Check $checks "mqtt-publish-test" "skipped" @{ reason = "mosquitto_pub not found on PATH"; topic = $topic }
+  $publisherPath = Find-MosquittoPub $MosquittoDir
+  if ($null -eq $publisherPath) {
+    Add-Check $checks "mqtt-publish-test" "skipped" @{ reason = "mosquitto_pub not found (PATH / -MosquittoDir / C:\Program Files\mosquitto)"; topic = $topic }
   } else {
     if ([string]::IsNullOrWhiteSpace($topic)) {
       $topic = "Sync/E3d"
     }
+    # 字段与 plant-model-gen mqtt_service::SyncE3dFileMsg 一致；location 必须 != Site A 的 location 才会被处理。
+    # 注意后端用 serde_json::from_slice(..).unwrap() 反序列化，字段缺失 / 类型不对会让订阅任务 panic 退出。
     $message = @{
       file_names = @($(if ($null -ne $fixture) { $fixture.file_name } else { $FixtureFileName }))
       file_hashes = @($(if ($null -ne $fixture) { $fixture.sha256 } else { "" }))
-      file_server_host = $SiteBBase
+      file_server_host = $SiteBFileServerHost
       location = $siteBLocation
       timestamp = (Get-Date).ToUniversalTime().ToString("o")
     } | ConvertTo-Json -Compress -Depth 8
     try {
-      & $publisher.Source -h $MqttHost -p $MqttPort -t $topic -m $message
-      Add-Check $checks "mqtt-publish-test" "passed" @{ topic = $topic; message = $message }
+      & $publisherPath -h $MqttHost -p $MqttPort -t $topic -m $message
+      if ($LASTEXITCODE -ne 0) { throw "mosquitto_pub exit code $LASTEXITCODE" }
+      $publishOk = $true
+      Add-Check $checks "mqtt-publish-test" "passed" @{ topic = $topic; message = $message; publisher = $publisherPath }
     } catch {
-      Add-Check $checks "mqtt-publish-test" "failed" @{ topic = $topic; error = $_.Exception.Message }
+      Add-Check $checks "mqtt-publish-test" "failed" @{ topic = $topic; error = $_.Exception.Message; publisher = $publisherPath }
     }
+  }
+}
+
+# LS-21 · Site A 的 MQTT 订阅确实收到了这条消息：plant-model-gen 收到 Publish 后把 MQTT_CONNECT_STATUS 置 true，
+# 通过 runtime/status.mqtt_connected 可观察（订阅在 activate 时随 watcher 一起启动，需 web_server,mqtt feature）。
+if (-not $publishOk) {
+  Add-Check $checks "mqtt-received-after-publish" "skipped" @{ reason = "mqtt publish not performed" }
+} elseif ([string]::IsNullOrWhiteSpace($envId)) {
+  Add-Check $checks "mqtt-received-after-publish" "skipped" @{ reason = "env creation failed (nothing activated)" }
+} elseif (-not $runtimeHasActiveField) {
+  Add-Check $checks "mqtt-received-after-publish" "skipped" @{ reason = "runtime/status has no mqtt_connected field (plant-web-server semantics)" }
+} else {
+  $deadline = (Get-Date).AddSeconds($MqttReceiveTimeoutSec)
+  $attempts = 0
+  $received = $false
+  $lastStatus = $null
+  do {
+    $attempts++
+    $probe = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/runtime/status") $null $headers
+    if ($probe.ok) {
+      $lastStatus = $probe.response
+      if ((Get-ObjectValue $probe.response @("mqtt_connected")) -eq $true) { $received = $true; break }
+    }
+    Start-Sleep -Seconds 1
+  } while ((Get-Date) -lt $deadline)
+  Add-Check $checks "mqtt-received-after-publish" ($(if ($received) { "passed" } else { "failed" })) @{
+    attempts = $attempts
+    timeout_sec = $MqttReceiveTimeoutSec
+    mqtt_connected = (Get-ObjectValue $lastStatus @("mqtt_connected"))
+    active = (Get-ObjectValue $lastStatus @("active"))
+    env_id = (Get-ObjectValue $lastStatus @("env_id"))
+    hint = $(if ($received) { $null } else { "订阅未收到消息：确认 web_server 带 mqtt feature 编译、activate 成功、broker 与 env.mqtt_host:mqtt_port 一致；后端日志里若有 panic 多半是消息反序列化失败" })
   }
 }
 
 Start-Sleep -Seconds 2
 $logs = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/logs?limit=5") $null $headers
 Add-Check $checks "remote-sync-logs" ($(if ($logs.ok) { "passed" } else { "failed" })) @{ error = $logs.error; response = $logs.response }
+
+# LS-22 + 收尾：停止运行时（应清掉 active），删掉 smoke 建的站点 / env；-KeepEnv 时全部跳过
+$cleanup = [ordered]@{ performed = (-not $KeepEnv) }
+if ($KeepEnv) {
+  Add-Check $checks "runtime-stop-clears-active" "skipped" @{ reason = "KeepEnv was set" }
+} elseif ([string]::IsNullOrWhiteSpace($envId)) {
+  Add-Check $checks "runtime-stop-clears-active" "skipped" @{ reason = "env creation failed (nothing activated)" }
+} else {
+  $stop = Invoke-SmokeJson "POST" (Join-Url $SiteABase "/api/remote-sync/runtime/stop") @{} $headers
+  $cleanup.stop = @{ ok = $stop.ok; error = $stop.error; response = $stop.response }
+  $afterStop = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/runtime/status") $null $headers
+  if (-not $stop.ok -or -not $afterStop.ok) {
+    Add-Check $checks "runtime-stop-clears-active" "failed" @{ stop_error = $stop.error; status_error = $afterStop.error }
+  } elseif ($null -eq (Get-ObjectValue $afterStop.response @("active"))) {
+    Add-Check $checks "runtime-stop-clears-active" "skipped" @{ reason = "runtime/status has no active field (plant-web-server: stop only marks tasks Stopped)"; response = $afterStop.response }
+  } else {
+    $activeAfterStop = Get-ObjectValue $afterStop.response @("active")
+    Add-Check $checks "runtime-stop-clears-active" ($(if ($activeAfterStop -eq $false) { "passed" } else { "failed" })) @{
+      active = $activeAfterStop
+      env_id = (Get-ObjectValue $afterStop.response @("env_id"))
+      stop_response = $stop.response
+    }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($siteId)) {
+    $delSite = Invoke-SmokeJson "DELETE" (Join-Url $SiteABase "/api/remote-sync/sites/$siteId") $null $headers
+    $cleanup.delete_site = @{ id = $siteId; ok = $delSite.ok; error = $delSite.error }
+  }
+  $delEnv = Invoke-SmokeJson "DELETE" (Join-Url $SiteABase "/api/remote-sync/envs/$envId") $null $headers
+  $cleanup.delete_env = @{ id = $envId; ok = $delEnv.ok; error = $delEnv.error }
+}
 
 $failed = @($checks | Where-Object { $_.status -eq "failed" })
 $passed = @($checks | Where-Object { $_.status -eq "passed" })
@@ -427,6 +569,8 @@ $report = [pscustomobject]@{
   endpoints = [pscustomobject]@{
     site_a_base = $SiteABase
     site_b_base = $SiteBBase
+    site_b_file_server_host = $SiteBFileServerHost
+    site_b_http_host = $SiteBHttpHost
     mqtt_host = $MqttHost
     mqtt_port = $MqttPort
   }
@@ -436,6 +580,7 @@ $report = [pscustomobject]@{
     topic = $topic
   }
   fixture = $fixture
+  cleanup = $cleanup
   checks = $checks
   started_at = $startedAt
   finished_at = (Get-Date).ToUniversalTime().ToString("o")
@@ -448,6 +593,16 @@ if (-not [string]::IsNullOrWhiteSpace($reportDir)) {
 $report | ConvertTo-Json -Depth 24 | Set-Content -Path $ReportPath -Encoding UTF8
 
 Write-Output "Local remote-collab smoke finished."
+$index = 0
+foreach ($check in $checks) {
+  $index++
+  $note = ""
+  if ($check.status -ne "passed" -and $null -ne $check.details) {
+    $reason = Get-ObjectValue $check.details @("reason", "error", "hint")
+    if ($null -ne $reason) { $note = " - " + [string]$reason }
+  }
+  Write-Output ("  LS-{0:D2} {1,-7} {2}{3}" -f $index, $check.status, $check.name, $note)
+}
 Write-Output ("  passed : {0}" -f $passed.Count)
 Write-Output ("  failed : {0}" -f $failed.Count)
 Write-Output ("  skipped: {0}" -f $skipped.Count)
