@@ -6,6 +6,44 @@
 
 ---
 
+## 2026-09-14
+
+### 异地部署 · 部署动作面接入 `/topology` + API 层收敛 + 文档校准
+
+> 依据同日只读分析与 Plannotator 批准的计划 `docs/plans/2026-09-14-remote-deploy-next-step-plan.md`（共识 `d-406`）。此前监控台只能建 env / site，无法把环境推到运行时；后端 `remote_sync_handlers.rs` 早已提供 apply / activate / test-* / runtime 端点。
+
+#### Added
+
+- `src/api/remoteSyncApi.ts`：新增 `applyEnv` / `activateEnv` / `testMqttEnv` / `testHttpEnv` / `testHttpSite` / `updateEnv` / `updateSite` / `importEnvFromDbOption` / `envConfig` / `updateEnvConfig` / `activeTasks` / `abortActiveTask` / `failedTasks` / `cleanupFailedTasks` / `retryFailedTask`，以及类型 `RemoteSyncActionResponse` / `RemoteSyncRuntimeStatus` / `RemoteSyncSitePayload`；删除后端不存在的 `getSite`（后端 `sites/{id}` 只有 PUT / DELETE）。
+- `src/views/TopologyView.vue`：
+  - 头部运行时状态 pill（`GET /api/remote-sync/runtime/status`，30s 轮询）+「停止运行时」；
+  - 环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」，诊断结果（addr / url / code / latency_ms）以 inline banner 留在卡片内，当前激活 env 挂「已激活」徽标；
+  - 站点行「后端 test-http 诊断」与「编辑」（复用添加站点弹窗，`PUT /api/remote-sync/sites/{id}`）；
+  - `apply / activate / stop` 均经 NDialog 二次确认，文案点明会改写后端 `DbOption.toml`。
+- `docs/plans/2026-09-14-remote-deploy-next-step-plan.md`：四阶段计划（P1 动作面 / P2 收敛 / P3 双站点 smoke / P4 卫生）+ §0 决策记录。
+- 入库教程配图 `docs/tutorials/diagrams/*.png`、`docs/tutorials/screenshots/remote-collab/*.png` 与 `scripts/generate-remote-collab-docx.mjs`。
+
+#### Changed
+
+- `src/api/deploymentSitesApi.ts` 收敛为后端实际注册的公开只读 `list / get`；删除 `importDbOption / create / update / delete / listTasks / healthcheck / exportConfig`（后端 `mod.rs` 无对应路由）。
+- README / AGENTS §4.3（新增 §4.3.1 部署动作面表）/ HANDOFF / `docs/remote-collab-management-analysis.md` / 两份 PRD 按后端源码校准端点数量与状态；标注 `../plant-model-gen/docs/**` 在当前 checkout 不存在。
+- `.gitignore`：忽略 `.cursor/rules/`（个人会话规则，`mcp-messenger.mdc` 从索引移除、本地保留）、`runtime/`（smoke fixture）、`docs/tutorials/*.docx`。
+- 2026-05-06 的 `task_plan.md / findings.md / progress.md` 归档到 `docs/plans/archive/2026-05-06-review-fix/`。
+
+#### Known gaps
+
+- 本机双站点 e2e smoke 仍未跑通（最近一次 2026-05-17：1 passed / 12 failed，Site A/B/MQTT 未启动）；本机无 Mosquitto，`runtime/local-collab/site-a|b/DbOption.toml` 未生成。
+- `/topology` 尚无「从 DbOption 导入」按钮（API 已封装）。
+- 部署动作面新按钮尚未纳入 `scripts/phase7-plus-smoke.mjs`。
+
+#### Verification
+
+- `npm run type-check` · 0 errors
+- `npm run build`
+- 后端路由对照：`rg -n 'route\(' ../plant-model-gen/src/web_server/remote_sync_handlers.rs`（35 路由）与 `mod.rs:1213-1221`（deployment-sites 仅 GET list / get）
+
+---
+
 ## 2026-05-18
 
 ### Maintenance · 前端端口与异地协同部署材料

@@ -29,7 +29,7 @@
 | **本站点（Local Site / Self）** | `DbOption.toml::location` | 单实例 | `location` 字符串 | 当前 web_server 进程所代表的物理站点身份 |
 | **异地环境（Remote Env）** | `/api/remote-sync/envs` | 1:N 容器 | `env_id` | 一个客户/项目下的"协同环境"，下挂多站点 |
 | **异地站点（Remote Site）** | `/api/remote-sync/envs/{env_id}/sites` | env 子节点 | `site_id` | 隶属某 env 的对端节点（含 MQTT/file_server 地址） |
-| **部署站点（Deployment Site）** | `/api/deployment-sites` | 扁平列表 | `id` | 由 `DbOption.toml` 一键导入的站点蓝本，可生成 healthcheck/tasks |
+| **部署站点（Deployment Site）** | `/api/deployment-sites` | 扁平列表 | `id` | 后端 `deployment_sites.sqlite` 里的站点登记（一 web_server 进程 = 一站点），前端只有公开只读 `list / get`（2026-09-14 校准：原设想的 import/healthcheck/tasks 端点后端不存在） |
 
 > 三个层次共同的"语义键"：**location 字符串**（如 `SJZ` / `BJ` / `SH`）。同一 location 在 DbOption.toml、Remote Site、MQTT Node 中应保持一致；前端在表单层做唯一性校验。
 
@@ -64,7 +64,7 @@
 ```
 [NewlyDiscovered]                       由 DbOption 导入或手动新增
        │
-       ├── (deployment-sites/import-dboption)         ← 批量导入入口
+       ├── (remote-sync/envs/import-from-dboption)    ← 从当前 DbOption 反向导入 env
        └── (remote-sync/envs/{id}/sites POST)         ← 手动新增入口
        ▼
 [Configured]                            连接参数齐全（mqtt + file_server）
@@ -153,18 +153,18 @@
    - 选中 env → 加载其 sites
 2. **站点列表**（在选中 env 下）
    - 列出 sites（`GET /api/remote-sync/envs/{env_id}/sites`），每行显示 location / mqtt / 文件服务 / 健康状态徽标
-   - **批量刷新状态**：调 `POST /api/deployment-sites/{id}/healthcheck` 或 `GET /api/remote-sync/sites/{id}/metadata`
-   - 新建 site：表单含 `location`（自动校验唯一）、`mqtt_host:port`、`file_server_host`
-   - 编辑 / 删除 site
+   - **批量刷新状态**：浏览器直连 `GET {http_host}/api/health`（`checkAllSitesStatus`）；单站点由后端探测 `POST /api/remote-sync/sites/{id}/test-http`（✅ 2026-09-14）
+   - 新建 site：表单含 `name`、`location`、`http_host`、`dbnums`、`notes`
+   - 编辑（`PUT /api/remote-sync/sites/{id}`，✅ 2026-09-14）/ 删除 site
 3. **`DbOption.toml` 一键导入**
-   - 按钮 "从 DbOption 导入" → `POST /api/deployment-sites/import-dboption`
-   - 完成后自动列出新建的 deployment-sites（注意这是**第三层"部署站点"**）
-4. **测试连通**
-   - HTTP 连通：直接 `fetch(file_server_host + '/healthz')`（前端跨域走代理）
-   - MQTT 连通：`POST /api/deployment-sites/{id}/healthcheck`
-5. **Apply / Activate Env**（admin-gated）
-   - 把选中 env 推送到 runtime → `POST /api/remote-sync/runtime/start`（待后端补）
-   - 当前已有 `POST /api/remote-sync/runtime/stop`
+   - 后端端点为 `POST /api/remote-sync/envs/import-from-dboption`（把当前进程的 DbOption 反向导入为一个 env）；`remoteSyncApi.importEnvFromDbOption()` 已封装，**视图入口待补**
+4. **测试连通**（✅ 2026-09-14，环境卡片按钮）
+   - MQTT 连通：`POST /api/remote-sync/envs/{id}/test-mqtt`（后端 TCP 探测 `mqtt_host:mqtt_port`，返回 `addr / latency_ms`）
+   - 文件服务连通：`POST /api/remote-sync/envs/{id}/test-http`（后端 HTTP GET `file_server_host`，返回 `url / code / latency_ms`）
+5. **Apply / Activate Env**（admin-gated，✅ 2026-09-14，环境卡片按钮 + NDialog 二次确认）
+   - 应用：`POST /api/remote-sync/envs/{id}/apply` → 只写后端 `DbOption.toml`
+   - 激活：`POST /api/remote-sync/envs/{id}/activate` → 写 `DbOption.toml` + 进程内重启 watcher + MQTT 订阅
+   - 运行时：`GET /api/remote-sync/runtime/status`（头部 pill，30s 轮询）· `POST /api/remote-sync/runtime/stop`（「停止运行时」）
 
 **鉴权**：本视图 90% 操作走 `/api/remote-sync/*`（admin-gated）；未登录时由 axios interceptor 弹 `LoginDialog`。
 
@@ -378,37 +378,39 @@ LocalSite (DbOption.toml.location) ─── 1:1 ─── MqttNode (本进程�
 | POST | `/api/site-config/restart` | ⚠ stub |
 | GET | `/api/site-config/server-ip` | 自动探测出口 IP |
 
-### 6.2 异地环境与站点（`/api/remote-sync/*`，admin-gated 13 个）
+### 6.2 异地环境与站点（`/api/remote-sync/*`，admin-gated · 2026-09-14 按后端 `create_remote_sync_routes()` 校准）
+
+| Method | Path | 用途 | 前端封装 |
+|--------|------|------|------|
+| GET / POST | `/api/remote-sync/envs` | 环境列表 / 新建 | `listEnvs` / `createEnv` |
+| GET / PUT / DELETE | `/api/remote-sync/envs/{id}` | 环境详情 / 更新 / 删除 | `getEnv` / `updateEnv` / `deleteEnv` |
+| POST | `/api/remote-sync/envs/import-from-dboption` | 从当前 DbOption.toml 反向导入 env | `importEnvFromDbOption` |
+| POST | `/api/remote-sync/envs/{id}/apply` | 写入 DbOption.toml（不重启运行态） | `applyEnv` |
+| POST | `/api/remote-sync/envs/{id}/activate` | 写入 DbOption.toml + 重启 watcher + MQTT | `activateEnv` |
+| POST | `/api/remote-sync/envs/{id}/test-mqtt` | TCP 探测 mqtt_host:port | `testMqttEnv` |
+| POST | `/api/remote-sync/envs/{id}/test-http` | HTTP 探测 file_server_host | `testHttpEnv` |
+| GET / PUT | `/api/remote-sync/envs/{id}/config` | 协同参数 | `envConfig` / `updateEnvConfig` |
+| GET / POST | `/api/remote-sync/envs/{env_id}/sites` | 环境下站点列表 / 新建 | `listSites` / `createSite` |
+| PUT / DELETE | `/api/remote-sync/sites/{id}` | 更新 / 删除站点（**没有 GET 单站点**） | `updateSite` / `deleteSite` |
+| POST | `/api/remote-sync/sites/{id}/test-http` | 后端探测站点 HTTP 可达 | `testHttpSite` |
+| GET | `/api/remote-sync/sites/{id}/metadata` | 站点 metadata | `siteMetadata` |
+| GET | `/api/remote-sync/sites/{id}/files` · `/files/{*path}` | 站点文件 | `siteFiles`（根） |
+| GET / POST / DELETE | `/api/remote-sync/topology` | 全局拓扑读 / 保存 / 删除 | `topology`（只封装 GET） |
+| GET | `/api/remote-sync/runtime/status` · `/runtime/config` | runtime 状态 / 只读配置 | `runtimeStatus` / `runtimeConfig` |
+| POST | `/api/remote-sync/runtime/stop` | 停止 runtime | `stopRuntime` |
+| GET / POST | `/api/remote-sync/tasks/active` · `/tasks/{id}/abort` | 活动任务 / 中止 | `activeTasks` / `abortActiveTask` |
+| GET / DELETE / POST | `/api/remote-sync/tasks/failed` · `/tasks/failed/{id}/retry` | 失败任务 / 清理 / 重试 | `failedTasks` / `cleanupFailedTasks` / `retryFailedTask` |
+| GET | `/api/remote-sync/logs` · `/stats/daily` · `/stats/flows` | 日志 / 统计 | `logs` / `dailyStats` / `flowStats` |
+| GET | `/api/remote-sync/events/stream` | SSE 事件流 | 走 `useSse` |
+
+### 6.3 部署站点（`/api/deployment-sites`，公开只读 2 个）
+
+> 2026-09-14 校准：后端 `mod.rs` 只注册了下面两个公开只读路由；原表中的 POST / PUT / DELETE / import-dboption / tasks / healthcheck / export-config 在后端不存在，前端封装已同步删除。
 
 | Method | Path | 用途 |
 |--------|------|------|
-| GET | `/api/remote-sync/envs` | 环境列表 |
-| GET | `/api/remote-sync/envs/{id}` | 环境详情 |
-| POST | `/api/remote-sync/envs` | 新建环境（待后端确认） |
-| DELETE | `/api/remote-sync/envs/{id}` | 删除环境 |
-| GET | `/api/remote-sync/envs/{env_id}/sites` | 环境下站点列表 |
-| POST | `/api/remote-sync/envs/{env_id}/sites` | 新建站点 |
-| GET | `/api/remote-sync/sites/{id}` | 站点详情 |
-| DELETE | `/api/remote-sync/sites/{id}` | 删除站点 |
-| GET | `/api/remote-sync/sites/{id}/metadata` | 站点 metadata |
-| GET | `/api/remote-sync/sites/{id}/files` | 站点文件列表 |
-| GET | `/api/remote-sync/topology` | 全局拓扑（envs + sites + relations） |
-| GET | `/api/remote-sync/runtime/status` | runtime 状态 |
-| POST | `/api/remote-sync/runtime/stop` | 停止 runtime |
-
-### 6.3 部署站点（`/api/deployment-sites/*`，公开 9 个）
-
-| Method | Path | 用途 |
-|--------|------|------|
-| GET | `/api/deployment-sites` | 列表 |
-| POST | `/api/deployment-sites` | 新建 |
+| GET | `/api/deployment-sites` | 列表（不含 DB 凭据 / 项目路径等敏感字段） |
 | GET | `/api/deployment-sites/{id}` | 详情 |
-| PUT | `/api/deployment-sites/{id}` | 更新 |
-| DELETE | `/api/deployment-sites/{id}` | 删除 |
-| POST | `/api/deployment-sites/import-dboption` | 从 DbOption.toml 一键导入 |
-| GET | `/api/deployment-sites/{id}/tasks` | 部署任务列表 |
-| POST | `/api/deployment-sites/{id}/healthcheck` | 健康检查 |
-| GET | `/api/deployment-sites/{id}/export-config` | 导出该站点的配置片段 |
 
 ### 6.4 MQTT 节点（`/api/mqtt/*` + `/api/sync/mqtt/*`，公开 ≈ 9 个）
 
@@ -494,9 +496,9 @@ LocalSite (DbOption.toml.location) ─── 1:1 ─── MqttNode (本进程�
 
 **步骤**：
 
-1. `/topology` 点"从 DbOption 导入" → `POST /api/deployment-sites/import-dboption`
-2. 弹出导入预览：N 条新增 / M 条已存在
-3. 确认后写库，列表自动刷新
+1. `/topology` 点"从 DbOption 导入" → `POST /api/remote-sync/envs/import-from-dboption`（API 已封装为 `remoteSyncApi.importEnvFromDbOption()`，**按钮待补**）
+2. 后端把当前进程的 DbOption 反向导入为一个 env（返回 `id`），随后可直接「激活」
+3. 列表自动刷新
 4. 切到 `/topology-viz` 看到新站点已被布点
 
 ---
@@ -703,6 +705,7 @@ LocalSite (DbOption.toml.location) ─── 1:1 ─── MqttNode (本进程�
 | 版本 | 日期 | 作者 | 变更 |
 |------|------|------|------|
 | 1.0 | 2026-04-26 | (本次产出) | 首版，基于当前代码实测 |
+| 1.1 | 2026-09-14 | fable-5-1-68 | §1.1 / §3 / §4.2 / §6.2 / §6.3 / US-4 按后端 `remote_sync_handlers.rs` 与 `mod.rs` 实际路由校准；部署动作面（test-mqtt / test-http / apply / activate / runtime）落地为 `/topology` 按钮；`deployment-sites` 收敛为公开只读 2 端点 |
 
 ---
 

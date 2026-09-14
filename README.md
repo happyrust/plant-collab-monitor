@@ -84,10 +84,10 @@ src/
 │   ├── http.ts                # 基础 axios + admin token interceptor
 │   ├── adminAuthApi.ts        # /api/admin/auth/* (login/logout/me)
 │   ├── syncApi.ts             # /api/sync/*
-│   ├── remoteSyncApi.ts       # /api/remote-sync/* (admin-gated)
+│   ├── remoteSyncApi.ts       # /api/remote-sync/* (admin-gated · env/site CRUD + apply/activate/test-mqtt/test-http/runtime + tasks/logs/stats)
 │   ├── mqttApi.ts             # /api/mqtt/*
 │   ├── siteConfigApi.ts       # /api/site-config/*
-│   ├── deploymentSitesApi.ts  # /api/deployment-sites/*（9 endpoint）
+│   ├── deploymentSitesApi.ts  # /api/deployment-sites（公开只读 list/get · 2 endpoint）
 │   ├── incrementalApi.ts      # /api/incremental/*（11 endpoint）
 │   └── index.ts
 ├── stores/                    # Pinia stores（全 ts）
@@ -113,7 +113,7 @@ src/
 │       └── SyncTrendChart.vue
 └── views/                     # 11 个一级视图（全部接入真 API，无 placeholder 壳）
     ├── DashboardView.vue          # 6 卡片 + 2 chart + 最近事件 · useDashboardSummary
-    ├── TopologyView.vue           # 异地拓扑 CRUD · NMessage/NDialog · meta.requiresAdmin
+    ├── TopologyView.vue           # 异地拓扑 CRUD + 部署动作（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http + 编辑）· meta.requiresAdmin
     ├── TopologyVisualizationView.vue  # SVG 节点拓扑可视化 · meta.requiresAdmin
     ├── TasksView.vue              # 任务队列 · syncApi.queue
     ├── SyncHistoryView.vue        # 同步历史时间线 · ts
@@ -169,6 +169,8 @@ location /ws/ {
 | `/api/site-config/reload` 仅诊断 | 后端 Phase 11 已落 diff + 分类响应；真热加载需 rs-core `OnceCell` → `RwLock<Arc<DbOption>>` 改造（跨仓 Phase 11-Plus 待） |
 | `/api/site-config/save` 后无 graceful restart | 后端 Phase 10 待（B5 main.rs + AppState 重构 2d）|
 | MBD `layout_result` 为 null | 后端未开启 `mbd-iso` feature（依赖 rs-core 未发布的 API）|
+| 本机双站点 e2e smoke 尚未跑通 | `scripts/local-remote-collab-smoke.ps1` 最近一次（2026-05-17）1 passed / 12 failed，原因是 Site A/B/MQTT 未启动；跑法与前置见 `docs/e2e-smoke/local-remote-collab-test-plan.md`，后端须以 `--features web_server,mqtt` 编译 |
+| `../plant-model-gen/docs/**` 历史文档 | 当前后端 checkout 不含 `docs/` 目录，下文「跨仓」表里的链接是历史记录；端点以 `plant-model-gen/src/web_server/*_handlers.rs` 源码为准 |
 
 **所有 11 视图均已实装真 API 调用，无 placeholder 壳。** Sprint A Phase 1-5 + Sprint C Phase 6/7 + Phase 12-Plus + Phase 13/14/15 累计 17 个 commits 收口。
 
@@ -216,6 +218,7 @@ location /ws/ {
 | Phase 24 | 侧栏可折叠（64px/256px + localStorage）| ✅ |
 | Phase 25 | 键盘快捷键（Alt+D 主题, Alt+B 侧栏）| ✅ |
 | Phase 26 | Desktop 通知（Notification API）| ✅ |
+| 2026-09-14 · 部署动作面 | `remoteSyncApi` 补齐 apply / activate / test-mqtt / test-http / sites test-http / updateSite / import-from-dboption / tasks / env config；`TopologyView` 新增运行时状态 pill + 停止运行时、环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」、站点「test-http / 编辑」；`deploymentSitesApi` 收敛为后端实际存在的 list / get | ✅（计划：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`）|
 
 ## 相关文档
 
@@ -225,6 +228,9 @@ location /ws/ {
 | **变更日志（中文）** | [`CHANGELOG.md`](./CHANGELOG.md) |
 | **AI agent / 接手工程师速查** | [`AGENTS.md`](./AGENTS.md) |
 | **5 秒交接清单** | [`HANDOFF.md`](./HANDOFF.md) |
+| **异地部署功能 · 下一步计划（2026-09-14，已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
+| 本机双站点测试计划 + smoke 脚本 | `docs/e2e-smoke/local-remote-collab-test-plan.md` · `scripts/local-remote-collab-smoke.ps1` |
+| 异地协同使用教程 | `docs/tutorials/remote-collab-usage-guide.md` |
 | 异地站点 PRD | `docs/prd/2026-04-26-remote-site-prd.md` |
 | 整体能力规范 PRD | `docs/prd/2026-04-25-collab-monitor-prd.md` |
 | Gap 清单 | `docs/plans/2026-04-25-collab-monitor-completion-gap.md` |

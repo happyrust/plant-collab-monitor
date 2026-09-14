@@ -6,8 +6,45 @@
         <i class="fas fa-network-wired text-primary"></i>
         异地拓扑管理
       </h3>
-      <div class="text-xs text-slate-500">
-        配置各个环境（Environments）及其包含的站点（Sites）
+      <div class="flex items-center gap-3">
+        <div class="hidden xl:block text-xs text-slate-500">
+          配置各个环境（Environments）及其包含的站点（Sites）
+        </div>
+        <!-- 运行时状态（watcher + MQTT 订阅）· 30s 轮询 -->
+        <div class="flex items-center gap-2" data-testid="remote-runtime-status">
+          <span
+            :class="[
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
+              runtime?.active
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
+                : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+            ]"
+            :title="runtimeTitle"
+          >
+            <span :class="['w-1.5 h-1.5 rounded-full', runtime?.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400']"></span>
+            <template v-if="runtime === null">运行时 · 未知</template>
+            <template v-else-if="runtime.active">运行时 · 已激活 {{ activeEnvName }}</template>
+            <template v-else>运行时 · 未激活</template>
+          </span>
+          <button
+            v-if="runtime?.active"
+            @click="handleStopRuntime"
+            class="btn btn-xs btn-outline btn-error gap-1"
+            :disabled="stoppingRuntime"
+            title="停止后端 watcher + MQTT 订阅"
+          >
+            <i class="fas fa-stop"></i>
+            {{ stoppingRuntime ? '停止中...' : '停止运行时' }}
+          </button>
+          <button
+            @click="loadRuntimeStatus"
+            class="btn btn-xs btn-ghost"
+            :disabled="runtimeLoading"
+            title="刷新运行时状态"
+          >
+            <i class="fas fa-sync-alt" :class="{ 'fa-spin': runtimeLoading }"></i>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -55,6 +92,14 @@
                 <h5 class="font-bold text-base truncate text-slate-800 flex items-center gap-2">
                   <i class="fas fa-server text-primary text-sm"></i>
                   {{ env.name }}
+                  <span
+                    v-if="isActiveEnv(env)"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
+                    title="当前后端运行时正在使用该环境"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    已激活
+                  </span>
                 </h5>
                 <button
                   @click.stop="handleDeleteEnv(env.id)"
@@ -73,6 +118,59 @@
                   <i class="fas fa-signal w-4 text-center text-green-500"></i>
                   <span class="truncate font-mono text-[11px]">{{ env.mqtt_host ? `${env.mqtt_host}:${env.mqtt_port}` : '未配置 MQTT' }}</span>
                 </p>
+              </div>
+
+              <!-- 部署动作：连通性诊断 + 推到运行时 -->
+              <div class="mt-3 flex flex-wrap items-center gap-1.5" @click.stop>
+                <button
+                  @click.stop="handleTestMqtt(env)"
+                  class="btn btn-xs btn-ghost gap-1"
+                  :disabled="isEnvBusy(env.id)"
+                  title="TCP 探测该环境的 mqtt_host:mqtt_port"
+                >
+                  <i class="fas fa-signal text-green-600" :class="{ 'fa-fade': envBusy[String(env.id)] === 'test-mqtt' }"></i>
+                  测 MQTT
+                </button>
+                <button
+                  @click.stop="handleTestHttp(env)"
+                  class="btn btn-xs btn-ghost gap-1"
+                  :disabled="isEnvBusy(env.id)"
+                  title="HTTP 探测该环境的 file_server_host"
+                >
+                  <i class="fas fa-hdd text-blue-600" :class="{ 'fa-fade': envBusy[String(env.id)] === 'test-http' }"></i>
+                  测文件服务
+                </button>
+                <button
+                  @click.stop="handleApplyEnv(env)"
+                  class="btn btn-xs btn-outline gap-1"
+                  :disabled="isEnvBusy(env.id)"
+                  title="把该环境写入后端 DbOption.toml（不重启运行态）"
+                >
+                  <i class="fas fa-file-export"></i>
+                  应用
+                </button>
+                <button
+                  @click.stop="handleActivateEnv(env)"
+                  class="btn btn-xs btn-primary gap-1"
+                  :disabled="isEnvBusy(env.id) || isActiveEnv(env)"
+                  :title="isActiveEnv(env) ? '该环境已是当前运行态' : '写入 DbOption.toml 并重启 watcher + MQTT 订阅'"
+                >
+                  <i class="fas fa-play"></i>
+                  {{ envBusy[String(env.id)] === 'activate' ? '激活中...' : '激活' }}
+                </button>
+              </div>
+              <div
+                v-if="envActionResults[String(env.id)]"
+                :class="[
+                  'mt-2 rounded-lg border px-3 py-2 text-[11px] leading-relaxed break-all',
+                  envActionResults[String(env.id)]?.ok
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300'
+                    : 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300'
+                ]"
+              >
+                <i :class="['fas mr-1', envActionResults[String(env.id)]?.ok ? 'fa-check-circle' : 'fa-exclamation-triangle']"></i>
+                {{ envActionResults[String(env.id)]?.text }}
+                <span class="opacity-60 ml-1">{{ envActionResults[String(env.id)]?.at }}</span>
               </div>
             </div>
           </div>
@@ -133,7 +231,7 @@
                 <th class="text-slate-700 dark:text-slate-300 font-bold">
                   <i class="fas fa-link mr-2 text-blue-600"></i>HTTP 地址
                 </th>
-                <th class="text-slate-700 dark:text-slate-300 font-bold">
+                <th class="hidden 2xl:table-cell text-slate-700 dark:text-slate-300 font-bold">
                   <i class="fas fa-comment mr-2 text-amber-600"></i>备注
                 </th>
                 <th class="text-slate-700 dark:text-slate-300 font-bold">角色</th>
@@ -170,7 +268,7 @@
                     {{ site.http_host || '-' }}
                   </code>
                 </td>
-                <td class="text-sm text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
+                <td class="hidden 2xl:table-cell text-sm text-slate-600 dark:text-slate-400 truncate max-w-[250px]" :title="site.notes || ''">
                   {{ site.notes || '-' }}
                 </td>
                 <td>
@@ -217,12 +315,40 @@
                       <span class="text-xs text-slate-500">未知</span>
                     </div>
                   </div>
+                  <!-- 后端侧 HTTP 诊断结果（POST /api/remote-sync/sites/{id}/test-http）· 完整信息在 title -->
+                  <div
+                    v-if="siteTestResults[String(site.id)]"
+                    :class="[
+                      'mt-1 text-[11px] whitespace-nowrap cursor-help',
+                      siteTestResults[String(site.id)]?.ok ? 'text-emerald-600' : 'text-rose-600'
+                    ]"
+                    :title="`后端探测：${siteTestResults[String(site.id)]?.text}`"
+                    data-testid="site-test-http-result"
+                  >
+                    <i :class="['fas mr-1', siteTestResults[String(site.id)]?.ok ? 'fa-check-circle' : 'fa-exclamation-triangle']"></i>
+                    {{ siteTestResults[String(site.id)]?.summary }}
+                  </div>
                 </td>
-                <td class="text-right">
+                <td class="text-right whitespace-nowrap">
+                  <button
+                    @click.stop="handleTestSiteHttp(site)"
+                    class="btn btn-ghost btn-xs text-blue-600 hover:bg-blue-50 tooltip tooltip-left"
+                    data-tip="由后端探测该站点 HTTP 可达性"
+                    :disabled="siteTesting[String(site.id)]"
+                  >
+                    <i class="fas fa-stethoscope" :class="{ 'fa-fade': siteTesting[String(site.id)] }"></i>
+                  </button>
+                  <button
+                    @click.stop="handleOpenEditSite(site)"
+                    class="btn btn-ghost btn-xs text-slate-600 hover:bg-slate-100 tooltip tooltip-left"
+                    data-tip="编辑站点"
+                  >
+                    <i class="fas fa-pen"></i>
+                  </button>
                   <button
                     v-if="!isCurrentSite(site)"
                     @click.stop="handleDeleteSite(site.id)"
-                    class="btn btn-ghost btn-sm text-error hover:bg-error/10 tooltip tooltip-left"
+                    class="btn btn-ghost btn-xs text-error hover:bg-error/10 tooltip tooltip-left"
                     data-tip="删除站点"
                   >
                     <i class="fas fa-trash"></i>
@@ -233,7 +359,7 @@
                     data-tip="主站点不能删除"
                   >
                     <button
-                      class="btn btn-ghost btn-sm text-slate-400 cursor-not-allowed"
+                      class="btn btn-ghost btn-xs text-slate-400 cursor-not-allowed"
                       disabled
                     >
                       <i class="fas fa-trash"></i>
@@ -382,10 +508,10 @@
             <i class="fas fa-sitemap text-2xl"></i>
           </div>
           <div class="flex-1">
-            <h3 class="font-bold text-2xl text-slate-800 mb-1">添加新站点</h3>
+            <h3 class="font-bold text-2xl text-slate-800 mb-1">{{ editingSiteId !== null ? '编辑站点' : '添加新站点' }}</h3>
             <p class="text-sm text-slate-500 flex items-center gap-1" v-if="selectedEnv">
               <i class="fas fa-layer-group text-xs"></i>
-              添加到环境: <span class="font-semibold text-primary">{{ selectedEnv.name }}</span>
+              {{ editingSiteId !== null ? '所属环境' : '添加到环境' }}: <span class="font-semibold text-primary">{{ selectedEnv.name }}</span>
             </p>
           </div>
         </div>
@@ -588,7 +714,7 @@
             >
               <i class="fas fa-check" v-if="!submitting"></i>
               <span class="loading loading-spinner loading-sm" v-if="submitting"></span>
-              {{ submitting ? '保存中...' : '保存站点' }}
+              {{ submitting ? '保存中...' : (editingSiteId !== null ? '保存修改' : '保存站点') }}
             </button>
           </div>
         </form>
@@ -714,8 +840,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { remoteSyncApi, siteConfigApi } from '@/api';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import {
+  remoteSyncApi,
+  siteConfigApi,
+  type RemoteSyncActionResponse,
+  type RemoteSyncRuntimeStatus,
+} from '@/api';
 
 type ApiObject = Record<string, unknown> & {
   status?: string;
@@ -735,6 +866,16 @@ type ApiObject = Record<string, unknown> & {
 };
 type ConfirmDialogType = 'warning' | 'error' | 'info' | 'success';
 type SiteOnlineStatus = 'unknown' | 'checking' | 'online' | 'offline';
+type EnvActionKind = 'test-mqtt' | 'test-http' | 'apply' | 'activate';
+
+interface ActionResult {
+  ok: boolean;
+  /** 完整可读文本（message · addr/url · code · latency） */
+  text: string;
+  /** 表格等窄处用的一行摘要 */
+  summary?: string;
+  at: string;
+}
 
 interface RemoteEnv extends ApiObject {
   id: string | number;
@@ -854,8 +995,194 @@ const siteDetails = ref<SiteDetails | null>(null);
 const loadingSiteDetails = ref(false);
 const siteDetailsError = ref<string | null>(null);
 
+// Site edit（复用添加站点弹窗；非 null 时提交走 updateSite）
+const editingSiteId = ref<string | number | null>(null);
+
+// 部署动作：env 级诊断 / 应用 / 激活
+const envBusy = ref<Record<string, EnvActionKind | undefined>>({});
+const envActionResults = ref<Record<string, ActionResult>>({});
+
+// 站点级 HTTP 诊断（后端发起，区别于浏览器直连的 online_status）
+const siteTesting = ref<Record<string, boolean>>({});
+const siteTestResults = ref<Record<string, ActionResult>>({});
+
+// 运行时状态（watcher + MQTT 订阅）
+const runtime = ref<RemoteSyncRuntimeStatus | null>(null);
+const runtimeLoading = ref(false);
+const stoppingRuntime = ref(false);
+let runtimeTimer: ReturnType<typeof setInterval> | null = null;
+
 // Current site config cache
 const currentSiteConfig = ref<CurrentSiteConfig | null>(null);
+
+const activeEnvName = computed(() => {
+  const id = runtime.value?.env_id;
+  if (!id) return '';
+  const env = envs.value.find((e) => String(e.id) === String(id));
+  return env?.name || String(id);
+});
+
+const runtimeTitle = computed(() => {
+  if (!runtime.value) return '尚未获取到后端运行时状态';
+  if (!runtime.value.active) return '后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动';
+  const mqtt = runtime.value.mqtt_connected;
+  const mqttText = mqtt === null || mqtt === undefined ? '未知' : String(mqtt);
+  return `env_id: ${runtime.value.env_id ?? '-'} · MQTT: ${mqttText}`;
+});
+
+const isActiveEnv = (env: RemoteEnv) =>
+  Boolean(runtime.value?.active) && String(runtime.value?.env_id ?? '') === String(env.id);
+
+const isEnvBusy = (envId: string | number) => Boolean(envBusy.value[String(envId)]);
+
+const nowLabel = () => new Date().toLocaleTimeString();
+
+/** 把后端 action / diagnostic 响应压成一行可读文本 */
+function describeActionResponse(res: RemoteSyncActionResponse | null | undefined) {
+  if (!res) return '后端未返回内容';
+  const parts: string[] = [res.message || res.status];
+  if (res.addr) parts.push(String(res.addr));
+  if (res.url) parts.push(String(res.url));
+  if (typeof res.code === 'number') parts.push(`HTTP ${res.code}`);
+  if (typeof res.latency_ms === 'number') parts.push(`${res.latency_ms} ms`);
+  return parts.join(' · ');
+}
+
+const loadRuntimeStatus = async () => {
+  runtimeLoading.value = true;
+  try {
+    runtime.value = await remoteSyncApi.runtimeStatus();
+  } catch (e) {
+    runtime.value = null;
+    console.warn('获取运行时状态失败:', formatError(e));
+  } finally {
+    runtimeLoading.value = false;
+  }
+};
+
+async function runEnvAction(
+  env: RemoteEnv,
+  kind: EnvActionKind,
+  label: string,
+  call: () => Promise<RemoteSyncActionResponse>,
+) {
+  const key = String(env.id);
+  envBusy.value = { ...envBusy.value, [key]: kind };
+  try {
+    const res = await call();
+    const ok = res?.status === 'success';
+    envActionResults.value = {
+      ...envActionResults.value,
+      [key]: { ok, text: `${label}：${describeActionResponse(res)}`, at: nowLabel() },
+    };
+    if (ok) {
+      message.success(`${env.name || '环境'}：${label}成功`);
+    } else {
+      message.error(`${env.name || '环境'}：${label}失败 — ${res?.message || '未知原因'}`);
+    }
+    return ok;
+  } catch (e) {
+    const msg = formatError(e);
+    console.error(`${label}失败:`, msg);
+    envActionResults.value = {
+      ...envActionResults.value,
+      [key]: { ok: false, text: `${label}：请求失败 — ${msg}`, at: nowLabel() },
+    };
+    message.error(`${label}失败: ${msg}`);
+    return false;
+  } finally {
+    const next = { ...envBusy.value };
+    delete next[key];
+    envBusy.value = next;
+  }
+}
+
+const handleTestMqtt = (env: RemoteEnv) =>
+  runEnvAction(env, 'test-mqtt', '测 MQTT', () => remoteSyncApi.testMqttEnv(env.id));
+
+const handleTestHttp = (env: RemoteEnv) =>
+  runEnvAction(env, 'test-http', '测文件服务', () => remoteSyncApi.testHttpEnv(env.id));
+
+const handleApplyEnv = async (env: RemoteEnv) => {
+  const ok = await confirmDialog(
+    '确认应用环境配置',
+    `将把环境「${env.name || env.id}」的 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入后端 DbOption.toml。不会重启运行态；部分运行期组件需重载或重启后生效。`,
+    'warning',
+  );
+  if (!ok) return;
+  await runEnvAction(env, 'apply', '应用配置', () => remoteSyncApi.applyEnv(env.id));
+};
+
+const handleActivateEnv = async (env: RemoteEnv) => {
+  const current = runtime.value?.active ? `当前已激活的运行态（${activeEnvName.value}）会先被停止。` : '';
+  const ok = await confirmDialog(
+    '确认激活环境',
+    `将把环境「${env.name || env.id}」写入后端 DbOption.toml，并在后端进程内重启 watcher + MQTT 订阅，立即生效。${current}`,
+    'warning',
+  );
+  if (!ok) return;
+  await runEnvAction(env, 'activate', '激活环境', () => remoteSyncApi.activateEnv(env.id));
+  await loadRuntimeStatus();
+};
+
+const handleStopRuntime = async () => {
+  const ok = await confirmDialog(
+    '确认停止运行时',
+    `将终止后端 watcher + MQTT 订阅${activeEnvName.value ? `（当前环境：${activeEnvName.value}）` : ''}。增量文件监听与跨站点消息接收会随之停止，直到再次激活某个环境。`,
+    'warning',
+  );
+  if (!ok) return;
+  stoppingRuntime.value = true;
+  try {
+    const res = await remoteSyncApi.stopRuntime();
+    if (res?.status === 'success') {
+      message.success(res.message || '已停止运行时');
+    } else {
+      message.error(`停止运行时失败: ${res?.message || '未知原因'}`);
+    }
+  } catch (e) {
+    message.error('停止运行时失败: ' + formatError(e));
+  } finally {
+    stoppingRuntime.value = false;
+  }
+  await loadRuntimeStatus();
+};
+
+const handleTestSiteHttp = async (site: RemoteSite) => {
+  const key = String(site.id);
+  siteTesting.value = { ...siteTesting.value, [key]: true };
+  try {
+    const res = await remoteSyncApi.testHttpSite(site.id);
+    const ok = res?.status === 'success';
+    const latency = typeof res?.latency_ms === 'number' ? ` · ${res.latency_ms} ms` : '';
+    siteTestResults.value = {
+      ...siteTestResults.value,
+      [key]: {
+        ok,
+        text: describeActionResponse(res),
+        summary: ok ? `可达${latency}` : '不可达',
+        at: nowLabel(),
+      },
+    };
+    if (ok) {
+      message.success(`${site.name || '站点'}：HTTP 可达`);
+    } else {
+      message.error(`${site.name || '站点'}：HTTP 不可达 — ${res?.message || '未知原因'}`);
+    }
+  } catch (e) {
+    const msg = formatError(e);
+    console.error('站点 HTTP 诊断失败:', msg);
+    siteTestResults.value = {
+      ...siteTestResults.value,
+      [key]: { ok: false, text: `请求失败 — ${msg}`, summary: '请求失败', at: nowLabel() },
+    };
+    message.error('站点 HTTP 诊断失败: ' + msg);
+  } finally {
+    const next = { ...siteTesting.value };
+    delete next[key];
+    siteTesting.value = next;
+  }
+};
 
 const normalizeDbList = (value: unknown) => {
   if (!value) return '';
@@ -1262,10 +1589,26 @@ const handleImportSiteConfig = async () => {
   }
 };
 
+// 编辑已有站点：复用添加站点弹窗，提交时走 PUT /api/remote-sync/sites/{id}
+const handleOpenEditSite = (site: RemoteSite) => {
+  editingSiteId.value = site.id;
+  siteForm.value = {
+    name: site.name || '',
+    location: site.location || '',
+    http_host: site.http_host || '',
+    dbnums: normalizeDbList(site.dbnums),
+    notes: site.notes || '',
+  };
+  siteImportInput.value = '';
+  importSiteError.value = null;
+  showAddSite.value = true;
+};
+
 // 打开添加站点对话框时，自动填充当前站点配置
 const handleOpenAddSite = async () => {
   if (!selectedEnv.value) return;
   
+  editingSiteId.value = null;
   siteForm.value = { name: '', location: '', http_host: '', dbnums: '', notes: '' };
   siteImportInput.value = '';
   importSiteError.value = null;
@@ -1305,18 +1648,26 @@ const handleSubmitSite = async () => {
       return;
     }
 
-    const res = await createRemoteSite(selectedEnv.value.id, siteForm.value);
+    const isEdit = editingSiteId.value !== null;
+    const res = isEdit
+      ? (await remoteSyncApi.updateSite(editingSiteId.value as string | number, siteForm.value)) as unknown as ApiObject
+      : await createRemoteSite(selectedEnv.value.id, siteForm.value);
     if (!res || (res.status && res.status !== 'success')) {
-      throw new Error(res?.error || res?.message || '创建站点失败');
+      throw new Error(res?.error || res?.message || (isEdit ? '更新站点失败' : '创建站点失败'));
     }
     showAddSite.value = false;
+    editingSiteId.value = null;
     siteForm.value = { name: '', location: '', http_host: '', dbnums: '', notes: '' };
     siteImportInput.value = '';
     importSiteError.value = null;
     await selectEnv(selectedEnv.value); // Reload sites
-    emit('site-added');
+    if (isEdit) {
+      message.success('已更新站点');
+    } else {
+      emit('site-added');
+    }
   } catch (e) {
-    message.error('创建站点失败: ' + formatError(e));
+    message.error((editingSiteId.value !== null ? '更新站点失败: ' : '创建站点失败: ') + formatError(e));
   } finally {
     submitting.value = false;
   }
@@ -1407,6 +1758,16 @@ onMounted(() => {
   loadEnvs();
   // 预加载当前站点配置
   loadCurrentSiteConfig();
+  // 运行时状态：首次 + 30s 轮询（与全局 StatusBar 节奏一致）
+  loadRuntimeStatus();
+  runtimeTimer = setInterval(loadRuntimeStatus, 30_000);
+});
+
+onUnmounted(() => {
+  if (runtimeTimer) {
+    clearInterval(runtimeTimer);
+    runtimeTimer = null;
+  }
 });
 </script>
 

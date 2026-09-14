@@ -261,10 +261,10 @@
 | 站点配置 `/api/site-config/*` + `/api/site/info` | 7 | 公开 |
 | MQTT 监控 `/api/mqtt/*`（节点/消息/订阅/主从） | 13 | 公开 |
 | 同步服务 `/api/sync/*`（含 SSE） | 23 | 公开 |
-| 异地环境与站点 `/api/remote-sync/*` | 26 | **admin-gated** |
-| 部署站点管理 `/api/deployment-sites/*` | 9 | 公开 |
+| 异地环境与站点 `/api/remote-sync/*` | 35（2026-09-14 按 `create_remote_sync_routes()` 实数；原记 26） | **admin-gated** |
+| 部署站点管理 `/api/deployment-sites` | 2（公开只读 list / get；原记 9，其余 7 个后端不存在） | 公开 |
 | 其他（identity/sync-status/sites）| 3 | 公开 |
-| **合计** | **81** | |
+| **合计** | **81**（历史合计，未按上两行重算） | |
 
 ### 5.2 前端 API 模块对应（强制规范）
 
@@ -275,13 +275,13 @@ src/api/
 ├── http.ts                 # axios 实例 + interceptor
 ├── index.ts                # 集中导出
 ├── syncApi.ts              # 23 + 1(SSE) 个 sync 端点
-├── remoteSyncApi.ts        # 26 个 admin-gated remote-sync 端点
+├── remoteSyncApi.ts        # 31 个方法 · admin-gated remote-sync（含 apply/activate/test-mqtt/test-http/runtime）
 ├── mqttApi.ts              # 13 个 mqtt 端点
 ├── siteConfigApi.ts        # 7 个 site-config 端点
-└── deploymentSitesApi.ts   # 9 个 deployment-sites 端点（待补）
+└── deploymentSitesApi.ts   # 2 个公开只读 deployment-sites 端点（list / get）
 ```
 
-> 当前缺 `deploymentSitesApi.ts`，是 **PRD-Gap**。
+> `deploymentSitesApi.ts` 已于 Sprint A 补齐；2026-09-14 收敛为后端实际存在的 `list / get`，详见 `2026-04-26-remote-site-prd.md` §6.3。
 
 ### 5.3 SSE 处理规范
 

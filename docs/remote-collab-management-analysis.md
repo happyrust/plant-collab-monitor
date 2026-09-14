@@ -76,18 +76,20 @@ adminAuth.token -> registerAuthTokenProvider -> axios request interceptor -> Aut
 
 | API 模块 | endpoint 前缀 | 用途 | 当前使用情况 |
 |---|---|---|---|
-| `remoteSyncApi` | `/api/remote-sync/*` | env/site CRUD、topology、runtime、logs、stats | `TopologyView`、`TopologyVisualizationView`、`LogsView` 已使用 |
+| `remoteSyncApi` | `/api/remote-sync/*` | env/site CRUD、apply / activate / test-mqtt / test-http、runtime status/stop、tasks、env config、topology、logs、stats | `TopologyView`（含 2026-09-14 新增的部署动作）、`TopologyVisualizationView`、`LogsView` 已使用 |
 | `mqttApi` | `/api/mqtt/*` | MQTT 节点、消息、订阅、主从角色、Broker 日志 | `MqttNodesView`、`MqttMessagesView`、`TopologyVisualizationView` 已使用 |
 | `syncApi` | `/api/sync/*` | 同步状态、队列、配置、历史、runtime、MQTT Broker start/stop | `Dashboard`、`Tasks`、`Settings`、`MqttNodes`、`appStatus` 已使用 |
 | `siteConfigApi` | `/api/site-config/*`、`/api/site/info` | 当前站点配置、校验、保存、reload、server-ip | `SiteConfigView`、`TopologyView`、`ArchivesView`、`SiteInfoBadge` 已使用 |
 | `incrementalApi` | `/api/incremental/*` | 增量状态、历史、归档、detect/sync/abort | `ArchivesView` 使用归档入口 |
-| `deploymentSitesApi` | `/api/deployment-sites/*` | DbOption 导入、部署站点 CRUD、healthcheck、tasks、export-config | API 封装已存在，当前未发现视图引用 |
+| `deploymentSitesApi` | `/api/deployment-sites` | 部署站点公开只读清单（`list / get`） | 2026-09-14 收敛：原封装的 import-dboption / CRUD / healthcheck / tasks / export-config 在后端不存在，已删除；当前无视图引用 |
 
 ## 5. 关键模块说明
 
 ### 拓扑管理
 
 `src/views/TopologyView.vue` 维护 env/site 两层结构。新建 env 时会读取当前站点配置，自动填入 `file_server_host`、`mqtt_host`、`location_dbs` 等字段；创建成功后尝试把当前站点作为 site 自动加入新 env。站点列表会把当前站点置顶，并用 `http_host` 与 `window.location.origin` 比较避免删除主站点。
+
+2026-09-14 起，该视图同时承担**部署动作面**：头部运行时状态 pill（`GET /api/remote-sync/runtime/status` 30s 轮询）与「停止运行时」；环境卡片上的「测 MQTT / 测文件服务 / 应用 / 激活」（`envs/{id}/test-mqtt|test-http|apply|activate`），诊断结果以 inline banner 留在卡片内，当前激活的 env 挂「已激活」徽标；站点行的后端侧 `sites/{id}/test-http` 诊断与「编辑」（`PUT sites/{id}`）。`apply / activate` 会改写后端 `DbOption.toml`，都经 NDialog 二次确认。
 
 ### 拓扑可视化
 
@@ -117,7 +119,8 @@ adminAuth.token -> registerAuthTokenProvider -> axios request interceptor -> Aut
 
 ## 6. 当前实现注意点
 
-- `deploymentSitesApi` 是完整封装，但当前视图层未引用；如果后续要做“从 DbOption 导入部署站点”闭环，需要明确它和 `remoteSyncApi` env/site 的映射关系。
+- `deploymentSitesApi` 已收敛为后端实际存在的 `list / get`；“从 DbOption 导入”闭环走 `remoteSyncApi.importEnvFromDbOption()`（`POST /api/remote-sync/envs/import-from-dboption`），当前尚无视图入口。
+- 本机双站点 e2e smoke（`scripts/local-remote-collab-smoke.ps1`）最近一次结果为 1 passed / 12 failed（Site A/B/MQTT 未启动），部署动作面的端到端验证仍待补，见 `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` P3。
 - `MqttNodesView.vue` 的破坏性操作确认已收口到 Naive UI dialog，成功/失败反馈已收口到 message toast。
 - 视图层已全部使用 `<script setup lang="ts">`；后续增强表单或 API payload 时，应继续把动态后端响应收口为局部 narrowing 或 API 层类型。
 - 跨站点直连依赖浏览器 CORS 与对端站点版本；文档和 UI 已把 `/api/site/info`、`/api/site-config` 不存在或超时作为可见错误处理。

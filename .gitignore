@@ -23,6 +23,8 @@ lerna-debug.log*
 !.vscode/tasks.json
 !.vscode/launch.json
 .cursor/mcp.json
+# 个人会话规则（2026-09-14 决策：不入库；模板见 .cursor/mcp.example.json）
+.cursor/rules/
 .idea/
 .DS_Store
 *.suo
@@ -40,6 +42,12 @@ lerna-debug.log*
 coverage/
 *.test.log
 docs/e2e-smoke/screenshots/
+
+# 本机双站点 smoke 的运行期 fixture（scripts/local-remote-collab-smoke.ps1 生成）
+runtime/
+
+# 教程 docx 由 scripts/generate-remote-collab-docx.mjs 按需生成，不入库（2026-09-14 决策）
+docs/tutorials/*.docx
 
 # Cache
 .cache/

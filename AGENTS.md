@@ -100,8 +100,25 @@ API 模块清单：
 | `mqttApi` | `/api/mqtt/*` | 部分 |
 | `siteConfigApi` | `/api/site-config/*` | 否 |
 | `incrementalApi` | `/api/incremental/*`（11 endpoint） | 否 |
-| `remoteSyncApi` | `/api/remote-sync/*`（26 endpoint） | **是** |
-| `deploymentSitesApi` | `/api/deployment-sites/*`（9 endpoint） | 是 |
+| `remoteSyncApi` | `/api/remote-sync/*`（31 方法 · 对应后端 `remote_sync_handlers.rs::create_remote_sync_routes()` 35 路由；含部署动作 `apply / activate / test-mqtt / test-http / runtime/stop`） | **是** |
+| `deploymentSitesApi` | `/api/deployment-sites`（公开只读 `list / get` · 2 endpoint；2026-09-14 收敛，其余 7 个后端不存在） | 否 |
+
+**API 层与后端路由必须一一对应**：新增方法前先在 `plant-model-gen/src/web_server/*_handlers.rs` 里确认路由真实注册；删掉悬空方法时同步本表与 README「项目结构」。
+
+### 4.3.1 部署动作面（`/topology`，2026-09-14）
+
+`TopologyView.vue` 承担「把 remote env 推到运行时」的全部入口，全部走 `remoteSyncApi`，二次确认用 `confirmDialog`（NDialog）：
+
+| 入口 | 端点 | 行为 |
+|---|---|---|
+| 头部运行时 pill + 「停止运行时」 | `GET runtime/status`（30s 轮询）· `POST runtime/stop` | 显示 `active / env_id / mqtt_connected`；停止 watcher + MQTT 订阅 |
+| 环境卡片「测 MQTT」「测文件服务」 | `POST envs/{id}/test-mqtt` · `POST envs/{id}/test-http` | 结果（addr / url / code / latency_ms）以 inline banner 显示在卡片内 |
+| 环境卡片「应用」 | `POST envs/{id}/apply` | 只把 env 写回后端 `DbOption.toml`，不重启运行态 |
+| 环境卡片「激活」 | `POST envs/{id}/activate` | 写 `DbOption.toml` + 进程内重启 watcher + MQTT；成功后卡片挂「已激活」徽标 |
+| 站点行「听诊器」 | `POST sites/{id}/test-http` | 由后端探测站点 HTTP 可达（区别于浏览器直连的 `online_status`） |
+| 站点行「编辑」 | `PUT sites/{id}` | 复用添加站点弹窗，`editingSiteId !== null` 时提交走 `updateSite` |
+
+⚠ `apply / activate` 会**改写后端进程的 `DbOption.toml`**（`remote_sync_handlers.rs::write_env_to_runtime_config`）。本地联调只在隔离配置（`runtime/local-collab/site-*/DbOption.toml`）上操作；后端要带 `--features web_server,mqtt` 编译，否则 activate 的 MQTT 分支为空。
 
 ### 4.4 UI 风格规范
 
