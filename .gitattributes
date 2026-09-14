@@ -1,0 +1,22 @@
+# 行尾统一：索引一律 LF（2026-09-14 前索引已全部是 LF，本文件只是把这一事实固定下来，
+# 避免编辑器在 Windows 上把工作区改成 CRLF 后，package.json / *.ps1 / *.md 出现整文件重写的假 diff）。
+* text=auto eol=lf
+
+# cmd.exe 解释的脚本必须 CRLF（标签跳转在 LF 下会出错）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制资产
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.docx binary
+*.pdf binary
+*.zip binary
