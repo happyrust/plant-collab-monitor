@@ -171,6 +171,7 @@ location /ws/ {
 | MBD `layout_result` 为 null | 后端未开启 `mbd-iso` feature（依赖 rs-core 未发布的 API）|
 | 本机双站点 e2e smoke 尚未跑通 | `scripts/local-remote-collab-smoke.ps1` 最近一次（2026-05-17）1 passed / 12 failed，原因是 Site A/B/MQTT 未启动；跑法与前置见 `docs/e2e-smoke/local-remote-collab-test-plan.md`，后端须以 `--features web_server,mqtt` 编译 |
 | `../plant-model-gen/docs/**` 历史文档 | 当前后端 checkout 不含 `docs/` 目录，下文「跨仓」表里的链接是历史记录；端点以 `plant-model-gen/src/web_server/*_handlers.rs` 源码为准 |
+| 两种后端并存 | 本机 `:3100` 实际运行的是 `../plant-web-server`（`standalone-real`），与 `plant-model-gen/web_server` 路由相同但响应形状不同（login 无 `expires_at`、动作响应 `success` 而非 `status`、`runtime/status` 只有 `running`）。前端已兼容两种形状（`isRemoteSyncActionOk`、`AGENTS.md` §4.3.2），新代码不要再假设单一形状 |
 
 **所有 11 视图均已实装真 API 调用，无 placeholder 壳。** Sprint A Phase 1-5 + Sprint C Phase 6/7 + Phase 12-Plus + Phase 13/14/15 累计 17 个 commits 收口。
 

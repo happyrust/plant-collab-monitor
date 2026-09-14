@@ -8,6 +8,7 @@ export {
 export { syncApi } from './syncApi';
 export {
   remoteSyncApi,
+  isRemoteSyncActionOk,
   type RemoteSyncActionResponse,
   type RemoteSyncRuntimeStatus,
   type RemoteSyncSitePayload,

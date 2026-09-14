@@ -8,32 +8,71 @@ import { http } from './http';
  */
 
 /**
- * 动作 / 诊断类端点的统一响应（后端 `action_success / action_failed / ok_diagnostic / failed_diagnostic`）。
- * - apply / activate / runtime.stop：`{ status, message, env_id }`
- * - test-mqtt：`{ status, message, checked_at, addr?, latency_ms? }`
- * - test-http：`{ status, message, checked_at, url?, code?, latency_ms? }`
+ * 动作 / 诊断类端点的统一响应。两种后端形状都要兼容：
+ *
+ * - `plant-model-gen/web_server`（`action_success / action_failed / ok_diagnostic / failed_diagnostic`）：
+ *   `{ status: 'success' | 'failed', message, checked_at?, env_id?, addr?, url?, code?, latency_ms? }`
+ * - `plant-web-server`（standalone-real，`connection_probe_response` / `activate_env` / `runtime_stop`）：
+ *   `{ success: boolean, message?, kind?, host?, port?, reachable?, stopped?, item?, task?, mode }`
+ *
+ * 判定成功用 `isRemoteSyncActionOk()`，别直接比 `status`。
  */
 export interface RemoteSyncActionResponse {
-  status: 'success' | 'failed';
-  message: string;
+  status?: 'success' | 'failed' | string;
+  success?: boolean;
+  message?: string;
   checked_at?: string;
   env_id?: string | null;
   addr?: string;
   url?: string;
   code?: number;
   latency_ms?: number;
+  /** plant-web-server 探测：目标主机 / 端口 / 是否可达 */
+  host?: string;
+  port?: number | null;
+  reachable?: boolean;
+  stopped?: boolean;
   [k: string]: unknown;
 }
 
-/** `GET /api/remote-sync/runtime/status` */
+/** 动作 / 诊断响应是否算成功（兼容两种后端形状） */
+export function isRemoteSyncActionOk(res: RemoteSyncActionResponse | null | undefined): boolean {
+  if (!res) return false;
+  let ok: boolean;
+  if (typeof res.status === 'string') {
+    ok = res.status === 'success';
+  } else if (typeof res.success === 'boolean') {
+    ok = res.success;
+  } else {
+    ok = false;
+  }
+  // 探测类：请求本身成功但目标不可达也算失败
+  if (ok && res.reachable === false) ok = false;
+  return ok;
+}
+
+/**
+ * `GET /api/remote-sync/runtime/status`
+ *
+ * - plant-model-gen：`{ status: 'success', active, env_id, mqtt_connected }`
+ * - plant-web-server：`{ success, running, env_count, site_count, active_task_count, root, mode }`
+ *   （没有 env_id；当前激活的 env 要从 `GET envs` 的 `items[].active` / 顶层 `active` 取）
+ */
 export interface RemoteSyncRuntimeStatus {
-  status: 'success';
-  /** watcher + MQTT 运行态是否存在 */
-  active: boolean;
-  /** 当前激活的 env id（未激活为 null） */
-  env_id: string | null;
-  /** MQTT 连接状态（后端 `MQTT_CONNECT_STATUS`，未接入时可能为 null） */
-  mqtt_connected: unknown;
+  status?: string;
+  success?: boolean;
+  /** plant-model-gen：watcher + MQTT 运行态是否存在 */
+  active?: boolean;
+  /** plant-model-gen：当前激活的 env id（未激活为 null） */
+  env_id?: string | null;
+  /** plant-model-gen：MQTT 连接状态（未接入时可能为 null） */
+  mqtt_connected?: unknown;
+  /** plant-web-server：运行时是否在跑 */
+  running?: boolean;
+  env_count?: number;
+  site_count?: number;
+  active_task_count?: number;
+  mode?: string;
   [k: string]: unknown;
 }
 

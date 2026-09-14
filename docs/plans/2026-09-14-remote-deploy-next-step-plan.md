@@ -27,6 +27,7 @@
 | `deploymentSitesApi.ts` | 9 端点里 **7 个后端不存在**（后端只注册公开只读 `GET list/get`），且无视图引用 |
 | 本机双站点 e2e smoke | 2026-05-17 结果 **1 passed / 12 failed / 6 skipped**，全部因 Site A/B/MQTT 未启动；前置 `runtime/local-collab/site-a|b/DbOption.toml` 不存在 |
 | 本地可复现性 | 后端 `target/**/web_server.exe` 未编译；monitor `node_modules` 未安装 |
+| **实际在跑的后端**（执行期发现） | 本机 `:3100` 是 `../plant-web-server`（standalone-real），不是 `plant-model-gen/web_server`；login 无 `expires_at` → 监控台此前对它**登录必失败**；动作 / 运行时响应形状不同（`success` vs `status`、`running` vs `active/env_id`） |
 | 文档 | README/AGENTS 引用的 `../plant-model-gen/docs/**` 在当前后端目录不存在；HANDOFF「已编译 debug」过期；教程截图为 CDP mock |
 | 仓库 | 最后提交 `a65acad` 2026-05-18；工作区 15 个未跟踪 / 修改文件 |
 
@@ -130,6 +131,16 @@ P2（收敛 API + 文档）─┐
 | 后端目录不是 git 仓，无法核对 Sprint B 20/20 等历史结论 | 以当前源码 `rg` 为准，文档里标注「按 2026-09 源码核对」 |
 
 ---
+
+## 5.1 执行记录（2026-09-14）
+
+| 阶段 | 状态 | 说明 |
+|---|---|---|
+| P1 部署动作面 | ✅ 提交 `2825b93` + 后续兼容提交 | `remoteSyncApi` 补齐；`TopologyView` 运行时 pill / 停止运行时 / 环境卡片 4 按钮 / 站点 test-http + 编辑；mock 与真后端（plant-web-server）两轮 Playwright 走通 |
+| P2 API 收敛 + 文档 | ✅ 同上 | `deploymentSitesApi` → `list / get`；README / AGENTS（新增 §4.3.1、§4.3.2）/ HANDOFF / 分析文档 / 两份 PRD 校准 |
+| P3 双站点环境 | ◐ 部分 | ✅ `web_server` 已编出（`D:\Rust\target\debug\web_server.exe`，`web_server,mqtt`；补 clone 了 `../pdms-io-fork`）。❌ 本机无 Mosquitto、`runtime/local-collab/site-a\|b/DbOption.toml` 未生成、两实例未启动（长驻进程须用户自己起）；smoke 仍未跑 |
+| P4 仓库卫生 | ✅ | `.gitignore` / 归档 / 入库 PNG；两份失败的 smoke JSON 仍未跟踪，等 P3 跑通后覆盖 |
+| 计划外 | ✅ | 兼容 plant-web-server：login `expires_at` 可缺、`isRemoteSyncActionOk()`、激活态从 `envs[].active` 推导 |
 
 ## 6. 需要拍板的问题
 

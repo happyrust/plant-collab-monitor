@@ -54,7 +54,11 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     writeStorage(STORAGE_KEYS.token, session.token);
     writeStorage(STORAGE_KEYS.username, session.username);
     writeStorage(STORAGE_KEYS.role, session.role);
-    writeStorage(STORAGE_KEYS.expiresAt, session.expires_at);
+    if (session.expires_at) {
+      writeStorage(STORAGE_KEYS.expiresAt, session.expires_at);
+    } else {
+      removeStorage(STORAGE_KEYS.expiresAt);
+    }
     backendAdminUnconfigured.value = false;
   }
 

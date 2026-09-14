@@ -34,18 +34,24 @@ type-check: 0 errors
 
 ---
 
+## 先看清楚后端是谁
+
+- 本机 `:3100` 现在跑的是 **`../plant-web-server`**（`D:\Rust\target\release\plant-web-server.exe`，2026-09-09 起，`--repo-root ../plant-model-gen --config db_options/DbOption-cursor`，`mode: standalone-real`）。它的 remote-sync 数据在 `plant-web-server/runtime/remote_sync/`，已有 4 个 env（2026-05-23/24 smoke 留下的 `Smoke Env` / `Persistence Env`）。
+- `plant-model-gen/web_server` 与它路由相同、**响应形状不同**，见 `AGENTS.md` §4.3.2；监控台已两边兼容。
+- 对着 `:3100` 点「激活 / 应用 / 停止运行时」会改真后端的状态，联调前先确认这是不是你要的实例。
+
 ## 启动验证（前置说明）
 
-后端 `plant-model-gen` **不是** git 仓，且 `target/` 默认没有编译产物；`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
+后端 `plant-model-gen` **不是** git 仓；`cargo` 的 target 在 `D:\Rust\target`（`CARGO_TARGET_DIR`），2026-09-14 已编出 `D:\Rust\target\debug\web_server.exe`（`web_server,mqtt`，142 MB）。`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
 
 ```powershell
 # 1. 编译后端（必须带 mqtt，否则 activate 的 MQTT 订阅分支为空）
 cd D:/work/plant-code/plant-model-gen
 cargo build --bin web_server --features web_server,mqtt
 
-# 2. 起后端（在用户自己的终端里，长驻进程）
-$env:ADMIN_USER='admin'; $env:ADMIN_PASS='admin'
-.\target\debug\web_server.exe          # 默认 :3100，配置取 db_options/DbOption.toml（DB_OPTION_FILE 可覆盖）
+# 2. 起后端（在用户自己的终端里，长驻进程；:3100 已被 plant-web-server 占用时换端口）
+$env:ADMIN_USER='admin'; $env:ADMIN_PASS='admin'; $env:WEB_SERVER_PORT='3101'
+D:\Rust\target\debug\web_server.exe    # 配置取 db_options/DbOption.toml（DB_OPTION_FILE 可覆盖）
 
 # 3. 前端
 cd D:/work/plant-code/plant-collab-monitor

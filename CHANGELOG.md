@@ -30,9 +30,15 @@
 - `.gitignore`：忽略 `.cursor/rules/`（个人会话规则，`mcp-messenger.mdc` 从索引移除、本地保留）、`runtime/`（smoke fixture）、`docs/tutorials/*.docx`。
 - 2026-05-06 的 `task_plan.md / findings.md / progress.md` 归档到 `docs/plans/archive/2026-05-06-review-fix/`。
 
+#### Fixed（对本机实际运行的 `plant-web-server` 后端）
+
+- `adminAuthApi.normalizeAdminSession` 不再强制 `expires_at`：plant-web-server 的 login 响应没有该字段，此前监控台对它**登录必失败**（「管理员登录响应缺少会话字段」），所有 admin-gated 视图不可用。
+- `remoteSyncApi.isRemoteSyncActionOk()`：动作 / 诊断响应同时兼容 `status:'success'|'failed'`（plant-model-gen）与 `success:boolean` + `reachable`（plant-web-server）；`TopologyView` 的运行时激活态改由 `runtime/status` 的 `active/env_id` **或** `envs[].active` 推导，两种后端下 pill / 已激活徽标 / 激活按钮禁用都正确。
+- 新建 env / 站点、编辑站点的成功判定补 `success === false` 分支。
+
 #### Known gaps
 
-- 本机双站点 e2e smoke 仍未跑通（最近一次 2026-05-17：1 passed / 12 failed，Site A/B/MQTT 未启动）；本机无 Mosquitto，`runtime/local-collab/site-a|b/DbOption.toml` 未生成。
+- 本机双站点 e2e smoke 仍未跑通（最近一次 2026-05-17：1 passed / 12 failed，Site A/B/MQTT 未启动）；本机无 Mosquitto，`runtime/local-collab/site-a|b/DbOption.toml` 未生成。`plant-model-gen` `web_server` 已可编译（`cargo build --bin web_server --features web_server,mqtt` → `D:\Rust\target\debug\web_server.exe`，需先 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
 - `/topology` 尚无「从 DbOption 导入」按钮（API 已封装）。
 - 部署动作面新按钮尚未纳入 `scripts/phase7-plus-smoke.mjs`。
 
@@ -41,6 +47,8 @@
 - `npm run type-check` · 0 errors
 - `npm run build`
 - 后端路由对照：`rg -n 'route\(' ../plant-model-gen/src/web_server/remote_sync_handlers.rs`（35 路由）与 `mod.rs:1213-1221`（deployment-sites 仅 GET list / get）
+- vite preview + Playwright（mock plant-model-gen 形状）：测 MQTT → 测文件服务 → 激活（确认弹窗）→ 站点 test-http → 编辑保存 → 停止运行时，6 个端点命中、0 console/page error、站点表 1440 宽度无横向溢出
+- vite preview 反代到本机 `plant-web-server :3100`（只读 + 安全探测）：admin 登录成功 → pill「已激活 Persistence Env」→ 4 张 env 卡 1 个「已激活」→ 该 env 测 MQTT / 测文件服务（`目标不可达 · 127.0.0.1:3299`，符合预期）→ 站点 test-http；写请求 0 次
 
 ---
 

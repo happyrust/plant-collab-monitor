@@ -15,19 +15,20 @@
           <span
             :class="[
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
-              runtime?.active
+              runtimeActive
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
                 : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
             ]"
             :title="runtimeTitle"
           >
-            <span :class="['w-1.5 h-1.5 rounded-full', runtime?.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400']"></span>
+            <span :class="['w-1.5 h-1.5 rounded-full', runtimeActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400']"></span>
             <template v-if="runtime === null">运行时 · 未知</template>
-            <template v-else-if="runtime.active">运行时 · 已激活 {{ activeEnvName }}</template>
+            <template v-else-if="runtimeActive">运行时 · 已激活 {{ activeEnvName }}</template>
+            <template v-else-if="runtime.running === true">运行时 · 运行中 · 未激活环境</template>
             <template v-else>运行时 · 未激活</template>
           </span>
           <button
-            v-if="runtime?.active"
+            v-if="runtimeActive || runtime?.running === true"
             @click="handleStopRuntime"
             class="btn btn-xs btn-outline btn-error gap-1"
             :disabled="stoppingRuntime"
@@ -844,12 +845,14 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import {
   remoteSyncApi,
   siteConfigApi,
+  isRemoteSyncActionOk,
   type RemoteSyncActionResponse,
   type RemoteSyncRuntimeStatus,
 } from '@/api';
 
 type ApiObject = Record<string, unknown> & {
   status?: string;
+  success?: boolean;
   error?: string;
   message?: string;
   items?: unknown[];
@@ -881,6 +884,8 @@ interface RemoteEnv extends ApiObject {
   id: string | number;
   name?: string;
   location?: string;
+  /** plant-web-server：该 env 是否为当前激活环境 */
+  active?: boolean;
 }
 
 interface RemoteSite extends ApiObject {
@@ -1015,37 +1020,89 @@ let runtimeTimer: ReturnType<typeof setInterval> | null = null;
 // Current site config cache
 const currentSiteConfig = ref<CurrentSiteConfig | null>(null);
 
+/**
+ * 当前激活的 env id（兼容两种后端）：
+ * - plant-model-gen：`runtime/status` 直接给 `active + env_id`
+ * - plant-web-server：`runtime/status` 只有 `running`，激活的 env 记在 `envs[].active`
+ */
+const activeEnvId = computed<string | null>(() => {
+  const rt = runtime.value;
+  if (rt && typeof rt.active === 'boolean') {
+    return rt.active && rt.env_id ? String(rt.env_id) : null;
+  }
+  const flagged = envs.value.find((e) => e.active === true);
+  return flagged ? String(flagged.id) : null;
+});
+
+/** 运行时是否处于「已激活」态 */
+const runtimeActive = computed(() => {
+  const rt = runtime.value;
+  if (!rt) return false;
+  if (typeof rt.active === 'boolean') return rt.active;
+  return rt.running === true && activeEnvId.value !== null;
+});
+
 const activeEnvName = computed(() => {
-  const id = runtime.value?.env_id;
+  const id = activeEnvId.value;
   if (!id) return '';
-  const env = envs.value.find((e) => String(e.id) === String(id));
-  return env?.name || String(id);
+  const env = envs.value.find((e) => String(e.id) === id);
+  return env?.name || id;
 });
 
 const runtimeTitle = computed(() => {
-  if (!runtime.value) return '尚未获取到后端运行时状态';
-  if (!runtime.value.active) return '后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动';
-  const mqtt = runtime.value.mqtt_connected;
-  const mqttText = mqtt === null || mqtt === undefined ? '未知' : String(mqtt);
-  return `env_id: ${runtime.value.env_id ?? '-'} · MQTT: ${mqttText}`;
+  const rt = runtime.value;
+  if (!rt) return '尚未获取到后端运行时状态';
+  if (!runtimeActive.value) {
+    return rt.running === true
+      ? '后端运行时在跑，但没有已激活的环境；在环境卡片上点「激活」'
+      : '后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动';
+  }
+  const parts = [`env_id: ${activeEnvId.value ?? '-'}`];
+  if ('mqtt_connected' in rt) {
+    const mqtt = rt.mqtt_connected;
+    parts.push(`MQTT: ${mqtt === null || mqtt === undefined ? '未知' : String(mqtt)}`);
+  }
+  if (typeof rt.active_task_count === 'number') parts.push(`活动任务: ${rt.active_task_count}`);
+  if (rt.mode) parts.push(`mode: ${rt.mode}`);
+  return parts.join(' · ');
 });
 
 const isActiveEnv = (env: RemoteEnv) =>
-  Boolean(runtime.value?.active) && String(runtime.value?.env_id ?? '') === String(env.id);
+  runtimeActive.value && activeEnvId.value === String(env.id);
 
 const isEnvBusy = (envId: string | number) => Boolean(envBusy.value[String(envId)]);
 
 const nowLabel = () => new Date().toLocaleTimeString();
 
-/** 把后端 action / diagnostic 响应压成一行可读文本 */
+/** 把后端 action / diagnostic 响应压成一行可读文本（兼容两种后端形状） */
 function describeActionResponse(res: RemoteSyncActionResponse | null | undefined) {
   if (!res) return '后端未返回内容';
-  const parts: string[] = [res.message || res.status];
+  const parts: string[] = [];
+  if (res.message) {
+    parts.push(String(res.message));
+  } else if (typeof res.reachable === 'boolean') {
+    parts.push(res.reachable ? '目标可达' : '目标不可达');
+  } else if (res.stopped === true) {
+    parts.push('已停止');
+  } else if (typeof res.status === 'string') {
+    parts.push(res.status);
+  } else if (typeof res.success === 'boolean') {
+    parts.push(res.success ? '成功' : '失败');
+  }
   if (res.addr) parts.push(String(res.addr));
+  if (res.host && !res.addr) parts.push(res.port ? `${res.host}:${res.port}` : String(res.host));
   if (res.url) parts.push(String(res.url));
   if (typeof res.code === 'number') parts.push(`HTTP ${res.code}`);
   if (typeof res.latency_ms === 'number') parts.push(`${res.latency_ms} ms`);
   return parts.join(' · ');
+}
+
+/** 失败时给 toast 用的原因 */
+function actionFailureReason(res: RemoteSyncActionResponse | null | undefined) {
+  if (!res) return '后端未返回内容';
+  if (res.message) return String(res.message);
+  if (res.reachable === false) return '目标不可达';
+  return '未知原因';
 }
 
 const loadRuntimeStatus = async () => {
@@ -1070,7 +1127,7 @@ async function runEnvAction(
   envBusy.value = { ...envBusy.value, [key]: kind };
   try {
     const res = await call();
-    const ok = res?.status === 'success';
+    const ok = isRemoteSyncActionOk(res);
     envActionResults.value = {
       ...envActionResults.value,
       [key]: { ok, text: `${label}：${describeActionResponse(res)}`, at: nowLabel() },
@@ -1078,7 +1135,7 @@ async function runEnvAction(
     if (ok) {
       message.success(`${env.name || '环境'}：${label}成功`);
     } else {
-      message.error(`${env.name || '环境'}：${label}失败 — ${res?.message || '未知原因'}`);
+      message.error(`${env.name || '环境'}：${label}失败 — ${actionFailureReason(res)}`);
     }
     return ok;
   } catch (e) {
@@ -1122,7 +1179,8 @@ const handleActivateEnv = async (env: RemoteEnv) => {
   );
   if (!ok) return;
   await runEnvAction(env, 'activate', '激活环境', () => remoteSyncApi.activateEnv(env.id));
-  await loadRuntimeStatus();
+  // plant-web-server 把激活态记在 envs[].active 上，所以 env 列表也要刷
+  await Promise.all([loadRuntimeStatus(), loadEnvs()]);
 };
 
 const handleStopRuntime = async () => {
@@ -1135,17 +1193,17 @@ const handleStopRuntime = async () => {
   stoppingRuntime.value = true;
   try {
     const res = await remoteSyncApi.stopRuntime();
-    if (res?.status === 'success') {
+    if (isRemoteSyncActionOk(res)) {
       message.success(res.message || '已停止运行时');
     } else {
-      message.error(`停止运行时失败: ${res?.message || '未知原因'}`);
+      message.error(`停止运行时失败: ${actionFailureReason(res)}`);
     }
   } catch (e) {
     message.error('停止运行时失败: ' + formatError(e));
   } finally {
     stoppingRuntime.value = false;
   }
-  await loadRuntimeStatus();
+  await Promise.all([loadRuntimeStatus(), loadEnvs()]);
 };
 
 const handleTestSiteHttp = async (site: RemoteSite) => {
@@ -1153,7 +1211,7 @@ const handleTestSiteHttp = async (site: RemoteSite) => {
   siteTesting.value = { ...siteTesting.value, [key]: true };
   try {
     const res = await remoteSyncApi.testHttpSite(site.id);
-    const ok = res?.status === 'success';
+    const ok = isRemoteSyncActionOk(res);
     const latency = typeof res?.latency_ms === 'number' ? ` · ${res.latency_ms} ms` : '';
     siteTestResults.value = {
       ...siteTestResults.value,
@@ -1167,7 +1225,7 @@ const handleTestSiteHttp = async (site: RemoteSite) => {
     if (ok) {
       message.success(`${site.name || '站点'}：HTTP 可达`);
     } else {
-      message.error(`${site.name || '站点'}：HTTP 不可达 — ${res?.message || '未知原因'}`);
+      message.error(`${site.name || '站点'}：HTTP 不可达 — ${actionFailureReason(res)}`);
     }
   } catch (e) {
     const msg = formatError(e);
@@ -1461,9 +1519,9 @@ const handleSubmitEnv = async () => {
     // 保存环境名称，用于后续查找
     const envName = envForm.value.name;
 
-    // 创建环境
+    // 创建环境（plant-model-gen 回 status:'success'；plant-web-server 回 success:boolean）
     const res = await createRemoteEnv(envForm.value);
-    if (!res || (res.status && res.status !== 'success')) {
+    if (!res || (res.status && res.status !== 'success') || res.success === false) {
       throw new Error(res?.error || res?.message || '创建环境失败');
     }
 
@@ -1652,7 +1710,7 @@ const handleSubmitSite = async () => {
     const res = isEdit
       ? (await remoteSyncApi.updateSite(editingSiteId.value as string | number, siteForm.value)) as unknown as ApiObject
       : await createRemoteSite(selectedEnv.value.id, siteForm.value);
-    if (!res || (res.status && res.status !== 'success')) {
+    if (!res || (res.status && res.status !== 'success') || res.success === false) {
       throw new Error(res?.error || res?.message || (isEdit ? '更新站点失败' : '创建站点失败'));
     }
     showAddSite.value = false;

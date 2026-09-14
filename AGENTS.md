@@ -120,6 +120,20 @@ API 模块清单：
 
 ⚠ `apply / activate` 会**改写后端进程的 `DbOption.toml`**（`remote_sync_handlers.rs::write_env_to_runtime_config`）。本地联调只在隔离配置（`runtime/local-collab/site-*/DbOption.toml`）上操作；后端要带 `--features web_server,mqtt` 编译，否则 activate 的 MQTT 分支为空。
 
+### 4.3.2 两种后端、两种响应形状（2026-09-14 实测）
+
+本机 `:3100` 上实际在跑的是 **`../plant-web-server`**（`plant-web-server.exe`，README 自述"extracted project home"，`mode: standalone-real`），不是 `plant-model-gen/web_server`。两者路由一致，**响应形状不同**：
+
+| 端点 | plant-model-gen `web_server` | plant-web-server（standalone-real） |
+|---|---|---|
+| `POST admin/auth/login` | `data.{token, expires_at, user}` | `data.{token, user}`（**无 `expires_at`**） |
+| `GET runtime/status` | `{status, active, env_id, mqtt_connected}` | `{success, running, env_count, site_count, active_task_count, mode}`（激活的 env 在 `GET envs` 的 `items[].active`） |
+| `apply / activate / runtime/stop` | `{status:'success'│'failed', message, env_id}` | `{success, item, task}` / `{success, stopped}` |
+| `test-mqtt / test-http` | `{status, message, checked_at, addr│url, code, latency_ms}` | `{success, kind, host, port, reachable}` |
+| 出错 | `status:'failed'` + `message` | `success:false` + `message` |
+
+前端约定：判成功一律走 `isRemoteSyncActionOk()`（`remoteSyncApi.ts`），**别直接比 `status === 'success'`**；运行时激活态用 `TopologyView` 的 `activeEnvId / runtimeActive` computed（兼容两种来源）；`adminAuthApi.normalizeAdminSession` 只强制 `token / username / role`，`expires_at` 可为 null。新增任何写后端形状假设的代码，两种后端都要过一遍。
+
 ### 4.4 UI 风格规范
 
 **禁止**：

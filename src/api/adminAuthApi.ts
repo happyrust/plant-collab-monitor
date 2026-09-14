@@ -4,7 +4,11 @@ export interface AdminSession {
   token: string;
   username: string;
   role: string;
-  expires_at: string;
+  /**
+   * 过期时刻。plant-model-gen 后端返回 ISO 字符串；plant-web-server（standalone-real）
+   * 的 login 响应没有这个字段，此时为 null（前端目前只存不校验）。
+   */
+  expires_at: string | null;
 }
 
 export interface AdminProfile {
@@ -43,9 +47,10 @@ function normalizeAdminSession(response: AdminAuthEnvelope): AdminSession {
   const token = data.token;
   const username = data.username ?? data.user?.username;
   const role = data.role ?? data.user?.role;
-  const expiresAt = data.expires_at;
+  const expiresAt = data.expires_at ?? null;
 
-  if (!token || !username || !role || !expiresAt) {
+  // expires_at 可缺（plant-web-server 不返回），其余三项缺一不可
+  if (!token || !username || !role) {
     throw new Error('管理员登录响应缺少会话字段');
   }
 
