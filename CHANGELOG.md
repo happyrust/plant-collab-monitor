@@ -36,11 +36,41 @@
 - `remoteSyncApi.isRemoteSyncActionOk()`：动作 / 诊断响应同时兼容 `status:'success'|'failed'`（plant-model-gen）与 `success:boolean` + `reachable`（plant-web-server）；`TopologyView` 的运行时激活态改由 `runtime/status` 的 `active/env_id` **或** `envs[].active` 推导，两种后端下 pill / 已激活徽标 / 激活按钮禁用都正确。
 - 新建 env / 站点、编辑站点的成功判定补 `success === false` 分支。
 
+#### Added（自动化测试用例 · 同日下午）
+
+- `docs/e2e-smoke/remote-deploy-auto-test-cases.md`：异地部署功能四层用例目录（L1 mock 契约 `DA-01–15` / L2 真后端只读 `LR-00–06` / L3 真后端闭环 `LF-00–08` / L4 双站点 `LS-01–19` + 建议 `LS-20–22`），含覆盖矩阵与选择器契约。
+- `scripts/topology-deploy-smoke.mjs`（`npm run smoke:topology-deploy`）：自起 `vite preview` + Chrome，用 mock 后端把 `/topology` 部署动作面对 plant-model-gen / plant-web-server 两种响应形状各跑 15 例（登录、pill、测连通成功/失败、5xx、激活取消/确定、应用成功/业务失败、站点 test-http 可达/不可达、编辑站点 PUT、停止运行时、动作后刷新、表格布局）。
+- `scripts/topology-deploy-live-smoke.mjs`（`npm run smoke:topology-deploy:live`）：对真后端跑只读安全层（脚本层拦下一切非探测写请求），`--mode full --confirm-writes` 跑完整闭环并自动收尾恢复（pmg 且原本无激活 env 时先 `import-from-dboption` 快照、收尾 apply 回去）；后端形状自动识别。
+
+#### Added（P3 环境生成 + 双站点 smoke 扩展 · 同日下午）
+
+- `scripts/local-remote-collab-setup.ps1`：从 `../plant-model-gen/db_options/DbOption.toml` 生成 `runtime/local-collab/site-a|b/DbOption.toml`（隔离 `location / file_server_host / deployment_sites_sqlite_path / output_root / [web_server].port|bind_host|site_id|region|surreal_bind|surreal_data_path / [surrealdb].port|path`，`gen_*` 关掉、`auto_start_surreal = true`、`versioned_storage = false`），外加每站点 `start.ps1`、`output/index.html + metadata.json` 探测 fixture、`mosquitto.conf + start-mosquitto.ps1`、`COMMANDS.md`；有 python 时用 `tomllib` 真解析校验；前置检查（web_server.exe / mosquitto / mosquitto_pub / surreal）缺什么打印安装命令。本机已生成并校验通过。
+- `scripts/local-remote-collab-smoke.ps1`：19 → 22 项。新增 `remote-runtime-active-env`（LS-15，激活确实生效，兼容两种后端）、`mqtt-received-after-publish`（LS-20，发布后轮询 `runtime/status.mqtt_connected`）、`runtime-stop-clears-active`（LS-22，stop 后 `active === false`）+ 收尾删 smoke 站点 / env（`-KeepEnv` 关闭）；新参数 `-SiteBFileServerHost / -SiteBHttpHost`（默认 Site B `/files/output`，让 plant-model-gen 的 `test-http` 与 `sites/{id}/test-http` 探得到）、`-MosquittoDir`、`-MqttReceiveTimeoutSec`；末尾按 LS 编号逐项打印。
+- `docs/e2e-smoke/local-remote-collab-test-plan.md` §3–§7 按生成器与 22 项重写；`remote-deploy-auto-test-cases.md` §5 同步。
+
+#### 发现（P3 准备阶段，后端侧）
+
+- `web_server.exe` 默认只编 SurrealDB `kv-mem`（`Cargo.toml` 注释明确不编 `kv-rocksdb`），`[surrealdb] mode = "file"` 起不来；`activate` → `start_runtime` 需要 `ensure_surreal_init()`，所以双站点 smoke 必须有 `surreal` 二进制（每站点 `auto_start_surreal`）。本机没有 `surreal`、也没有 Mosquitto。
+- `mqtt_service::SyncE3dFileMsg::from(Vec<u8>)` 用 `serde_json::from_slice(..).unwrap()`：一条畸形 MQTT 消息就会让订阅任务 panic 退出，只能重新 activate 恢复。
+- `sites/{id}/test-http` 探的是 `<http_host>/metadata.json`，而监控台 UI 的浏览器探活用 `<http_host>/api/health`；plant-model-gen 站点根路径不提供 `metadata.json`，两者对 `http_host` 的期待不一致。smoke 默认把 `http_host` 指到 Site B 的 `/files/output`（生成器放了 `metadata.json`），UI 侧「在线」判断在该配置下会显示离线。
+- plant-model-gen 的 MQTT 收包写 SurrealDB `e3d_sync` 并尝试 clone，不写 `remote_sync_logs`；「MQTT → 同步日志」不是可观察链路，LS-20 改看 `mqtt_connected`。
+
+#### Fixed（同日下午）
+
+- `TopologyView.handleActivateEnv`：确认弹窗里「当前已激活的运行态（X）会先被停止」的提示改用 `runtimeActive`（原来读 `runtime.active`，plant-web-server 没有该字段，导致对它永远不提示）。由 DA-05 在 pws 形状下首轮失败暴露。
+
+#### Verification（同日下午）
+
+- `npm run type-check` · 0 errors
+- `npm run smoke:topology-deploy` → pmg 15/15 · pws 15/15 · pageErrors 0（`docs/e2e-smoke/topology-deploy-smoke-result.json`）
+- `npm run smoke:topology-deploy:live`（本机 plant-web-server `:3100`）→ 7/7，写请求 0（`docs/e2e-smoke/topology-deploy-live-readonly-result.json`）
+- `node scripts/topology-deploy-live-smoke.mjs --mode full --confirm-writes`（同一后端，用户确认后）→ 9/9：建 env → 探测 → 激活（后端 `active` 切换）→ 应用 → 站点 test-http + 编辑 → 停止 → 收尾恢复，env 集合 / 激活态与跑前一致、站点无孤儿（`docs/e2e-smoke/topology-deploy-live-full-result.json`）
+
 #### Known gaps
 
 - 本机双站点 e2e smoke 仍未跑通（最近一次 2026-05-17：1 passed / 12 failed，Site A/B/MQTT 未启动）；本机无 Mosquitto，`runtime/local-collab/site-a|b/DbOption.toml` 未生成。`plant-model-gen` `web_server` 已可编译（`cargo build --bin web_server --features web_server,mqtt` → `D:\Rust\target\debug\web_server.exe`，需先 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
 - `/topology` 尚无「从 DbOption 导入」按钮（API 已封装）。
-- 部署动作面新按钮尚未纳入 `scripts/phase7-plus-smoke.mjs`。
+- ~~部署动作面新按钮尚未纳入 `scripts/phase7-plus-smoke.mjs`~~ → 由 `scripts/topology-deploy-smoke.mjs` / `topology-deploy-live-smoke.mjs` 覆盖（见下方 Added）；L3 full 的 plant-model-gen 路径与 L4 双站点仍等 P3 环境。
 
 #### Verification
 

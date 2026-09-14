@@ -138,9 +138,10 @@ P2（收敛 API + 文档）─┐
 |---|---|---|
 | P1 部署动作面 | ✅ 提交 `2825b93` + 后续兼容提交 | `remoteSyncApi` 补齐；`TopologyView` 运行时 pill / 停止运行时 / 环境卡片 4 按钮 / 站点 test-http + 编辑；mock 与真后端（plant-web-server）两轮 Playwright 走通 |
 | P2 API 收敛 + 文档 | ✅ 同上 | `deploymentSitesApi` → `list / get`；README / AGENTS（新增 §4.3.1、§4.3.2）/ HANDOFF / 分析文档 / 两份 PRD 校准 |
-| P3 双站点环境 | ◐ 部分 | ✅ `web_server` 已编出（`D:\Rust\target\debug\web_server.exe`，`web_server,mqtt`；补 clone 了 `../pdms-io-fork`）。❌ 本机无 Mosquitto、`runtime/local-collab/site-a\|b/DbOption.toml` 未生成、两实例未启动（长驻进程须用户自己起）；smoke 仍未跑 |
+| P3 双站点环境 | ◐ 部分 | ✅ `web_server` 已编出（`D:\Rust\target\debug\web_server.exe`，`web_server,mqtt`；补 clone 了 `../pdms-io-fork`）。✅ 同日下午：`scripts/local-remote-collab-setup.ps1` 生成并校验了 `runtime/local-collab/site-a\|b/DbOption.toml` + 启动器 + fixture + Mosquitto 配置；smoke 脚本扩到 22 项（LS-15/20/22）。❌ 本机仍无 Mosquitto 与 `surreal` 二进制（安装命令见 `COMMANDS.md`），两实例未启动（长驻进程须用户自己起）；真实 smoke 仍未跑 |
 | P4 仓库卫生 | ✅ | `.gitignore` / 归档 / 入库 PNG；两份失败的 smoke JSON 仍未跟踪，等 P3 跑通后覆盖 |
 | 计划外 | ✅ | 兼容 plant-web-server：login `expires_at` 可缺、`isRemoteSyncActionOk()`、激活态从 `envs[].active` 推导；用户确认后对本机 plant-web-server 做了完整闭环联调并恢复状态（`docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md`） |
+| 自动化用例 | ✅ | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` 四层用例；`scripts/topology-deploy-smoke.mjs`（mock，pmg/pws 各 15 例全过）+ `scripts/topology-deploy-live-smoke.mjs`（真后端只读 7/7；`--mode full --confirm-writes` 闭环就绪）。P3 环境好了对 Site A 跑 live full 即为第 5 步的自动化版本 |
 
 ## 6. 需要拍板的问题
 

@@ -15,7 +15,8 @@
 | 想做什么？ | 起手命令 / 文档 |
 |---|---|
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
-| 跑本机双站点 smoke（P3） | `docs/e2e-smoke/local-remote-collab-test-plan.md` → `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1` |
+| **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 15 例）；真后端只读 `npm run smoke:topology-deploy:live` |
+| 跑本机双站点 smoke（P3） | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1`（生成 site-a/site-b 配置 + 启动器 + 前置检查）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`（22 项）；细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
 | **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md) |
@@ -73,9 +74,9 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 
 ## 仍欠
 
-1. **P3 本机双站点 smoke**：需 Mosquitto（本机未安装）+ `runtime/local-collab/site-a|b/DbOption.toml`（尚未生成）+ 两个 `web_server` 实例；最近一次结果 1 passed / 12 failed（服务未起）。
+1. **P3 本机双站点 smoke**：配置 / 启动器 / fixture 已由 `scripts/local-remote-collab-setup.ps1` 生成到 `../plant-model-gen/runtime/local-collab/`（tomllib 校验通过）；smoke 脚本已扩到 22 项（新增 LS-15 激活生效、LS-20 MQTT 收包、LS-22 stop 清 active + 收尾）。**仍缺两个外部二进制**：Mosquitto（`winget install --id EclipseFoundation.Mosquitto -e`）与 `surreal`（`iwr https://windows.surrealdb.com -useb | iex`；`web_server.exe` 只编了 kv-mem，站点靠 `auto_start_surreal` 各自拉 SurrealDB :8021/:8022）。装好后三个长驻进程要在用户自己的终端里起（见 `COMMANDS.md`），再跑 smoke；最近一次真实结果仍是 2026-05-17 的 1 passed / 12 failed。
 2. `/topology` 的「从 DbOption 导入」按钮（API `remoteSyncApi.importEnvFromDbOption()` 已有）。
-3. **Phase 7-Plus 浏览器联调**回归（部署动作面新按钮尚未进 `scripts/phase7-plus-smoke.mjs`）。
+3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–15）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。剩：L3 full 的 plant-model-gen 路径与 L4 双站点等 P3 环境。
 
 ---
 
