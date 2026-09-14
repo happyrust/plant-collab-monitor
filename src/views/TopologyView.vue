@@ -1171,7 +1171,8 @@ const handleApplyEnv = async (env: RemoteEnv) => {
 };
 
 const handleActivateEnv = async (env: RemoteEnv) => {
-  const current = runtime.value?.active ? `当前已激活的运行态（${activeEnvName.value}）会先被停止。` : '';
+  // 用 runtimeActive（兼容两种后端）而不是 runtime.active：plant-web-server 没有 active 字段
+  const current = runtimeActive.value ? `当前已激活的运行态（${activeEnvName.value}）会先被停止。` : '';
   const ok = await confirmDialog(
     '确认激活环境',
     `将把环境「${env.name || env.id}」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。${current}`,

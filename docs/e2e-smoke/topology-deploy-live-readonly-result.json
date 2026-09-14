@@ -1,0 +1,162 @@
+{
+  "mode": "readonly",
+  "api": "http://127.0.0.1:3100",
+  "envName": null,
+  "generatedAt": "2026-09-14T07:34:40.310Z",
+  "backend": {
+    "shape": "pws",
+    "health": {
+      "mode": "detached",
+      "service": "plant-web-server",
+      "status": "ok"
+    },
+    "mode": "standalone-real",
+    "loginHasExpiresAt": false,
+    "envCount": 4,
+    "activeEnvId": "persist-env-20260524104836",
+    "runtime": {
+      "active_task_count": 12,
+      "env_count": 4,
+      "mode": "standalone-real",
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+      "running": true,
+      "site_count": 4,
+      "success": true
+    }
+  },
+  "cases": [
+    {
+      "id": "LR-00",
+      "title": "后端可达、admin 登录、识别响应形状",
+      "status": "passed",
+      "ms": 6,
+      "details": {
+        "shape": "pws",
+        "health": {
+          "mode": "detached",
+          "service": "plant-web-server",
+          "status": "ok"
+        },
+        "mode": "standalone-real",
+        "loginHasExpiresAt": false,
+        "envCount": 4,
+        "activeEnvId": "persist-env-20260524104836",
+        "runtime": {
+          "active_task_count": 12,
+          "env_count": 4,
+          "mode": "standalone-real",
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+          "running": true,
+          "site_count": 4,
+          "success": true
+        }
+      }
+    },
+    {
+      "id": "LR-01",
+      "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
+      "status": "passed",
+      "ms": 2063,
+      "details": {
+        "loginStatus": 200,
+        "pill": "运行时 · 已激活 Persistence Env 停止运行时",
+        "title": "env_id: persist-env-20260524104836 · 活动任务: 12 · mode: standalone-real"
+      }
+    },
+    {
+      "id": "LR-02",
+      "title": "env 卡片与「已激活」徽标一致：徽标 ≤1，挂徽标的卡「激活」置灰",
+      "status": "passed",
+      "ms": 8,
+      "details": {
+        "envCards": 4,
+        "badges": 1
+      }
+    },
+    {
+      "id": "LR-03",
+      "title": "环境「测 MQTT」→ 后端返回诊断（可达 / 不可达皆可），非传输失败",
+      "status": "passed",
+      "ms": 351,
+      "details": {
+        "env": "Persistence Env 已激活",
+        "banner": "测 MQTT：目标不可达 · 127.0.0.1:3299 15:34:43"
+      }
+    },
+    {
+      "id": "LR-04",
+      "title": "环境「测文件服务」→ 后端返回诊断，非传输失败",
+      "status": "passed",
+      "ms": 937,
+      "details": {
+        "env": "Persistence Env 已激活",
+        "banner": "测文件服务：目标不可达 · 127.0.0.1:3299 15:34:43"
+      }
+    },
+    {
+      "id": "LR-05",
+      "title": "选中 env → 站点表加载 → 有站点则后端 test-http 出结果",
+      "status": "passed",
+      "ms": 2762,
+      "details": {
+        "rowCount": 1,
+        "siteTest": {
+          "summary": "不可达",
+          "title": "后端探测：目标不可达 · 127.0.0.1"
+        }
+      }
+    },
+    {
+      "id": "LR-06",
+      "title": "安全闸：全程 0 次非探测写请求、0 pageerror",
+      "status": "passed",
+      "ms": 0,
+      "details": {
+        "apiCalls": [
+          "GET /api/site/info",
+          "GET /api/sync/status",
+          "GET /api/sync/queue",
+          "GET /api/sync/metrics",
+          "GET /api/mqtt/nodes",
+          "GET /api/sync/history",
+          "POST /api/admin/auth/login",
+          "GET /api/remote-sync/envs",
+          "GET /api/site-config",
+          "GET /api/remote-sync/runtime/status",
+          "POST /api/remote-sync/envs/persist-env-20260524104836/test-mqtt",
+          "POST /api/remote-sync/envs/persist-env-20260524104836/test-http",
+          "GET /api/remote-sync/envs/persist-env-20260524104836/sites",
+          "POST /api/remote-sync/sites/persist-site-20260524104836/test-http"
+        ]
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/sync/metrics",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "POST /api/remote-sync/envs/persist-env-20260524104836/test-mqtt",
+    "POST /api/remote-sync/envs/persist-env-20260524104836/test-http",
+    "GET /api/remote-sync/envs/persist-env-20260524104836/sites",
+    "POST /api/remote-sync/sites/persist-site-20260524104836/test-http"
+  ],
+  "mutatingBlocked": [],
+  "writes": [],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "cleanup": null,
+  "passed": true,
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy-live\\readonly"
+}

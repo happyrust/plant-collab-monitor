@@ -1,0 +1,328 @@
+{
+  "mode": "full",
+  "api": "http://127.0.0.1:3100",
+  "envName": "monitor-e2e-20260914-073403",
+  "generatedAt": "2026-09-14T07:34:03.528Z",
+  "backend": {
+    "shape": "pws",
+    "health": {
+      "mode": "detached",
+      "service": "plant-web-server",
+      "status": "ok"
+    },
+    "mode": "standalone-real",
+    "loginHasExpiresAt": false,
+    "envCount": 4,
+    "activeEnvId": "persist-env-20260524104836",
+    "runtime": {
+      "active_task_count": 10,
+      "env_count": 4,
+      "mode": "standalone-real",
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+      "running": true,
+      "site_count": 4,
+      "success": true
+    }
+  },
+  "cases": [
+    {
+      "id": "LF-00",
+      "title": "后端可达、admin 登录、识别响应形状",
+      "status": "passed",
+      "ms": 5,
+      "details": {
+        "shape": "pws",
+        "health": {
+          "mode": "detached",
+          "service": "plant-web-server",
+          "status": "ok"
+        },
+        "mode": "standalone-real",
+        "loginHasExpiresAt": false,
+        "envCount": 4,
+        "activeEnvId": "persist-env-20260524104836",
+        "runtime": {
+          "active_task_count": 10,
+          "env_count": 4,
+          "mode": "standalone-real",
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+          "running": true,
+          "site_count": 4,
+          "success": true
+        }
+      }
+    },
+    {
+      "id": "LF-01",
+      "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
+      "status": "passed",
+      "ms": 1962,
+      "details": {
+        "loginStatus": 200,
+        "pill": "运行时 · 已激活 Persistence Env 停止运行时",
+        "title": "env_id: persist-env-20260524104836 · 活动任务: 10 · mode: standalone-real"
+      }
+    },
+    {
+      "id": "LF-02",
+      "title": "UI 新建测试 env → 卡片出现 → 后端能查到（含自动加入的本站站点）",
+      "status": "passed",
+      "ms": 2147,
+      "details": {
+        "id": "env-1789371246",
+        "autoSites": [
+          {
+            "id": "site-1789371246",
+            "name": "AvevaMarineSample",
+            "http_host": "http://localhost:4178"
+          }
+        ]
+      }
+    },
+    {
+      "id": "LF-03",
+      "title": "测 MQTT / 测文件服务 → 都拿到后端诊断（结果按环境真实情况记录）",
+      "status": "passed",
+      "ms": 159,
+      "details": {
+        "mqtt": "测 MQTT：目标不可达 · 127.0.0.1 15:34:08",
+        "http": "测文件服务：目标不可达 · 127.0.0.1 15:34:08"
+      }
+    },
+    {
+      "id": "LF-04",
+      "title": "激活 → 确认 → pill 切到测试 env，后端激活态 == 测试 env",
+      "status": "passed",
+      "ms": 1444,
+      "details": {
+        "dialogText": "确认激活环境 将把环境「monitor-e2e-20260914-073403」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。当前已激活的运行态（Persistence Env）会先被停止。 取消 确定",
+        "banner": "激活环境：成功 15:34:08",
+        "backendActive": "env-1789371246",
+        "mqtt_connected": null
+      }
+    },
+    {
+      "id": "LF-05",
+      "title": "应用 → 确认 → 拿到后端结果 banner",
+      "status": "passed",
+      "ms": 474,
+      "details": {
+        "banner": "应用配置：成功 15:34:10"
+      }
+    },
+    {
+      "id": "LF-06",
+      "title": "站点 test-http → 结果；编辑备注 → PUT → 后端 notes 更新",
+      "status": "passed",
+      "ms": 4015,
+      "details": {
+        "rowCount": 1,
+        "siteTest": {
+          "summary": "不可达",
+          "title": "后端探测：目标不可达 · 127.0.0.1"
+        },
+        "notes": "edited by topology-deploy-live-smoke 20260914-073403"
+      }
+    },
+    {
+      "id": "LF-07",
+      "title": "停止运行时 → 确认 → 后端运行时状态按各自语义变化",
+      "status": "passed",
+      "ms": 3089,
+      "details": {
+        "pill": "运行时 · 已激活 monitor-e2e-20260914-073403 停止运行时",
+        "runtime": {
+          "active_task_count": 12,
+          "env_count": 5,
+          "mode": "standalone-real",
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+          "running": true,
+          "site_count": 5,
+          "success": true
+        },
+        "backendActive": "env-1789371246"
+      }
+    },
+    {
+      "id": "LF-08",
+      "title": "收尾：删测试 env / 站点，恢复原激活态，env 集合与联调前一致",
+      "status": "passed",
+      "details": {
+        "envIdsRestored": true,
+        "activeRestored": true,
+        "leftoverEnvIds": [],
+        "error": null
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/sync/metrics",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/site-config/server-ip",
+    "POST /api/remote-sync/envs",
+    "POST /api/remote-sync/envs/env-1789371246/sites",
+    "GET /api/remote-sync/envs/env-1789371246/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/envs/env-1789371246/test-mqtt",
+    "POST /api/remote-sync/envs/env-1789371246/test-http",
+    "POST /api/remote-sync/envs/env-1789371246/activate",
+    "POST /api/remote-sync/envs/env-1789371246/apply",
+    "POST /api/remote-sync/sites/site-1789371246/test-http",
+    "PUT /api/remote-sync/sites/site-1789371246",
+    "POST /api/remote-sync/runtime/stop"
+  ],
+  "mutatingBlocked": [],
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs",
+      "status": 200,
+      "body": "{\"data\":{\"active\":false,\"created_at\":\"2026-09-14T07:34:06.5687546Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789371246\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-073403\",\"status\":\"created\",\"updated_at\":\"2026-09-14T07:34:06.5687561Z\"},\"item\":{\"active\":false,\"created_at\":\"2026-09-14T07:34:0"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789371246/sites",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-14T07:34:06.5877695Z\",\"dbnums\":\"251181\",\"env_id\":\"env-1789371246\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789371246\",\"location\":\"mqtt-smoke-20260525142813\",\"mode\":\"standalone-real\",\"name\":\"AvevaMarineSample\",\"notes\":\"站点（自动添加）\",\"status\":\"created\",\"updated_at\":\"2026-09-14T07:34:06.5877708Z\"},\"item\":{\"created_at\":\"2026-09-14T07:34:06.5877695Z\",\"dbnums\":\"251181\","
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789371246/activate",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-14T07:34:08.8734661Z\",\"active\":true,\"created_at\":\"2026-09-14T07:34:06.5687546Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789371246\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-073403\",\"status\":\"active\",\"updated_at\":\"2026-09-14T07:34:06.5687561Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789371246/apply",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-14T07:34:10.2908404Z\",\"active\":true,\"created_at\":\"2026-09-14T07:34:06.5687546Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789371246\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-073403\",\"status\":\"active\",\"updated_at\":\"2026-09-14T07:34:06.5687561Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/remote-sync/sites/site-1789371246",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-14T07:34:06.5877695Z\",\"dbnums\":\"251181\",\"env_id\":\"env-1789371246\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789371246\",\"location\":\"mqtt-smoke-20260525142813\",\"mode\":\"standalone-real\",\"name\":\"AvevaMarineSample\",\"notes\":\"edited by topology-deploy-live-smoke 20260914-073403\",\"status\":\"created\",\"updated_at\":\"2026-09-14T07:34:13.0920448Z\"},\"item\":{\"created_at\":\"2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/runtime/stop",
+      "status": 200,
+      "body": "{\"mode\":\"standalone-real\",\"stopped\":true,\"success\":true}"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "cleanup": {
+    "steps": [
+      {
+        "name": "delete-site",
+        "id": "site-1789371246",
+        "status": 200,
+        "body": {
+          "deleted": true,
+          "id": "site-1789371246",
+          "mode": "standalone-real",
+          "success": true
+        }
+      },
+      {
+        "name": "delete-env",
+        "id": "env-1789371246",
+        "status": 200,
+        "body": {
+          "deleted": true,
+          "id": "env-1789371246",
+          "mode": "standalone-real",
+          "success": true
+        }
+      },
+      {
+        "name": "reactivate-original",
+        "id": "persist-env-20260524104836",
+        "status": 200,
+        "body": {
+          "data": {
+            "activated_at": "2026-09-14T07:34:17.695714Z",
+            "active": true,
+            "config": {
+              "host": "127.0.0.1",
+              "marker": "20260524104836",
+              "port": 3299
+            },
+            "created_at": "2026-05-24T02:48:38.2839825Z",
+            "host": "127.0.0.1",
+            "id": "persist-env-20260524104836",
+            "mode": "standalone-real",
+            "name": "Persistence Env",
+            "port": 3299,
+            "status": "active",
+            "updated_at": "2026-05-24T02:48:38.318964Z"
+          },
+          "item": {
+            "activated_at": "2026-09-14T07:34:17.695714Z",
+            "active": true,
+            "config": {
+              "host": "127.0.0.1",
+              "marker": "20260524104836",
+              "port": 3299
+            },
+            "created_at": "2026-05-24T02:48:38.2839825Z",
+            "host": "127.0.0.1",
+            "id": "persist-env-20260524104836",
+            "mode": "standalone-real",
+            "name": "Persistence Env",
+            "port": 3299,
+            "status": "active",
+            "updated_at": "2026-05-24T02:48:38.318964Z"
+          },
+          "mode": "standalone-real",
+          "success": true,
+          "task": {
+            "action": "activate",
+            "env_id": "persist-env-20260524104836",
+            "id": "remote-sync-activate-persist-env-20260524104836",
+            "mode": "standalone-real",
+            "progress": 100,
+            "started_at": "2026-09-14T07:34:17.6961513Z",
+            "status": "Active",
+            "task_id": "remote-sync-activate-persist-env-20260524104836",
+            "task_name": "Remote sync activate persist-env-20260524104836",
+            "task_type": "RemoteSyncRuntime",
+            "updated_at": "2026-09-14T07:34:17.6961513Z"
+          }
+        }
+      }
+    ],
+    "envIdsRestored": true,
+    "activeRestored": true,
+    "taskTotalBefore": 10,
+    "taskTotalAfter": 12,
+    "leftoverEnvIds": []
+  },
+  "passed": true,
+  "before": {
+    "activeEnvId": "persist-env-20260524104836",
+    "envIds": [
+      "smoke-env",
+      "persist-env-20260524091710",
+      "persist-env-20260524091832",
+      "persist-env-20260524104836"
+    ],
+    "taskTotal": 10,
+    "snapshotEnvId": null
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy-live\\full"
+}

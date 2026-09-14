@@ -1,0 +1,394 @@
+{
+  "generatedAt": "2026-09-14T15:04:30.435Z",
+  "baseUrl": "http://localhost:4177/monitor/",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "shapes": {
+    "pmg": {
+      "shape": "pmg",
+      "passed": true,
+      "summary": {
+        "passed": 15,
+        "failed": 0
+      },
+      "cases": [
+        {
+          "id": "DA-01",
+          "title": "admin 登录（两种 login 形状）并重定向回 /topology",
+          "status": "passed",
+          "ms": 1041,
+          "details": {
+            "redirect": "/topology",
+            "token": "mock-pmg-token"
+          }
+        },
+        {
+          "id": "DA-02",
+          "title": "运行时 pill 初始态 + 已激活徽标 + 激活按钮禁用",
+          "status": "passed",
+          "ms": 103,
+          "details": {
+            "pill": "运行时 · 已激活 华东协同环境 停止运行时",
+            "title": "env_id: env-1 · MQTT: true"
+          }
+        },
+        {
+          "id": "DA-03",
+          "title": "环境「测 MQTT」成功 → emerald banner 含目标地址",
+          "status": "passed",
+          "ms": 74,
+          "details": {
+            "banner": "测 MQTT：MQTT 连接可达 · 10.0.0.9:1883 · 3 ms 23:04:31"
+          }
+        },
+        {
+          "id": "DA-04",
+          "title": "环境「测文件服务」失败 → rose banner 含原因",
+          "status": "passed",
+          "ms": 123,
+          "details": {
+            "banner": "测文件服务：请求失败: error sending request (connection refused) · http://10.0.0.9:3100 23:04:31"
+          }
+        },
+        {
+          "id": "DA-13",
+          "title": "后端 5xx → 「请求失败」banner，无未捕获错误",
+          "status": "passed",
+          "ms": 90,
+          "details": {
+            "banner": "测 MQTT：请求失败 — internal error 23:04:31"
+          }
+        },
+        {
+          "id": "DA-05",
+          "title": "激活 → 确认弹窗文案 → 取消 = 0 写请求",
+          "status": "passed",
+          "ms": 691,
+          "details": {
+            "dialogText": "确认激活环境 将把环境「备用环境」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。当前已激活的运行态（华东协同环境）会先被停止。 取消 确定"
+          }
+        },
+        {
+          "id": "DA-06",
+          "title": "激活 → 确定 → pill / 徽标 / 按钮禁用随之切换",
+          "status": "passed",
+          "ms": 561,
+          "details": {
+            "pill": "运行时 · 已激活 备用环境 停止运行时",
+            "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 23:04:33"
+          }
+        },
+        {
+          "id": "DA-07",
+          "title": "应用 → 确定 → 成功 banner",
+          "status": "passed",
+          "ms": 725,
+          "details": {
+            "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 23:04:33"
+          }
+        },
+        {
+          "id": "DA-08",
+          "title": "应用 → 后端业务失败（HTTP 200）→ rose banner，运行态不变",
+          "status": "passed",
+          "ms": 829,
+          "details": {
+            "banner": "应用配置：db_options/DbOption.toml 不存在，无法写入当前配置。 23:04:34"
+          }
+        },
+        {
+          "id": "DA-09",
+          "title": "选中环境 → 站点表 → 后端 test-http 可达",
+          "status": "passed",
+          "ms": 395,
+          "details": {
+            "summary": "可达 · 12 ms",
+            "title": "后端探测：站点 metadata 可达 · http://127.0.0.1:4101/metadata.json · HTTP 200 · 12 ms"
+          }
+        },
+        {
+          "id": "DA-10",
+          "title": "站点 test-http 不可达 → 「不可达」+ title 含原因",
+          "status": "passed",
+          "ms": 199,
+          "details": {
+            "summary": "不可达",
+            "title": "后端探测：请求失败: error sending request (connection refused) · http://10.0.0.12:3100/metadata.json"
+          }
+        },
+        {
+          "id": "DA-11",
+          "title": "编辑站点 → 预填 → 改备注 → PUT sites/{id} 落到后端",
+          "status": "passed",
+          "ms": 438,
+          "details": {
+            "nameValue": "site-b-local",
+            "putBody": {
+              "name": "site-b-local",
+              "location": "local-b",
+              "http_host": "http://127.0.0.1:4101",
+              "dbnums": "8001",
+              "notes": "edited by topology-deploy-smoke"
+            }
+          }
+        },
+        {
+          "id": "DA-15",
+          "title": "站点表 1440 宽度无横向溢出，「操作」列可见",
+          "status": "passed",
+          "ms": 31,
+          "details": {
+            "scrollWidth": 628,
+            "containerWidth": 652,
+            "cols": [
+              "站点名称",
+              "HTTP 地址",
+              "备注",
+              "角色",
+              "状态",
+              "操作"
+            ]
+          }
+        },
+        {
+          "id": "DA-12",
+          "title": "停止运行时 → 确认 → pill 跟随后端状态",
+          "status": "passed",
+          "ms": 654,
+          "details": {
+            "dialogText": "确认停止运行时 将终止后端 watcher + MQTT 订阅（当前环境：备用环境）。增量文件监听与跨站点消息接收会随之停止，直到再次激活某个环境。 取消 确定",
+            "pill": "运行时 · 未激活"
+          }
+        },
+        {
+          "id": "DA-14",
+          "title": "动作后刷新：runtime/status 与 env 列表都被重新拉取",
+          "status": "passed",
+          "ms": 0,
+          "details": {
+            "runtimeStatusCalls": 3,
+            "envsCalls": 3
+          }
+        }
+      ],
+      "writeCalls": [
+        "POST /api/admin/auth/login",
+        "POST /api/remote-sync/envs/env-2/test-mqtt",
+        "POST /api/remote-sync/envs/env-2/test-http",
+        "POST /api/remote-sync/envs/env-3/test-mqtt",
+        "POST /api/remote-sync/envs/env-2/activate",
+        "POST /api/remote-sync/envs/env-2/apply",
+        "POST /api/remote-sync/envs/env-1/apply",
+        "POST /api/remote-sync/sites/s-1/test-http",
+        "POST /api/remote-sync/sites/s-2/test-http",
+        "PUT /api/remote-sync/sites/s-1",
+        "POST /api/remote-sync/runtime/stop"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "测 MQTT失败: internal error",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "pageErrors": [],
+      "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy\\pmg"
+    },
+    "pws": {
+      "shape": "pws",
+      "passed": true,
+      "summary": {
+        "passed": 15,
+        "failed": 0
+      },
+      "cases": [
+        {
+          "id": "DA-01",
+          "title": "admin 登录（两种 login 形状）并重定向回 /topology",
+          "status": "passed",
+          "ms": 972,
+          "details": {
+            "redirect": "/topology",
+            "token": "detached-admin-token"
+          }
+        },
+        {
+          "id": "DA-02",
+          "title": "运行时 pill 初始态 + 已激活徽标 + 激活按钮禁用",
+          "status": "passed",
+          "ms": 130,
+          "details": {
+            "pill": "运行时 · 已激活 华东协同环境 停止运行时",
+            "title": "env_id: env-1 · 活动任务: 3 · mode: standalone-real"
+          }
+        },
+        {
+          "id": "DA-03",
+          "title": "环境「测 MQTT」成功 → emerald banner 含目标地址",
+          "status": "passed",
+          "ms": 81,
+          "details": {
+            "banner": "测 MQTT：目标可达 · 10.0.0.9:1883 23:04:38"
+          }
+        },
+        {
+          "id": "DA-04",
+          "title": "环境「测文件服务」失败 → rose banner 含原因",
+          "status": "passed",
+          "ms": 148,
+          "details": {
+            "banner": "测文件服务：目标不可达 · 10.0.0.9:3100 23:04:38"
+          }
+        },
+        {
+          "id": "DA-13",
+          "title": "后端 5xx → 「请求失败」banner，无未捕获错误",
+          "status": "passed",
+          "ms": 79,
+          "details": {
+            "banner": "测 MQTT：请求失败 — internal error 23:04:38"
+          }
+        },
+        {
+          "id": "DA-05",
+          "title": "激活 → 确认弹窗文案 → 取消 = 0 写请求",
+          "status": "passed",
+          "ms": 682,
+          "details": {
+            "dialogText": "确认激活环境 将把环境「备用环境」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。当前已激活的运行态（华东协同环境）会先被停止。 取消 确定"
+          }
+        },
+        {
+          "id": "DA-06",
+          "title": "激活 → 确定 → pill / 徽标 / 按钮禁用随之切换",
+          "status": "passed",
+          "ms": 573,
+          "details": {
+            "pill": "运行时 · 已激活 备用环境 停止运行时",
+            "banner": "激活环境：成功 23:04:39"
+          }
+        },
+        {
+          "id": "DA-07",
+          "title": "应用 → 确定 → 成功 banner",
+          "status": "passed",
+          "ms": 749,
+          "details": {
+            "banner": "应用配置：成功 23:04:40"
+          }
+        },
+        {
+          "id": "DA-08",
+          "title": "应用 → 后端业务失败（HTTP 200）→ rose banner，运行态不变",
+          "status": "passed",
+          "ms": 786,
+          "details": {
+            "banner": "应用配置：env env-1 is locked by another task 23:04:41"
+          }
+        },
+        {
+          "id": "DA-09",
+          "title": "选中环境 → 站点表 → 后端 test-http 可达",
+          "status": "passed",
+          "ms": 415,
+          "details": {
+            "summary": "可达",
+            "title": "后端探测：目标可达 · 127.0.0.1:4101"
+          }
+        },
+        {
+          "id": "DA-10",
+          "title": "站点 test-http 不可达 → 「不可达」+ title 含原因",
+          "status": "passed",
+          "ms": 222,
+          "details": {
+            "summary": "不可达",
+            "title": "后端探测：目标不可达 · 10.0.0.12:3100"
+          }
+        },
+        {
+          "id": "DA-11",
+          "title": "编辑站点 → 预填 → 改备注 → PUT sites/{id} 落到后端",
+          "status": "passed",
+          "ms": 511,
+          "details": {
+            "nameValue": "site-b-local",
+            "putBody": {
+              "name": "site-b-local",
+              "location": "local-b",
+              "http_host": "http://127.0.0.1:4101",
+              "dbnums": "8001",
+              "notes": "edited by topology-deploy-smoke"
+            }
+          }
+        },
+        {
+          "id": "DA-15",
+          "title": "站点表 1440 宽度无横向溢出，「操作」列可见",
+          "status": "passed",
+          "ms": 36,
+          "details": {
+            "scrollWidth": 620,
+            "containerWidth": 652,
+            "cols": [
+              "站点名称",
+              "HTTP 地址",
+              "备注",
+              "角色",
+              "状态",
+              "操作"
+            ]
+          }
+        },
+        {
+          "id": "DA-12",
+          "title": "停止运行时 → 确认 → pill 跟随后端状态",
+          "status": "passed",
+          "ms": 2111,
+          "details": {
+            "dialogText": "确认停止运行时 将终止后端 watcher + MQTT 订阅（当前环境：备用环境）。增量文件监听与跨站点消息接收会随之停止，直到再次激活某个环境。 取消 确定",
+            "pill": "运行时 · 已激活 备用环境 停止运行时"
+          }
+        },
+        {
+          "id": "DA-14",
+          "title": "动作后刷新：runtime/status 与 env 列表都被重新拉取",
+          "status": "passed",
+          "ms": 0,
+          "details": {
+            "runtimeStatusCalls": 3,
+            "envsCalls": 3
+          }
+        }
+      ],
+      "writeCalls": [
+        "POST /api/admin/auth/login",
+        "POST /api/remote-sync/envs/env-2/test-mqtt",
+        "POST /api/remote-sync/envs/env-2/test-http",
+        "POST /api/remote-sync/envs/env-3/test-mqtt",
+        "POST /api/remote-sync/envs/env-2/activate",
+        "POST /api/remote-sync/envs/env-2/apply",
+        "POST /api/remote-sync/envs/env-1/apply",
+        "POST /api/remote-sync/sites/s-1/test-http",
+        "POST /api/remote-sync/sites/s-2/test-http",
+        "PUT /api/remote-sync/sites/s-1",
+        "POST /api/remote-sync/runtime/stop"
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "测 MQTT失败: internal error",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_FAILED"
+      ],
+      "pageErrors": [],
+      "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy\\pws"
+    }
+  },
+  "passed": true
+}
