@@ -73,6 +73,7 @@ VITE_API_TARGET=http://staging.example.com:3100
 | `npm run smoke:phase7-plus` | 浏览器联调 smoke（11 视图 + admin login + SSE token，需后端在线）|
 | `npm run smoke:topology-deploy` | `/topology` 部署动作面 mock 契约 smoke（DA-01–16 × pmg/pws 两种后端形状，无需后端）|
 | `npm run smoke:topology-deploy:live` | 对真后端只读 smoke（LR-xx，安全闸拦写）；`-- --mode full --confirm-writes` 跑完整闭环（LF-xx）|
+| `npm run tutorial:topology-deploy` | 用与 DA 用例同一份 mock 驱动真实页面，重出《异地部署操作教程》的 19 张截图 + `docs/tutorials/topology-deploy-tutorial.md`；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1` | 生成本机双站点环境（`../plant-model-gen/runtime/local-collab/`：site-a/site-b 隔离 `DbOption.toml`、启动器、Mosquitto 配置、文件服务 fixture）+ 前置检查 + 打印启动命令 |
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1` | 双站点 API smoke（LS-01–22；需 Mosquitto + Site A `:4100` + Site B `:4101`）|
 
@@ -238,6 +239,7 @@ location /ws/ {
 | **异地部署功能 · 自动化测试用例（L1 mock / L2 只读 / L3 闭环 / L4 双站点）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` · `scripts/topology-deploy-smoke.mjs` · `scripts/topology-deploy-live-smoke.mjs` |
 | 本机双站点测试计划 + smoke 脚本 | `docs/e2e-smoke/local-remote-collab-test-plan.md` · `scripts/local-remote-collab-smoke.ps1` |
 | 异地协同使用教程 | `docs/tutorials/remote-collab-usage-guide.md` |
+| **异地部署操作教程（`/topology` 部署动作面，自动生成、每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md` · `scripts/topology-deploy-tutorial.mjs` |
 | 异地站点 PRD | `docs/prd/2026-04-26-remote-site-prd.md` |
 | 整体能力规范 PRD | `docs/prd/2026-04-25-collab-monitor-prd.md` |
 | Gap 清单 | `docs/plans/2026-04-25-collab-monitor-completion-gap.md` |

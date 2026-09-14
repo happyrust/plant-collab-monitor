@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T15:12:45.096Z",
+  "generatedAt": "2026-09-14T16:00:26.686Z",
   "baseUrl": "http://localhost:4177/monitor/",
   "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "shapes": {
@@ -15,7 +15,7 @@
           "id": "DA-01",
           "title": "admin 登录（两种 login 形状）并重定向回 /topology",
           "status": "passed",
-          "ms": 1004,
+          "ms": 1022,
           "details": {
             "redirect": "/topology",
             "token": "mock-pmg-token"
@@ -25,7 +25,7 @@
           "id": "DA-02",
           "title": "运行时 pill 初始态 + 已激活徽标 + 激活按钮禁用",
           "status": "passed",
-          "ms": 112,
+          "ms": 110,
           "details": {
             "pill": "运行时 · 已激活 华东协同环境 停止运行时",
             "title": "env_id: env-1 · MQTT: true"
@@ -35,34 +35,34 @@
           "id": "DA-03",
           "title": "环境「测 MQTT」成功 → emerald banner 含目标地址",
           "status": "passed",
-          "ms": 69,
+          "ms": 80,
           "details": {
-            "banner": "测 MQTT：MQTT 连接可达 · 10.0.0.9:1883 · 3 ms 23:12:46"
+            "banner": "测 MQTT：MQTT 连接可达 · 10.0.0.9:1883 · 3 ms 00:00:27"
           }
         },
         {
           "id": "DA-04",
           "title": "环境「测文件服务」失败 → rose banner 含原因",
           "status": "passed",
-          "ms": 145,
+          "ms": 126,
           "details": {
-            "banner": "测文件服务：请求失败: error sending request (connection refused) · http://10.0.0.9:3100 23:12:46"
+            "banner": "测文件服务：请求失败: error sending request (connection refused) · http://10.0.0.9:3100 00:00:28"
           }
         },
         {
           "id": "DA-13",
           "title": "后端 5xx → 「请求失败」banner，无未捕获错误",
           "status": "passed",
-          "ms": 74,
+          "ms": 79,
           "details": {
-            "banner": "测 MQTT：请求失败 — internal error 23:12:46"
+            "banner": "测 MQTT：请求失败 — internal error 00:00:28"
           }
         },
         {
           "id": "DA-05",
           "title": "激活 → 确认弹窗文案 → 取消 = 0 写请求",
           "status": "passed",
-          "ms": 670,
+          "ms": 689,
           "details": {
             "dialogText": "确认激活环境 将把环境「备用环境」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。当前已激活的运行态（华东协同环境）会先被停止。 取消 确定"
           }
@@ -71,35 +71,35 @@
           "id": "DA-06",
           "title": "激活 → 确定 → pill / 徽标 / 按钮禁用随之切换",
           "status": "passed",
-          "ms": 181,
+          "ms": 599,
           "details": {
             "pill": "运行时 · 已激活 备用环境 停止运行时",
-            "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 23:12:47"
+            "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 00:00:29"
           }
         },
         {
           "id": "DA-07",
           "title": "应用 → 确定 → 成功 banner",
           "status": "passed",
-          "ms": 466,
+          "ms": 710,
           "details": {
-            "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 23:12:47"
+            "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 00:00:30"
           }
         },
         {
           "id": "DA-08",
           "title": "应用 → 后端业务失败（HTTP 200）→ rose banner，运行态不变",
           "status": "passed",
-          "ms": 785,
+          "ms": 798,
           "details": {
-            "banner": "应用配置：db_options/DbOption.toml 不存在，无法写入当前配置。 23:12:48"
+            "banner": "应用配置：db_options/DbOption.toml 不存在，无法写入当前配置。 00:00:30"
           }
         },
         {
           "id": "DA-09",
           "title": "选中环境 → 站点表 → 后端 test-http 可达",
           "status": "passed",
-          "ms": 400,
+          "ms": 384,
           "details": {
             "summary": "可达 · 12 ms",
             "title": "后端探测：站点 metadata 可达 · http://127.0.0.1:4101/metadata.json · HTTP 200 · 12 ms"
@@ -109,7 +109,7 @@
           "id": "DA-10",
           "title": "站点 test-http 不可达 → 「不可达」+ title 含原因",
           "status": "passed",
-          "ms": 207,
+          "ms": 210,
           "details": {
             "summary": "不可达",
             "title": "后端探测：请求失败: error sending request (connection refused) · http://10.0.0.12:3100/metadata.json"
@@ -119,7 +119,7 @@
           "id": "DA-11",
           "title": "编辑站点 → 预填 → 改备注 → PUT sites/{id} 落到后端",
           "status": "passed",
-          "ms": 418,
+          "ms": 424,
           "details": {
             "nameValue": "site-b-local",
             "putBody": {
@@ -135,7 +135,7 @@
           "id": "DA-15",
           "title": "站点表 1440 宽度无横向溢出，「操作」列可见",
           "status": "passed",
-          "ms": 19,
+          "ms": 59,
           "details": {
             "scrollWidth": 628,
             "containerWidth": 652,
@@ -153,7 +153,7 @@
           "id": "DA-12",
           "title": "停止运行时 → 确认 → pill 跟随后端状态",
           "status": "passed",
-          "ms": 258,
+          "ms": 611,
           "details": {
             "dialogText": "确认停止运行时 将终止后端 watcher + MQTT 订阅（当前环境：备用环境）。增量文件监听与跨站点消息接收会随之停止，直到再次激活某个环境。 取消 确定",
             "pill": "运行时 · 未激活"
@@ -173,7 +173,7 @@
           "id": "DA-16",
           "title": "「从 DbOption 导入」→ 取消 0 写 → 确定 → import-from-dboption 1 次 → 新卡出现并被选中",
           "status": "passed",
-          "ms": 1200,
+          "ms": 1794,
           "details": {
             "dialogText": "确认从 DbOption 导入环境 将读取后端当前进程的 DbOption.toml（mqtt_host / mqtt_port / file_server_host / location / location_dbs），在列表里生成一个环境；不会改写配置，也不会激活运行时。plant-model-gen 每次导入都新建一个「导入环境 - 时间戳」；plant-web-server 按本站 id 覆盖同一个 env。 取消 确定",
             "newName": "导入环境 - 20260914_223001",
@@ -222,7 +222,7 @@
           "id": "DA-01",
           "title": "admin 登录（两种 login 形状）并重定向回 /topology",
           "status": "passed",
-          "ms": 925,
+          "ms": 985,
           "details": {
             "redirect": "/topology",
             "token": "detached-admin-token"
@@ -232,7 +232,7 @@
           "id": "DA-02",
           "title": "运行时 pill 初始态 + 已激活徽标 + 激活按钮禁用",
           "status": "passed",
-          "ms": 95,
+          "ms": 125,
           "details": {
             "pill": "运行时 · 已激活 华东协同环境 停止运行时",
             "title": "env_id: env-1 · 活动任务: 3 · mode: standalone-real"
@@ -242,34 +242,34 @@
           "id": "DA-03",
           "title": "环境「测 MQTT」成功 → emerald banner 含目标地址",
           "status": "passed",
-          "ms": 78,
+          "ms": 85,
           "details": {
-            "banner": "测 MQTT：目标可达 · 10.0.0.9:1883 23:12:52"
+            "banner": "测 MQTT：目标可达 · 10.0.0.9:1883 00:00:36"
           }
         },
         {
           "id": "DA-04",
           "title": "环境「测文件服务」失败 → rose banner 含原因",
           "status": "passed",
-          "ms": 143,
+          "ms": 146,
           "details": {
-            "banner": "测文件服务：目标不可达 · 10.0.0.9:3100 23:12:53"
+            "banner": "测文件服务：目标不可达 · 10.0.0.9:3100 00:00:36"
           }
         },
         {
           "id": "DA-13",
           "title": "后端 5xx → 「请求失败」banner，无未捕获错误",
           "status": "passed",
-          "ms": 80,
+          "ms": 71,
           "details": {
-            "banner": "测 MQTT：请求失败 — internal error 23:12:53"
+            "banner": "测 MQTT：请求失败 — internal error 00:00:36"
           }
         },
         {
           "id": "DA-05",
           "title": "激活 → 确认弹窗文案 → 取消 = 0 写请求",
           "status": "passed",
-          "ms": 717,
+          "ms": 722,
           "details": {
             "dialogText": "确认激活环境 将把环境「备用环境」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。当前已激活的运行态（华东协同环境）会先被停止。 取消 确定"
           }
@@ -278,35 +278,35 @@
           "id": "DA-06",
           "title": "激活 → 确定 → pill / 徽标 / 按钮禁用随之切换",
           "status": "passed",
-          "ms": 191,
+          "ms": 560,
           "details": {
             "pill": "运行时 · 已激活 备用环境 停止运行时",
-            "banner": "激活环境：成功 23:12:54"
+            "banner": "激活环境：成功 00:00:37"
           }
         },
         {
           "id": "DA-07",
           "title": "应用 → 确定 → 成功 banner",
           "status": "passed",
-          "ms": 469,
+          "ms": 728,
           "details": {
-            "banner": "应用配置：成功 23:12:54"
+            "banner": "应用配置：成功 00:00:38"
           }
         },
         {
           "id": "DA-08",
           "title": "应用 → 后端业务失败（HTTP 200）→ rose banner，运行态不变",
           "status": "passed",
-          "ms": 395,
+          "ms": 784,
           "details": {
-            "banner": "应用配置：env env-1 is locked by another task 23:12:54"
+            "banner": "应用配置：env env-1 is locked by another task 00:00:39"
           }
         },
         {
           "id": "DA-09",
           "title": "选中环境 → 站点表 → 后端 test-http 可达",
           "status": "passed",
-          "ms": 169,
+          "ms": 420,
           "details": {
             "summary": "可达",
             "title": "后端探测：目标可达 · 127.0.0.1:4101"
@@ -316,7 +316,7 @@
           "id": "DA-10",
           "title": "站点 test-http 不可达 → 「不可达」+ title 含原因",
           "status": "passed",
-          "ms": 196,
+          "ms": 223,
           "details": {
             "summary": "不可达",
             "title": "后端探测：目标不可达 · 10.0.0.12:3100"
@@ -326,7 +326,7 @@
           "id": "DA-11",
           "title": "编辑站点 → 预填 → 改备注 → PUT sites/{id} 落到后端",
           "status": "passed",
-          "ms": 531,
+          "ms": 493,
           "details": {
             "nameValue": "site-b-local",
             "putBody": {
@@ -342,7 +342,7 @@
           "id": "DA-15",
           "title": "站点表 1440 宽度无横向溢出，「操作」列可见",
           "status": "passed",
-          "ms": 17,
+          "ms": 62,
           "details": {
             "scrollWidth": 620,
             "containerWidth": 652,
@@ -360,7 +360,7 @@
           "id": "DA-12",
           "title": "停止运行时 → 确认 → pill 跟随后端状态",
           "status": "passed",
-          "ms": 2093,
+          "ms": 2104,
           "details": {
             "dialogText": "确认停止运行时 将终止后端 watcher + MQTT 订阅（当前环境：备用环境）。增量文件监听与跨站点消息接收会随之停止，直到再次激活某个环境。 取消 确定",
             "pill": "运行时 · 已激活 备用环境 停止运行时"
@@ -370,7 +370,7 @@
           "id": "DA-14",
           "title": "动作后刷新：runtime/status 与 env 列表都被重新拉取",
           "status": "passed",
-          "ms": 0,
+          "ms": 1,
           "details": {
             "runtimeStatusCalls": 3,
             "envsCalls": 3
@@ -380,7 +380,7 @@
           "id": "DA-16",
           "title": "「从 DbOption 导入」→ 取消 0 写 → 确定 → import-from-dboption 1 次 → 新卡出现并被选中",
           "status": "passed",
-          "ms": 1652,
+          "ms": 1688,
           "details": {
             "dialogText": "确认从 DbOption 导入环境 将读取后端当前进程的 DbOption.toml（mqtt_host / mqtt_port / file_server_host / location / location_dbs），在列表里生成一个环境；不会改写配置，也不会激活运行时。plant-model-gen 每次导入都新建一个「导入环境 - 时间戳」；plant-web-server 按本站 id 覆盖同一个 env。 取消 确定",
             "newName": "AvevaMarineSample",

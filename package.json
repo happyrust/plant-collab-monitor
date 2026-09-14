@@ -11,6 +11,7 @@
     "smoke:phase7-plus": "node scripts/phase7-plus-smoke.mjs",
     "smoke:topology-deploy": "node scripts/topology-deploy-smoke.mjs",
     "smoke:topology-deploy:live": "node scripts/topology-deploy-live-smoke.mjs",
+    "tutorial:topology-deploy": "node scripts/topology-deploy-tutorial.mjs",
     "type-check": "vue-tsc -b"
   },
   "dependencies": {

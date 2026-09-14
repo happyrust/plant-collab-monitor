@@ -99,6 +99,20 @@
 - `npm run type-check` · 0 errors
 - `npm run smoke:topology-deploy -- --build` → pmg 16/16 · pws 16/16 · pageErrors 0（`docs/e2e-smoke/topology-deploy-smoke-result.json`）
 
+### 教程 · 《异地部署操作教程》由自动化用例的 mock 驱动真实页面自动生成（同日晚）
+
+#### Added
+
+- `scripts/topology-deploy-tutorial.mjs`（`npm run tutorial:topology-deploy`）：Playwright 驱动 `vite preview` 真实页面，后端用与 DA 用例**同一份 mock**，按运维操作顺序走 登录 → 首屏 → 从 DbOption 导入 → 手填新建 → 测 MQTT / 测文件服务 → 激活 → 应用（成功 / 业务失败）→ 站点探测 + 编辑 → 停止运行时 → 5xx 表现，每步截一张带红框高亮的 1440×900 视口图（17 张）+ plant-web-server 形状附录 2 张；步骤文案、截图与对应用例编号一起渲染成 `docs/tutorials/topology-deploy-tutorial.md`（含「步骤 ↔ 用例对照」与「如何重出」附录）。截图入库 `docs/tutorials/screenshots/topology-deploy/`（19 张 ≈ 4.4 MB）。
+- `scripts/lib/topology-deploy-mock.mjs`：mock 后端从 smoke 脚本抽出为共享模块（smoke 与教程共用一份状态 / 路由），并补 `POST envs`、`POST envs/{id}/sites`、`DELETE envs|sites/{id}`、`GET site-config/server-ip`，让「手填新建 → 自动加入本站」在 mock 上也能走通。
+- `scripts/generate-remote-collab-docx.mjs` 接受 `[源 md] [输出 docx]` 参数（默认不变），`node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` 可出 Word 版（docx 仍不入库）。
+
+#### Verification
+
+- `npm run smoke:topology-deploy` 在 mock 抽出后重跑 → pmg 16/16 · pws 16/16（无回归）
+- `npm run tutorial:topology-deploy` → 19 张截图 + Markdown；人眼核对 02 / 04 / 06 / 10 / 13：红框可见、无 tooltip 遮挡、无残留 toast
+- `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` → Embedded 19 images；默认参数仍生成原教程 docx
+
 ---
 
 ## 2026-05-18

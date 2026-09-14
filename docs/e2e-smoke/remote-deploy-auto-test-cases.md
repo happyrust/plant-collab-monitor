@@ -44,6 +44,8 @@
 
 ## 2. L1 · mock 契约层 `DA-xx`（`scripts/topology-deploy-smoke.mjs`）
 
+mock 后端在 `scripts/lib/topology-deploy-mock.mjs`，与教程生成器 `scripts/topology-deploy-tutorial.mjs`（`npm run tutorial:topology-deploy`，产出 `docs/tutorials/topology-deploy-tutorial.md` + 19 张截图）共用——改 fixture / 响应字段时两边同时受影响，改完先跑用例再重出教程。
+
 固定 mock 数据：`env-1 华东协同环境`（初始激活，站点 `s-1 site-b-local` 可达、`s-2 site-c-remote` 不可达）、`env-2 备用环境`、`env-3 故障环境`（test-mqtt 回 500）；`env-1` 的 apply 固定业务失败。
 
 | 编号 | 用例 | 步骤 | 期望（pmg / pws 差异单列） |

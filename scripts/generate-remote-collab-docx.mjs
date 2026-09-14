@@ -1,9 +1,16 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+// 用法：node scripts/generate-remote-collab-docx.mjs [源 md] [输出 docx]
+//   默认：docs/tutorials/remote-collab-usage-guide.md → 同名 .docx
+//   例：  node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md
+// docx 不入库（.gitignore docs/tutorials/*.docx），按需生成。
 const ROOT = process.cwd();
-const SOURCE_MD = path.join(ROOT, 'docs/tutorials/remote-collab-usage-guide.md');
-const OUTPUT_DOCX = path.join(ROOT, 'docs/tutorials/remote-collab-usage-guide.docx');
+const SOURCE_MD = path.resolve(ROOT, process.argv[2] ?? 'docs/tutorials/remote-collab-usage-guide.md');
+const OUTPUT_DOCX = path.resolve(
+  ROOT,
+  process.argv[3] ?? SOURCE_MD.replace(/\.md$/i, '.docx'),
+);
 const MEDIA_DIR = path.dirname(SOURCE_MD);
 
 const markdown = readFileSync(SOURCE_MD, 'utf8');
