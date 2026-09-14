@@ -71,7 +71,7 @@ VITE_API_TARGET=http://staging.example.com:3100
 | `npm run preview` | 预览 dist 产物（port 4000）|
 | `npm run type-check` | 仅 TypeScript 严格检查 |
 | `npm run smoke:phase7-plus` | 浏览器联调 smoke（11 视图 + admin login + SSE token，需后端在线）|
-| `npm run smoke:topology-deploy` | `/topology` 部署动作面 mock 契约 smoke（DA-01–15 × pmg/pws 两种后端形状，无需后端）|
+| `npm run smoke:topology-deploy` | `/topology` 部署动作面 mock 契约 smoke（DA-01–16 × pmg/pws 两种后端形状，无需后端）|
 | `npm run smoke:topology-deploy:live` | 对真后端只读 smoke（LR-xx，安全闸拦写）；`-- --mode full --confirm-writes` 跑完整闭环（LF-xx）|
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1` | 生成本机双站点环境（`../plant-model-gen/runtime/local-collab/`：site-a/site-b 隔离 `DbOption.toml`、启动器、Mosquitto 配置、文件服务 fixture）+ 前置检查 + 打印启动命令 |
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1` | 双站点 API smoke（LS-01–22；需 Mosquitto + Site A `:4100` + Site B `:4101`）|
@@ -224,7 +224,7 @@ location /ws/ {
 | Phase 24 | 侧栏可折叠（64px/256px + localStorage）| ✅ |
 | Phase 25 | 键盘快捷键（Alt+D 主题, Alt+B 侧栏）| ✅ |
 | Phase 26 | Desktop 通知（Notification API）| ✅ |
-| 2026-09-14 · 部署动作面 | `remoteSyncApi` 补齐 apply / activate / test-mqtt / test-http / sites test-http / updateSite / import-from-dboption / tasks / env config；`TopologyView` 新增运行时状态 pill + 停止运行时、环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」、站点「test-http / 编辑」；`deploymentSitesApi` 收敛为后端实际存在的 list / get | ✅（计划：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`）|
+| 2026-09-14 · 部署动作面 | `remoteSyncApi` 补齐 apply / activate / test-mqtt / test-http / sites test-http / updateSite / import-from-dboption / tasks / env config；`TopologyView` 新增运行时状态 pill + 停止运行时、环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」、站点「test-http / 编辑」、环境列表「从 DbOption 导入」；`deploymentSitesApi` 收敛为后端实际存在的 list / get | ✅（计划：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`）|
 
 ## 相关文档
 

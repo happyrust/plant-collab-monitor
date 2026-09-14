@@ -141,7 +141,8 @@ P2（收敛 API + 文档）─┐
 | P3 双站点环境 | ◐ 部分 | ✅ `web_server` 已编出（`D:\Rust\target\debug\web_server.exe`，`web_server,mqtt`；补 clone 了 `../pdms-io-fork`）。✅ 同日下午：`scripts/local-remote-collab-setup.ps1` 生成并校验了 `runtime/local-collab/site-a\|b/DbOption.toml` + 启动器 + fixture + Mosquitto 配置；smoke 脚本扩到 22 项（LS-15/20/22）。❌ 本机仍无 Mosquitto 与 `surreal` 二进制（安装命令见 `COMMANDS.md`），两实例未启动（长驻进程须用户自己起）；真实 smoke 仍未跑 |
 | P4 仓库卫生 | ✅ | `.gitignore` / 归档 / 入库 PNG；两份失败的 smoke JSON 仍未跟踪，等 P3 跑通后覆盖 |
 | 计划外 | ✅ | 兼容 plant-web-server：login `expires_at` 可缺、`isRemoteSyncActionOk()`、激活态从 `envs[].active` 推导；用户确认后对本机 plant-web-server 做了完整闭环联调并恢复状态（`docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md`） |
-| 自动化用例 | ✅ | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` 四层用例；`scripts/topology-deploy-smoke.mjs`（mock，pmg/pws 各 15 例全过）+ `scripts/topology-deploy-live-smoke.mjs`（真后端只读 7/7；`--mode full --confirm-writes` 闭环就绪）。P3 环境好了对 Site A 跑 live full 即为第 5 步的自动化版本 |
+| 自动化用例 | ✅ | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` 四层用例；`scripts/topology-deploy-smoke.mjs`（mock，pmg/pws 各 16 例全过）+ `scripts/topology-deploy-live-smoke.mjs`（真后端只读 7/7；`--mode full --confirm-writes` 闭环就绪）。P3 环境好了对 Site A 跑 live full 即为第 5 步的自动化版本 |
+| 收口（同日晚，fable-5-1-31） | ✅ | 下午产出按 4 个 commit 入库（`.gitattributes` 固定索引 LF / 用例 + 脚本 / 双站点 setup + smoke 22 项 / 文档）；`/topology` 补「从 DbOption 导入」按钮 + DA-16，PRD §4.2 五个用例前端全部闭环 |
 
 ## 6. 需要拍板的问题
 

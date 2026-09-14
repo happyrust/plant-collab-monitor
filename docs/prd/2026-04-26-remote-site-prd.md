@@ -156,8 +156,8 @@
    - **批量刷新状态**：浏览器直连 `GET {http_host}/api/health`（`checkAllSitesStatus`）；单站点由后端探测 `POST /api/remote-sync/sites/{id}/test-http`（✅ 2026-09-14）
    - 新建 site：表单含 `name`、`location`、`http_host`、`dbnums`、`notes`
    - 编辑（`PUT /api/remote-sync/sites/{id}`，✅ 2026-09-14）/ 删除 site
-3. **`DbOption.toml` 一键导入**
-   - 后端端点为 `POST /api/remote-sync/envs/import-from-dboption`（把当前进程的 DbOption 反向导入为一个 env）；`remoteSyncApi.importEnvFromDbOption()` 已封装，**视图入口待补**
+3. **`DbOption.toml` 一键导入**（✅ 2026-09-14，环境列表头部「从 DbOption 导入」按钮）
+   - 后端端点为 `POST /api/remote-sync/envs/import-from-dboption`（把当前进程的 DbOption 反向导入为一个 env）；`remoteSyncApi.importEnvFromDbOption()` → NDialog 说明（不改写配置、不激活运行时；plant-model-gen 每次新建「导入环境 - 时间戳」，plant-web-server 按本站 id 覆盖）→ 刷新列表并选中新 env
 4. **测试连通**（✅ 2026-09-14，环境卡片按钮）
    - MQTT 连通：`POST /api/remote-sync/envs/{id}/test-mqtt`（后端 TCP 探测 `mqtt_host:mqtt_port`，返回 `addr / latency_ms`）
    - 文件服务连通：`POST /api/remote-sync/envs/{id}/test-http`（后端 HTTP GET `file_server_host`，返回 `url / code / latency_ms`）
@@ -496,9 +496,9 @@ LocalSite (DbOption.toml.location) ─── 1:1 ─── MqttNode (本进程�
 
 **步骤**：
 
-1. `/topology` 点"从 DbOption 导入" → `POST /api/remote-sync/envs/import-from-dboption`（API 已封装为 `remoteSyncApi.importEnvFromDbOption()`，**按钮待补**）
-2. 后端把当前进程的 DbOption 反向导入为一个 env（返回 `id`），随后可直接「激活」
-3. 列表自动刷新
+1. `/topology` 点"从 DbOption 导入" → 确认弹窗 → `POST /api/remote-sync/envs/import-from-dboption`（✅ 2026-09-14，`remoteSyncApi.importEnvFromDbOption()`）
+2. 后端把当前进程的 DbOption 反向导入为一个 env（plant-model-gen 顶层返回 `id`；plant-web-server 返回 `item.id`），随后可直接「激活」
+3. 列表自动刷新并选中新 env（mock 用例 DA-16 两种后端形状均通过）
 4. 切到 `/topology-viz` 看到新站点已被布点
 
 ---
@@ -706,6 +706,7 @@ LocalSite (DbOption.toml.location) ─── 1:1 ─── MqttNode (本进程�
 |------|------|------|------|
 | 1.0 | 2026-04-26 | (本次产出) | 首版，基于当前代码实测 |
 | 1.1 | 2026-09-14 | fable-5-1-68 | §1.1 / §3 / §4.2 / §6.2 / §6.3 / US-4 按后端 `remote_sync_handlers.rs` 与 `mod.rs` 实际路由校准；部署动作面（test-mqtt / test-http / apply / activate / runtime）落地为 `/topology` 按钮；`deployment-sites` 收敛为公开只读 2 端点 |
+| 1.2 | 2026-09-14 | fable-5-1-31 | §4.2 用例 3 / US-4：「从 DbOption 导入」按钮落地（确认弹窗 + 刷新选中），§4.2 五个用例前端全部闭环 |
 
 ---
 

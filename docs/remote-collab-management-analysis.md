@@ -89,7 +89,7 @@ adminAuth.token -> registerAuthTokenProvider -> axios request interceptor -> Aut
 
 `src/views/TopologyView.vue` 维护 env/site 两层结构。新建 env 时会读取当前站点配置，自动填入 `file_server_host`、`mqtt_host`、`location_dbs` 等字段；创建成功后尝试把当前站点作为 site 自动加入新 env。站点列表会把当前站点置顶，并用 `http_host` 与 `window.location.origin` 比较避免删除主站点。
 
-2026-09-14 起，该视图同时承担**部署动作面**：头部运行时状态 pill（`GET /api/remote-sync/runtime/status` 30s 轮询）与「停止运行时」；环境卡片上的「测 MQTT / 测文件服务 / 应用 / 激活」（`envs/{id}/test-mqtt|test-http|apply|activate`），诊断结果以 inline banner 留在卡片内，当前激活的 env 挂「已激活」徽标；站点行的后端侧 `sites/{id}/test-http` 诊断与「编辑」（`PUT sites/{id}`）。`apply / activate` 会改写后端 `DbOption.toml`，都经 NDialog 二次确认。
+2026-09-14 起，该视图同时承担**部署动作面**：头部运行时状态 pill（`GET /api/remote-sync/runtime/status` 30s 轮询）与「停止运行时」；环境列表头部的「从 DbOption 导入」（`envs/import-from-dboption`）；环境卡片上的「测 MQTT / 测文件服务 / 应用 / 激活」（`envs/{id}/test-mqtt|test-http|apply|activate`），诊断结果以 inline banner 留在卡片内，当前激活的 env 挂「已激活」徽标；站点行的后端侧 `sites/{id}/test-http` 诊断与「编辑」（`PUT sites/{id}`）。`apply / activate` 会改写后端 `DbOption.toml`，都经 NDialog 二次确认。
 
 ### 拓扑可视化
 
@@ -119,7 +119,7 @@ adminAuth.token -> registerAuthTokenProvider -> axios request interceptor -> Aut
 
 ## 6. 当前实现注意点
 
-- `deploymentSitesApi` 已收敛为后端实际存在的 `list / get`；“从 DbOption 导入”闭环走 `remoteSyncApi.importEnvFromDbOption()`（`POST /api/remote-sync/envs/import-from-dboption`），当前尚无视图入口。
+- `deploymentSitesApi` 已收敛为后端实际存在的 `list / get`；“从 DbOption 导入”闭环走 `remoteSyncApi.importEnvFromDbOption()`（`POST /api/remote-sync/envs/import-from-dboption`），入口是 `/topology` 环境列表头部的「从 DbOption 导入」按钮（2026-09-14；NDialog 确认 → 刷新列表并选中新 env）。注意 plant-model-gen 每次导入都新建一个 env（不幂等），plant-web-server 按本站 id 覆盖同一个 env。
 - 本机双站点 e2e smoke（`scripts/local-remote-collab-smoke.ps1`）最近一次结果为 1 passed / 12 failed（Site A/B/MQTT 未启动），部署动作面的端到端验证仍待补，见 `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` P3。
 - `MqttNodesView.vue` 的破坏性操作确认已收口到 Naive UI dialog，成功/失败反馈已收口到 message toast。
 - 视图层已全部使用 `<script setup lang="ts">`；后续增强表单或 API payload 时，应继续把动态后端响应收口为局部 narrowing 或 API 层类型。

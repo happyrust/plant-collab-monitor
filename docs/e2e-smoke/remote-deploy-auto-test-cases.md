@@ -8,7 +8,7 @@
 
 | 层 | 编号 | 依赖 | 载体 | 命令 | 产物 |
 |---|---|---|---|---|---|
-| **L1 契约层**（mock 后端，两种响应形状各跑一遍） | `DA-01`–`DA-15` | 无（脚本自起 `vite preview`，缺 `dist/` 自动 build） | `scripts/topology-deploy-smoke.mjs` | `npm run smoke:topology-deploy`（`-- --shape pmg\|pws`、`-- --build`、`-- --headed`） | `docs/e2e-smoke/topology-deploy-smoke-result.json` + `screenshots/topology-deploy/<shape>/` |
+| **L1 契约层**（mock 后端，两种响应形状各跑一遍） | `DA-01`–`DA-16` | 无（脚本自起 `vite preview`，缺 `dist/` 自动 build） | `scripts/topology-deploy-smoke.mjs` | `npm run smoke:topology-deploy`（`-- --shape pmg\|pws`、`-- --build`、`-- --headed`） | `docs/e2e-smoke/topology-deploy-smoke-result.json` + `screenshots/topology-deploy/<shape>/` |
 | **L2 真后端只读层**（安全闸拦下一切写请求） | `LR-00`–`LR-06` | 任一在跑的后端（默认 `:3100`） | `scripts/topology-deploy-live-smoke.mjs` | `npm run smoke:topology-deploy:live`（`-- --api http://127.0.0.1:4100`） | `docs/e2e-smoke/topology-deploy-live-readonly-result.json` + `screenshots/topology-deploy-live/readonly/` |
 | **L3 真后端完整闭环**（会改运行时状态，结束自动恢复） | `LF-00`–`LF-08` | 同上 + **人工确认** | 同上 | `node scripts/topology-deploy-live-smoke.mjs --mode full --confirm-writes [--api …]` | `docs/e2e-smoke/topology-deploy-live-full-result.json` + `screenshots/topology-deploy-live/full/` |
 | **L4 双站点协同 smoke**（P3） | `LS-01`–`LS-22` | Mosquitto + `surreal` + Site A `:4100` + Site B `:4101`（`web_server,mqtt`）；环境由 `scripts/local-remote-collab-setup.ps1` 生成 | `scripts/local-remote-collab-smoke.ps1` | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -FixtureDir <site-b>/output -MosquittoDir "C:\Program Files\mosquitto"` | `docs/e2e-smoke/local-remote-collab-smoke-result.json` |
@@ -38,6 +38,7 @@
 | 动作后刷新 runtime / envs | DA-14 | — | — | — |
 | 站点表布局（1440 无横向溢出） | DA-15 | — | — | — |
 | 新建 env / 自动加入本站 | — | — | LF-02 | LS-08, LS-09 |
+| 「从 DbOption 导入」（确认弹窗、取消 0 写、新卡出现并选中） | DA-16 | — | — | — |
 | 收尾恢复（不留脏数据） | — | LR-06（安全闸） | LF-08 | LS-22 + `cleanup` |
 | MQTT 发布 → Site A 订阅收到 | — | — | — | LS-17, LS-19, LS-20 |
 
@@ -62,10 +63,11 @@
 | DA-15 | 站点表布局 | 1440×1000 视口 | `table.scrollWidth <= 容器宽`；「操作」列头可见 |
 | DA-12 | 停止运行时 | 点「停止运行时」→ 确定 | 弹窗点名当前环境；`POST runtime/stop` 1 次。**pmg**：pill → `运行时 · 未激活`、停止按钮消失、env-2 徽标消失、「激活」恢复可用。**pws**：pill 仍 `已激活 备用环境`（后端不清 `active`，见 `AGENTS.md` §4.3.2），title 的活动任务刷新为 0 |
 | DA-14 | 动作后刷新 | 全流程结束统计 | `GET runtime/status` ≥ 3 次、`GET envs` ≥ 3 次（首屏 + 激活后 + 停止后） |
+| DA-16 | 「从 DbOption 导入」 | 环境列表头部点「从 DbOption 导入」→ NDialog →「取消」；再点 →「确定」 | 弹窗含 `DbOption.toml` 与 `不会改写配置`；取消后 `import-from-dboption` 0 次；确定后弹窗关闭、`POST envs/import-from-dboption` 恰 1 次、`GET envs` 被重新拉取、「共 N+1 个环境」、新卡出现且带选中态 `border-primary`（pmg 新卡名 `导入环境 - 20260914_223001`，顶层 `id`；pws 新卡名 `AvevaMarineSample`，id 固定 `dboption-local-a`、响应在 `item/data`）；按钮恢复可用 |
 
-通过条件：每个形状 15/15 且 `pageErrors.length === 0`；两种形状都通过脚本才 exit 0。
+通过条件：每个形状 16/16 且 `pageErrors.length === 0`；两种形状都通过脚本才 exit 0。
 
-**2026-09-14 结果**：pmg 15/15 · pws 15/15 · pageErrors 0（`topology-deploy-smoke-result.json`）。DA-05 首轮在 pws 下失败，暴露 `handleActivateEnv` 的提示语用 `runtime.active`（pws 没有该字段）而非 `runtimeActive`，已修（`TopologyView.vue`）。
+**2026-09-14 结果**：pmg 16/16 · pws 16/16 · pageErrors 0（`topology-deploy-smoke-result.json`）。DA-05 首轮在 pws 下失败，暴露 `handleActivateEnv` 的提示语用 `runtime.active`（pws 没有该字段）而非 `runtimeActive`，已修（`TopologyView.vue`）。DA-16 随「从 DbOption 导入」按钮同日晚补入，首轮两形状即过。
 
 ## 3. L2 · 真后端只读层 `LR-xx`（`scripts/topology-deploy-live-smoke.mjs`，默认模式）
 
@@ -132,7 +134,7 @@ UI 复验：Site A 起来后跑 `node scripts/topology-deploy-live-smoke.mjs --a
 |---|---|---|
 | 动作返回 401/403 → 自动弹登录 | 依赖 `App.vue` 的 unauthorized handler，与 `/topology` 不同层 | 归到 admin login 流的用例（Phase 7-Plus） |
 | 30s 运行时轮询 | 等待成本高 | DA-14 只验证「动作后立即刷新」；轮询用 `setInterval` 已在 `onMounted` |
-| 「从 DbOption 导入」按钮 | UI 尚未实现（API 已封装） | 实现后补 DA-16：点按钮 → `POST envs/import-from-dboption` → 新卡出现 |
+| 「从 DbOption 导入」对真后端的实际产物 | DA-16 只验 mock 契约；pmg 每次导入新建一个 env（不幂等），pws 覆盖同一个 `dboption-<site_id>` | 真后端上人工点一次看卡片字段（pws 的 mqtt / 文件服务在 `config` 里，卡片会显示「未配置」，属后端形状） |
 | 删除 env 级联删站点 | pws 不级联（后端待修） | 后端修复后在 LF-08 加断言「测试 env 删除后 sites 无孤儿」 |
 | Dark mode 视觉 | 只截图不断言 | 人工看 `10-topology-dark.png` |
 
@@ -144,8 +146,8 @@ UI 复验：Site A 起来后跑 `node scripts/topology-deploy-live-smoke.mjs --a
 |---|---|
 | `data-testid` | `remote-runtime-status`（pill 容器）、`site-test-http-result`（站点行诊断结果，完整信息在 `title`） |
 | `data-tip` | `由后端探测该站点 HTTP 可达性`、`编辑站点`、`删除站点` |
-| 按钮文案 | `测 MQTT`、`测文件服务`、`应用`、`激活`、`停止运行时`、`新建`、`保存环境`、`保存修改`、`登录` |
-| NDialog 标题 | `确认激活环境`、`确认应用环境配置`、`确认停止运行时`、`确认删除环境`、`确认删除站点`（定位用 `.n-dialog`，不要用 `getByRole('dialog')`：DaisyUI 的 `<dialog class="modal">` 打开过一次后留在 DOM 里会撞名） |
+| 按钮文案 | `测 MQTT`、`测文件服务`、`应用`、`激活`、`停止运行时`、`新建`、`从 DbOption 导入`、`保存环境`、`保存修改`、`登录` |
+| NDialog 标题 | `确认激活环境`、`确认应用环境配置`、`确认停止运行时`、`确认从 DbOption 导入环境`、`确认删除环境`、`确认删除站点`（定位用 `.n-dialog`，不要用 `getByRole('dialog')`：DaisyUI 的 `<dialog class="modal">` 打开过一次后留在 DOM 里会撞名） |
 | pill 文案 | `运行时 · 已激活 {name}` / `运行时 · 运行中 · 未激活环境` / `运行时 · 未激活` / `运行时 · 未知` |
 | 环境卡 banner | 卡片内 `.rounded-lg.border.px-3`，文案前缀 `测 MQTT：` / `测文件服务：` / `应用配置：` / `激活环境：`；成功 `bg-emerald-50`，失败 `bg-rose-50` |
 | 表单占位符 | 环境：`例如: 北京总部、上海分部`、`http://192.168.1.10:3000`、`如: 上海园区`、`7999,8001,8002`、`192.168.1.10`、`1883`；站点名：`例如: 1号服务器、备份节点` |

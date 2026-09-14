@@ -69,7 +69,7 @@
 #### Known gaps
 
 - 本机双站点 e2e smoke 仍未跑通（最近一次 2026-05-17：1 passed / 12 failed，Site A/B/MQTT 未启动）；本机无 Mosquitto，`runtime/local-collab/site-a|b/DbOption.toml` 未生成。`plant-model-gen` `web_server` 已可编译（`cargo build --bin web_server --features web_server,mqtt` → `D:\Rust\target\debug\web_server.exe`，需先 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
-- `/topology` 尚无「从 DbOption 导入」按钮（API 已封装）。
+- ~~`/topology` 尚无「从 DbOption 导入」按钮（API 已封装）~~ → 同日晚已落地（见下方「收口」）。
 - ~~部署动作面新按钮尚未纳入 `scripts/phase7-plus-smoke.mjs`~~ → 由 `scripts/topology-deploy-smoke.mjs` / `topology-deploy-live-smoke.mjs` 覆盖（见下方 Added）；L3 full 的 plant-model-gen 路径与 L4 双站点仍等 P3 环境。
 
 #### Verification
@@ -80,6 +80,24 @@
 - vite preview + Playwright（mock plant-model-gen 形状）：测 MQTT → 测文件服务 → 激活（确认弹窗）→ 站点 test-http → 编辑保存 → 停止运行时，6 个端点命中、0 console/page error、站点表 1440 宽度无横向溢出
 - vite preview 反代到本机 `plant-web-server :3100`（只读 + 安全探测）：admin 登录成功 → pill「已激活 Persistence Env」→ 4 张 env 卡 1 个「已激活」→ 该 env 测 MQTT / 测文件服务（`目标不可达 · 127.0.0.1:3299`，符合预期）→ 站点 test-http；写请求 0 次
 - **真后端完整闭环（用户确认后）**：UI 新建 env → 测连通 → 激活（后端 `active` 切换、pill / 徽标跟随）→ 应用 → 站点 test-http → 编辑站点（PUT 落盘）→ 停止运行时；收尾删测试 env / 站点并恢复原激活 env，env 集合与激活态与联调前一致。报告：`docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md`（含 7 条后端语义发现）
+
+### 收口 · 「从 DbOption 导入」按钮 + 仓库行尾固定（同日晚）
+
+#### Added
+
+- `src/views/TopologyView.vue`：环境列表头部「从 DbOption 导入」按钮（PRD US-4 最后一步）。NDialog 说明「读取后端当前进程的 DbOption.toml 生成一个环境；不改写配置、不激活运行时；plant-model-gen 每次新建『导入环境 - 时间戳』，plant-web-server 按本站 id 覆盖」→ `remoteSyncApi.importEnvFromDbOption()` → 成功判定走 `isRemoteSyncActionOk()` → 刷新列表并选中新 env（id 兼容 pmg 顶层 `id` 与 pws `item.id / data.id`）；失败 toast 透出后端 message。至此 PRD §4.2 五个用例前端全部闭环。
+- `scripts/topology-deploy-smoke.mjs`：DA-16（取消 0 写 → 确定后 `import-from-dboption` 恰 1 次、弹窗关闭、`GET envs` 重拉、「共 N+1 个环境」、新卡带 `border-primary` 选中态）；mock 路由按两种后端形状实现（pmg 不幂等新建、pws 固定 `dboption-local-a` 覆盖）。
+- `.gitattributes`：`* text=auto eol=lf`（`*.bat / *.cmd` CRLF，图片 / 字体 / docx 二进制）。索引此前已全部是 LF，本次只是固定；此前 Windows 编辑器把 57 个工作区文件改成 CRLF 后 `package.json`、`*.ps1`、`*.md` 会出现整文件重写的假 diff。
+
+#### Changed
+
+- 下午产出按 4 个 commit 入库：`5d049c1` .gitattributes · `807d340` 四层用例 + mock/live smoke 脚本 + `runtimeActive` 修复 + 3 份通过的结果 JSON · `e67e1c2` 双站点 setup 生成器 + smoke 19→22 · `d2a0056` 文档。两份失败的 `local-remote-collab-*-result.json` 仍不入库，等 P3 跑通后覆盖。
+- 文档同步：`remote-deploy-auto-test-cases.md`（§0 / §1 / §2 DA-16 / §6 / §7 选择器契约）、PRD §4.2 用例 3 与 US-4、HANDOFF「仍欠」、README 命令表、`remote-collab-management-analysis.md` §5 / §6、计划 §5.1。
+
+#### Verification
+
+- `npm run type-check` · 0 errors
+- `npm run smoke:topology-deploy -- --build` → pmg 16/16 · pws 16/16 · pageErrors 0（`docs/e2e-smoke/topology-deploy-smoke-result.json`）
 
 ---
 

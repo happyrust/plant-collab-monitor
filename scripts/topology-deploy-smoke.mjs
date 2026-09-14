@@ -96,6 +96,7 @@ function createState(shape) {
     activeEnvId: 'env-1',
     runtimeActive: true,
     taskCount: 3,
+    importCalls: 0,
   };
 }
 
@@ -138,6 +139,24 @@ function respond(state, method, url, body) {
   if (p === '/api/admin/auth/me') return ok({ success: true, data: { user: { username: 'admin', role: 'admin' } } });
 
   // ---- envs ----
+  // DA-16：从 DbOption 导入。pmg 每次新建（UUID + 「导入环境 - 时间戳」，action_success 顶层给 id）；
+  // pws 是 create_or_update_env，id 固定 dboption-<site_id>，重复导入就是覆盖（响应 item/data）
+  if (p === '/api/remote-sync/envs/import-from-dboption' && method === 'POST') {
+    state.importCalls += 1;
+    if (pmg) {
+      const id = `imported-${state.importCalls}`;
+      state.envs.push({ id, name: `导入环境 - 20260914_2230${String(state.importCalls).padStart(2, '0')}`, file_server_host: 'http://127.0.0.1:4100', mqtt_host: '127.0.0.1', mqtt_port: 1883, location: 'local-a', location_dbs: '7999' });
+      return ok({ status: 'success', message: '已从当前配置导入协同组', id, checked_at: now });
+    }
+    const id = 'dboption-local-a';
+    let env = state.envs.find((e) => e.id === id);
+    if (!env) {
+      env = { id, name: 'AvevaMarineSample', source: 'DbOption', active: false, mode: 'standalone-real', config: { location: 'local-a', mqtt_host: '127.0.0.1', mqtt_port: 1883, file_server_host: 'http://127.0.0.1:4100' } };
+      state.envs.push(env);
+    }
+    env.updated_at = now;
+    return ok({ success: true, item: env, data: env, mode: 'standalone-real' });
+  }
   if (p === '/api/remote-sync/envs' && method === 'GET') {
     return ok(
       pmg
@@ -583,6 +602,49 @@ async function runShape(shape, base, browser) {
     expect(rt >= 3, `runtime/status 只拉了 ${rt} 次（期望 ≥3：首屏 + 激活后 + 停止后）`);
     expect(envs >= 3, `envs 只拉了 ${envs} 次（期望 ≥3）`);
     return { runtimeStatusCalls: rt, envsCalls: envs };
+  });
+
+  // DA-16 ------------------------------------------------------------------
+  await runCase('DA-16', '「从 DbOption 导入」→ 取消 0 写 → 确定 → import-from-dboption 1 次 → 新卡出现并被选中', async () => {
+    const importPath = '/api/remote-sync/envs/import-from-dboption';
+    const btn = page.getByRole('button', { name: '从 DbOption 导入' });
+    const envsBefore = countCalls('GET', '/api/remote-sync/envs');
+    const cardsBefore = state.envs.length;
+    await page.getByText(`共 ${cardsBefore} 个环境`).waitFor({ timeout: 5_000 });
+
+    // 取消：0 写请求
+    await btn.click();
+    const dlg = confirm('确认从 DbOption 导入环境');
+    await dlg.waitFor({ timeout: 5_000 });
+    const dialogText = await text(dlg);
+    await shot('11-import-confirm');
+    await dlg.getByRole('button', { name: '取消' }).click();
+    await dlg.waitFor({ state: 'hidden', timeout: 5_000 });
+    expect(dialogText.includes('DbOption.toml'), `弹窗未说明读取 DbOption.toml：${dialogText}`);
+    expect(dialogText.includes('不会改写配置'), `弹窗未说明不改写配置：${dialogText}`);
+    expect(countCalls('POST', importPath) === 0, '取消后不应命中 import-from-dboption');
+
+    // 确定：命中一次，新卡出现、列表刷新、新卡被选中
+    await btn.click();
+    await confirm('确认从 DbOption 导入环境').waitFor({ timeout: 5_000 });
+    await confirm('确认从 DbOption 导入环境').getByRole('button', { name: '确定' }).click();
+    await confirm('确认从 DbOption 导入环境').waitFor({ state: 'hidden', timeout: 5_000 });
+    const newName = shape === 'pmg' ? '导入环境 - 20260914_223001' : 'AvevaMarineSample';
+    const newCard = card(newName);
+    await newCard.waitFor({ timeout: 10_000 });
+    await page.getByText(`共 ${cardsBefore + 1} 个环境`).waitFor({ timeout: 5_000 });
+    // 选中态是异步的（loadEnvs → selectEnv），等 class 落下来
+    await page.waitForFunction(
+      (name) => Array.from(document.querySelectorAll('.card')).some((c) => c.textContent.includes(name) && c.className.includes('border-primary')),
+      newName,
+      { timeout: 5_000 },
+    );
+    expect(countCalls('POST', importPath) === 1, `import-from-dboption 命中 ${countCalls('POST', importPath)} 次（期望 1）`);
+    expect(countCalls('GET', '/api/remote-sync/envs') > envsBefore, '导入后未刷新 env 列表');
+    expect(state.envs.length === cardsBefore + 1, `mock 后端 env 数不对：${state.envs.length}`);
+    expect(await btn.isEnabled(), '导入结束后按钮应恢复可用');
+    await shot('12-imported');
+    return { dialogText, newName, envCount: state.envs.length };
   });
 
   // 暗色一张，不计用例

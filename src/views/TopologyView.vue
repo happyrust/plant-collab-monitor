@@ -61,10 +61,21 @@
             </h4>
             <p class="text-xs text-slate-500 mt-1">共 {{ envs.length }} 个环境</p>
           </div>
-          <button @click="handleOpenAddEnv" class="btn btn-sm btn-primary gap-2 shadow-md hover:shadow-lg transition-shadow">
-            <i class="fas fa-plus"></i>
-            <span class="hidden sm:inline">新建</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="handleImportEnvFromDbOption"
+              class="btn btn-sm btn-outline gap-2"
+              :disabled="importingEnv"
+              title="读取后端当前进程的 DbOption.toml，生成一个环境（不改写配置、不激活运行时）"
+            >
+              <i :class="importingEnv ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'"></i>
+              <span class="hidden sm:inline">从 DbOption 导入</span>
+            </button>
+            <button @click="handleOpenAddEnv" class="btn btn-sm btn-primary gap-2 shadow-md hover:shadow-lg transition-shadow">
+              <i class="fas fa-plus"></i>
+              <span class="hidden sm:inline">新建</span>
+            </button>
+          </div>
         </div>
 
         <div class="flex-1 overflow-y-auto space-y-3 pr-2">
@@ -75,7 +86,7 @@
           <div v-else-if="envs.length === 0" class="text-center py-16 text-slate-500 bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
             <i class="fas fa-folder-open text-4xl text-slate-300 mb-3"></i>
             <p class="font-medium text-slate-600 dark:text-slate-400">暂无环境配置</p>
-            <p class="text-xs mt-2 text-slate-400">点击右上角"新建"按钮添加环境</p>
+            <p class="text-xs mt-2 text-slate-400">点击右上角「新建」手填，或「从 DbOption 导入」直接取后端当前配置</p>
           </div>
           <div
             v-for="env in envs"
@@ -981,6 +992,8 @@ const loadingEnvs = ref(false);
 const loadingSites = ref(false);
 const submitting = ref(false);
 const checkingStatus = ref(false);
+// 「从 DbOption 导入」进行中
+const importingEnv = ref(false);
 
 // UI States
 const showAddEnv = ref(false);
@@ -1576,6 +1589,54 @@ const handleDeleteEnv = async (id: string | number) => {
     message.success('已删除环境');
   } catch (e) {
     message.error('删除失败: ' + formatError(e));
+  }
+};
+
+/**
+ * 导入响应里的新 env id（兼容两种后端）：
+ * - plant-model-gen `action_success`：顶层 `id`
+ * - plant-web-server `create_or_update_env`：`item.id` / `data.id`
+ */
+function importedEnvId(res: RemoteSyncActionResponse & { id?: string }): string | null {
+  if (res.id) return String(res.id);
+  for (const key of ['item', 'data'] as const) {
+    const v = res[key];
+    if (v && typeof v === 'object' && 'id' in v) {
+      const id = (v as { id?: unknown }).id;
+      if (id !== undefined && id !== null && id !== '') return String(id);
+    }
+  }
+  return null;
+}
+
+// 从后端当前进程的 DbOption.toml 反向导入一个 env（PRD US-4）
+const handleImportEnvFromDbOption = async () => {
+  const ok = await confirmDialog(
+    '确认从 DbOption 导入环境',
+    '将读取后端当前进程的 DbOption.toml（mqtt_host / mqtt_port / file_server_host / location / location_dbs），在列表里生成一个环境；不会改写配置，也不会激活运行时。plant-model-gen 每次导入都新建一个「导入环境 - 时间戳」；plant-web-server 按本站 id 覆盖同一个 env。',
+    'info',
+  );
+  if (!ok) return;
+  importingEnv.value = true;
+  try {
+    const res = await remoteSyncApi.importEnvFromDbOption();
+    if (!isRemoteSyncActionOk(res)) {
+      message.error(`从 DbOption 导入失败 — ${actionFailureReason(res)}`);
+      return;
+    }
+    const newId = importedEnvId(res);
+    await loadEnvs();
+    const imported = newId ? envs.value.find((e) => String(e.id) === newId) : undefined;
+    if (imported) await selectEnv(imported);
+    message.success(
+      imported
+        ? `已从 DbOption 导入环境「${imported.name || imported.id}」`
+        : (res.message ? String(res.message) : '已从 DbOption 导入环境'),
+    );
+  } catch (e) {
+    message.error('从 DbOption 导入失败: ' + formatError(e));
+  } finally {
+    importingEnv.value = false;
   }
 };
 
