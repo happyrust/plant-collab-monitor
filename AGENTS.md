@@ -134,6 +134,8 @@ API 模块清单：
 
 前端约定：判成功一律走 `isRemoteSyncActionOk()`（`remoteSyncApi.ts`），**别直接比 `status === 'success'`**；运行时激活态用 `TopologyView` 的 `activeEnvId / runtimeActive` computed（兼容两种来源）；`adminAuthApi.normalizeAdminSession` 只强制 `token / username / role`，`expires_at` 可为 null。新增任何写后端形状假设的代码，两种后端都要过一遍。
 
+plant-web-server 的语义差异（2026-09-14 真后端联调实测，详见 `docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md` §3）：探测只读 `host/port` 不读 `mqtt_host/file_server_host`（监控台建的 env 恒「不可达」）；`apply` = `activate` + 任务记录、不写 DbOption；`runtime/stop` 只标任务 `Stopped`、`running` 恒 true、`active` 不清；`DELETE envs/{id}` 不级联删站点。这些是后端待修项，前端不要用 hack 绕。
+
 ### 4.4 UI 风格规范
 
 **禁止**：

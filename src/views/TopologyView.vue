@@ -1163,7 +1163,7 @@ const handleTestHttp = (env: RemoteEnv) =>
 const handleApplyEnv = async (env: RemoteEnv) => {
   const ok = await confirmDialog(
     '确认应用环境配置',
-    `将把环境「${env.name || env.id}」的 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入后端 DbOption.toml。不会重启运行态；部分运行期组件需重载或重启后生效。`,
+    `将把环境「${env.name || env.id}」应用为后端当前配置：plant-model-gen 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入 DbOption.toml（不重启运行态，部分组件需重载后生效）；plant-web-server 会直接把它标记为当前环境。`,
     'warning',
   );
   if (!ok) return;
@@ -1174,7 +1174,7 @@ const handleActivateEnv = async (env: RemoteEnv) => {
   const current = runtime.value?.active ? `当前已激活的运行态（${activeEnvName.value}）会先被停止。` : '';
   const ok = await confirmDialog(
     '确认激活环境',
-    `将把环境「${env.name || env.id}」写入后端 DbOption.toml，并在后端进程内重启 watcher + MQTT 订阅，立即生效。${current}`,
+    `将把环境「${env.name || env.id}」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。${current}`,
     'warning',
   );
   if (!ok) return;

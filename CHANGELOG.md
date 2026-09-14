@@ -49,6 +49,7 @@
 - 后端路由对照：`rg -n 'route\(' ../plant-model-gen/src/web_server/remote_sync_handlers.rs`（35 路由）与 `mod.rs:1213-1221`（deployment-sites 仅 GET list / get）
 - vite preview + Playwright（mock plant-model-gen 形状）：测 MQTT → 测文件服务 → 激活（确认弹窗）→ 站点 test-http → 编辑保存 → 停止运行时，6 个端点命中、0 console/page error、站点表 1440 宽度无横向溢出
 - vite preview 反代到本机 `plant-web-server :3100`（只读 + 安全探测）：admin 登录成功 → pill「已激活 Persistence Env」→ 4 张 env 卡 1 个「已激活」→ 该 env 测 MQTT / 测文件服务（`目标不可达 · 127.0.0.1:3299`，符合预期）→ 站点 test-http；写请求 0 次
+- **真后端完整闭环（用户确认后）**：UI 新建 env → 测连通 → 激活（后端 `active` 切换、pill / 徽标跟随）→ 应用 → 站点 test-http → 编辑站点（PUT 落盘）→ 停止运行时；收尾删测试 env / 站点并恢复原激活 env，env 集合与激活态与联调前一致。报告：`docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md`（含 7 条后端语义发现）
 
 ---
 

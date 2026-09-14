@@ -140,7 +140,7 @@ P2（收敛 API + 文档）─┐
 | P2 API 收敛 + 文档 | ✅ 同上 | `deploymentSitesApi` → `list / get`；README / AGENTS（新增 §4.3.1、§4.3.2）/ HANDOFF / 分析文档 / 两份 PRD 校准 |
 | P3 双站点环境 | ◐ 部分 | ✅ `web_server` 已编出（`D:\Rust\target\debug\web_server.exe`，`web_server,mqtt`；补 clone 了 `../pdms-io-fork`）。❌ 本机无 Mosquitto、`runtime/local-collab/site-a\|b/DbOption.toml` 未生成、两实例未启动（长驻进程须用户自己起）；smoke 仍未跑 |
 | P4 仓库卫生 | ✅ | `.gitignore` / 归档 / 入库 PNG；两份失败的 smoke JSON 仍未跟踪，等 P3 跑通后覆盖 |
-| 计划外 | ✅ | 兼容 plant-web-server：login `expires_at` 可缺、`isRemoteSyncActionOk()`、激活态从 `envs[].active` 推导 |
+| 计划外 | ✅ | 兼容 plant-web-server：login `expires_at` 可缺、`isRemoteSyncActionOk()`、激活态从 `envs[].active` 推导；用户确认后对本机 plant-web-server 做了完整闭环联调并恢复状态（`docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md`） |
 
 ## 6. 需要拍板的问题
 

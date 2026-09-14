@@ -1,0 +1,209 @@
+{
+  "envName": "monitor-e2e-20260914-034740",
+  "originalActiveEnvId": "persist-env-20260524104836",
+  "steps": [
+    {
+      "name": "login",
+      "pill": "运行时 · 已激活 Persistence Env\n停止运行时"
+    },
+    {
+      "name": "create-env",
+      "id": "env-1789357663",
+      "autoSites": [
+        {
+          "id": "site-1789357663",
+          "name": "AvevaMarineSample",
+          "http_host": "http://localhost:4179"
+        }
+      ],
+      "envCount": 5
+    },
+    {
+      "name": "probe",
+      "mqttBanner": "测 MQTT：目标不可达 · 127.0.0.1 11:47:45",
+      "httpBanner": "测文件服务：目标不可达 · 127.0.0.1 11:47:45"
+    },
+    {
+      "name": "activate",
+      "dialog": "确认激活环境 | 将把环境「monitor-e2e-20260914-034740」写入后端 DbOption.toml，并在后端进程内重启 watcher + MQTT 订阅，立即生效。 | 取消 | 确定",
+      "pill": "运行时 · 已激活 monitor-e2e-20260914-034740\n停止运行时",
+      "badgeOnTestEnv": true,
+      "activateDisabled": true,
+      "backendActive": "env-1789357663",
+      "banner": "激活环境：成功 11:47:47"
+    },
+    {
+      "name": "apply",
+      "banner": "应用配置：成功 11:47:48"
+    },
+    {
+      "name": "sites",
+      "rowCount": 1,
+      "siteTest": "后端探测：目标不可达 · 127.0.0.1",
+      "notesAfterEdit": [
+        "edited by live e2e 20260914-034740"
+      ]
+    },
+    {
+      "name": "stop-runtime",
+      "pill": "运行时 · 已激活 monitor-e2e-20260914-034740\n停止运行时",
+      "backendRuntime": {
+        "active_task_count": 10,
+        "env_count": 5,
+        "mode": "standalone-real",
+        "root": "D:\\work\\plant-code\\plant-web-server\\runtime/remote_sync",
+        "running": true,
+        "site_count": 5,
+        "success": true
+      },
+      "backendActiveEnv": "env-1789357663"
+    }
+  ],
+  "testEnvId": "env-1789357663",
+  "cleanup": {
+    "deletedSites": [
+      {
+        "id": "site-1789357663",
+        "status": 200,
+        "body": {
+          "deleted": true,
+          "id": "site-1789357663",
+          "mode": "standalone-real",
+          "success": true
+        }
+      }
+    ],
+    "deletedEnv": {
+      "status": 200,
+      "body": {
+        "deleted": true,
+        "id": "env-1789357663",
+        "mode": "standalone-real",
+        "success": true
+      }
+    },
+    "reactivateOriginal": {
+      "status": 200,
+      "body": {
+        "data": {
+          "activated_at": "2026-09-14T03:47:56.8327728Z",
+          "active": true,
+          "config": {
+            "host": "127.0.0.1",
+            "marker": "20260524104836",
+            "port": 3299
+          },
+          "created_at": "2026-05-24T02:48:38.2839825Z",
+          "host": "127.0.0.1",
+          "id": "persist-env-20260524104836",
+          "mode": "standalone-real",
+          "name": "Persistence Env",
+          "port": 3299,
+          "status": "active",
+          "updated_at": "2026-05-24T02:48:38.318964Z"
+        },
+        "item": {
+          "activated_at": "2026-09-14T03:47:56.8327728Z",
+          "active": true,
+          "config": {
+            "host": "127.0.0.1",
+            "marker": "20260524104836",
+            "port": 3299
+          },
+          "created_at": "2026-05-24T02:48:38.2839825Z",
+          "host": "127.0.0.1",
+          "id": "persist-env-20260524104836",
+          "mode": "standalone-real",
+          "name": "Persistence Env",
+          "port": 3299,
+          "status": "active",
+          "updated_at": "2026-05-24T02:48:38.318964Z"
+        },
+        "mode": "standalone-real",
+        "success": true,
+        "task": {
+          "action": "activate",
+          "env_id": "persist-env-20260524104836",
+          "id": "remote-sync-activate-persist-env-20260524104836",
+          "mode": "standalone-real",
+          "progress": 100,
+          "started_at": "2026-09-14T03:47:56.8332681Z",
+          "status": "Active",
+          "task_id": "remote-sync-activate-persist-env-20260524104836",
+          "task_name": "Remote sync activate persist-env-20260524104836",
+          "task_type": "RemoteSyncRuntime",
+          "updated_at": "2026-09-14T03:47:56.8332681Z"
+        }
+      }
+    },
+    "envIdsRestored": true,
+    "activeRestored": true,
+    "taskCountBefore": 8,
+    "taskCountAfter": 10
+  },
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/admin/auth/login",
+      "status": 200,
+      "body": "{\"data\":{\"token\":\"detached-admin-token\",\"user\":{\"role\":\"admin\",\"username\":\"admin\"}},\"message\":\"登录成功\",\"success\":true}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs",
+      "status": 200,
+      "body": "{\"data\":{\"active\":false,\"created_at\":\"2026-09-14T03:47:43.3800295Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789357663\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-034740\",\"status\":\"created\",\"updated_at\":\"2026-09-14T03:47:43.3800311Z\"},\"item\":{\"active\":false,\"created_at\":\"2026-09-14T03:47:4"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789357663/sites",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-14T03:47:43.3999501Z\",\"dbnums\":\"251181\",\"env_id\":\"env-1789357663\",\"http_host\":\"http://localhost:4179\",\"id\":\"site-1789357663\",\"location\":\"mqtt-smoke-20260525142813\",\"mode\":\"standalone-real\",\"name\":\"AvevaMarineSample\",\"notes\":\"站点（自动添加）\",\"status\":\"created\",\"updated_at\":\"2026-09-14T03:47:43.3999518Z\"},\"item\":{\"created_at\":\"2026-09-14T03:47:43.3999501Z\",\"dbnums\":\"251181\","
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789357663/test-mqtt",
+      "status": 200,
+      "body": "{\"host\":\"127.0.0.1\",\"id\":\"env-1789357663\",\"kind\":\"mqtt\",\"mode\":\"standalone-real\",\"port\":null,\"reachable\":false,\"success\":true}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789357663/test-http",
+      "status": 200,
+      "body": "{\"host\":\"127.0.0.1\",\"id\":\"env-1789357663\",\"kind\":\"http\",\"mode\":\"standalone-real\",\"port\":null,\"reachable\":false,\"success\":true}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789357663/activate",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-14T03:47:47.1517151Z\",\"active\":true,\"created_at\":\"2026-09-14T03:47:43.3800295Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789357663\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-034740\",\"status\":\"active\",\"updated_at\":\"2026-09-14T03:47:43.3800311Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789357663/apply",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-14T03:47:48.5678691Z\",\"active\":true,\"created_at\":\"2026-09-14T03:47:43.3800295Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789357663\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260914-034740\",\"status\":\"active\",\"updated_at\":\"2026-09-14T03:47:43.3800311Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/sites/site-1789357663/test-http",
+      "status": 200,
+      "body": "{\"host\":\"127.0.0.1\",\"id\":\"site-1789357663\",\"kind\":\"http\",\"mode\":\"standalone-real\",\"port\":null,\"reachable\":false,\"success\":true}"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/remote-sync/sites/site-1789357663",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-14T03:47:43.3999501Z\",\"dbnums\":\"251181\",\"env_id\":\"env-1789357663\",\"http_host\":\"http://localhost:4179\",\"id\":\"site-1789357663\",\"location\":\"mqtt-smoke-20260525142813\",\"mode\":\"standalone-real\",\"name\":\"AvevaMarineSample\",\"notes\":\"edited by live e2e 20260914-034740\",\"status\":\"created\",\"updated_at\":\"2026-09-14T03:47:52.6035877Z\"},\"item\":{\"created_at\":\"2026-09-14T03:47:43.39"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/runtime/stop",
+      "status": 200,
+      "body": "{\"mode\":\"standalone-real\",\"stopped\":true,\"success\":true}"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "passed": true
+}
