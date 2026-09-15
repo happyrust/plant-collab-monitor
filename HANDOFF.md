@@ -29,9 +29,10 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: a65acad chore(collab): align monitor port and local smoke docs（2026-05-18）
-2026-09-14 本地: 部署动作面 + API 收敛 + 文档校准（见 CHANGELOG 2026-09-14）
-type-check: 0 errors
+上一次推送: 30e0f78 test(topology): 只读控制面 live smoke 补跑到中继模式的 plant-model-gen（7/7）（2026-09-16）
+                 ↑ 这一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
+本地与 origin/main: 一致，工作树无本仓待提交改动
+type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
 ```
 
 ---
