@@ -13,44 +13,70 @@ param(
   [string]$SiteBHttpHost = "",
   [string]$MosquittoDir = "",
   [int]$MqttReceiveTimeoutSec = 0,
+  [string]$SiteAArchivesHost = "",
+  [string]$SiteBArchivesHost = "",
+  [string]$SiteASqlite = "",
+  [string]$SiteBSqlite = "",
+  [string]$RelayFileA = "",
+  [string]$RelayFileB = "",
+  [int]$RelayRewindSessions = 0,
+  [int]$RelayDetectIntervalSec = 0,
+  [int]$RelayTimeoutSec = 0,
+  [string]$SqliteExe = "",
   [switch]$KeepEnv,
   [switch]$FixtureOnly,
   [switch]$SkipMqttPublish,
+  [switch]$SkipRelay,
   [switch]$Help
 )
 
 $ErrorActionPreference = "Stop"
 
 function Show-Help {
-  Write-Output "Local remote-collab smoke test"
+  Write-Output "Local remote-collab smoke test (SQLite-only relay mode: two relay sites, no SurrealDB)"
   Write-Output ""
   Write-Output "Prerequisites:"
-  Write-Output "  - Site A web_server is running, default http://127.0.0.1:4100"
-  Write-Output "  - Site B web_server is running, default http://127.0.0.1:4101"
+  Write-Output "  - Site A web_server is running, default http://127.0.0.1:4100 (sync_relay_mode = true)"
+  Write-Output "  - Site B web_server is running, default http://127.0.0.1:4101 (sync_relay_mode = true)"
   Write-Output "  - MQTT broker is running, default 127.0.0.1:1883"
-  Write-Output "  - Site A/B use isolated DbOption.toml, deployment_sites_sqlite_path, location, and DB runtime"
+  Write-Output "  - Site A/B use isolated DbOption.toml, deployment_sites_sqlite_path, location, project copy (setup script)"
+  Write-Output "  - sqlite3.exe (or python) for LS-23/24, which read both sites' e3d_sync_ledger / relay_sync_watermark"
   Write-Output ""
   Write-Output "Usage:"
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1"
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101"
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -FixtureOnly -FixtureDir `$env:TEMP\remote-collab-fixture"
   Write-Output ""
-  Write-Output "Checks (LS-01..LS-22 in report order, see docs/e2e-smoke/remote-deploy-auto-test-cases.md section 5):"
+  Write-Output "Checks (LS-01..LS-24 in report order, see docs/e2e-smoke/local-remote-collab-test-plan.md section 6):"
   Write-Output "  ports / identities / login / env+site create / test-mqtt / test-http / activate / runtime status / topology / logs"
   Write-Output "  LS-15 remote-runtime-active-env      : runtime/status.active == true && env_id == created env (pws: envs[].active)"
   Write-Output "  LS-20 mqtt-received-after-publish    : after mosquitto_pub, runtime/status.mqtt_connected turns true"
   Write-Output "  LS-22 runtime-stop-clears-active     : POST runtime/stop -> runtime/status.active == false, then delete smoke site/env (skipped with -KeepEnv)"
+  Write-Output "  LS-23 relay-outbound-ledger          : activate Site B too, rewind Site A's relay watermark for -RelayFileB's db by N sessions,"
+  Write-Output "                                         Site A's relay loop re-broadcasts it -> e3d_sync_ledger outbound/ok row on A"
+  Write-Output "  LS-24 relay-inbound-ledger           : Site B receives it, clones + verifies -> inbound/ok row on B with sesno_seen == sesno_to;"
+  Write-Output "                                         B's copy (garbage appended beforehand) is restored (SHA256 == -RelayFileA when given)"
   Write-Output ""
   Write-Output "Options:"
-  Write-Output "  -SiteBFileServerHost   env.file_server_host (default <SiteBBase>/files/output; GET must return 2xx, setup script drops index.html there)"
+  Write-Output "  -SiteAArchivesHost     env.file_server_host written on Site A = where others download A's .cba (default <SiteABase>/assets/archives)"
+  Write-Output "  -SiteBArchivesHost     same for the env created on Site B (default <SiteBBase>/assets/archives)"
   Write-Output "  -SiteBHttpHost         site.http_host (default <SiteBBase>/files/output; backend probes <http_host>/metadata.json)"
+  Write-Output "  -SiteBFileServerHost   deprecated alias of -SiteAArchivesHost (kept for old command lines)"
+  Write-Output "  -SiteASqlite/-SiteBSqlite  deployment_sites.sqlite of each site (default ../plant-model-gen/runtime/local-collab/site-x/deployment_sites.sqlite)"
+  Write-Output "  -RelayFileA/-RelayFileB    the db file used for LS-23/24: A's source and B's copy (default <site-x>/project/SCB/scb000/scb6000_0001)"
+  Write-Output "  -RelayRewindSessions   how many sessions to rewind A's watermark (default 1)"
+  Write-Output "  -RelayDetectIntervalSec relay poll interval set on both smoke envs via envs/{id}/config (default 5)"
+  Write-Output "  -RelayTimeoutSec       max seconds to wait for each of LS-23 / LS-24 (default 90)"
+  Write-Output "  -SqliteExe             sqlite3.exe path when not on PATH (falls back to python's sqlite3 module)"
+  Write-Output "  -SkipRelay             record LS-23/24 as skipped"
   Write-Output "  -MosquittoDir          folder holding mosquitto_pub.exe when it is not on PATH (default probes C:\Program Files\mosquitto)"
   Write-Output "  -MqttReceiveTimeoutSec seconds to wait for mqtt_connected after publish (default 20)"
-  Write-Output "  -KeepEnv               do not stop the runtime / delete the smoke env + site at the end"
+  Write-Output "  -KeepEnv               do not stop the runtimes / delete the smoke envs + site at the end"
   Write-Output ""
   Write-Output "Environment overrides:"
   Write-Output "  SITE_A_BASE, SITE_B_BASE, MQTT_HOST, MQTT_PORT, ADMIN_USER, ADMIN_PASS, SMOKE_JSON_REPORT"
-  Write-Output "  SMOKE_FIXTURE_DIR, SMOKE_FIXTURE_FILE, SMOKE_APPEND_BYTES, SITE_B_FILE_SERVER_HOST, SITE_B_HTTP_HOST, MOSQUITTO_DIR"
+  Write-Output "  SMOKE_FIXTURE_DIR, SMOKE_FIXTURE_FILE, SMOKE_APPEND_BYTES, SITE_A_ARCHIVES_HOST, SITE_B_ARCHIVES_HOST, SITE_B_HTTP_HOST, MOSQUITTO_DIR"
+  Write-Output "  SITE_A_SQLITE, SITE_B_SQLITE, RELAY_FILE_A, RELAY_FILE_B, SQLITE_EXE"
 }
 
 if ($Help) {
@@ -210,6 +236,19 @@ function Get-FirstTopic($Response) {
   return "Sync/E3d"
 }
 
+# 中继站点的轮询每个周期都会打开同一批 db 文件（db_index 扫描 + e3d-io），
+# 那几百毫秒里对文件的任何读写都会被 Windows 拒绝；等它放手再试。
+function Invoke-WithFileRetry([scriptblock]$Action, $Path, [int]$Attempts = 30, [int]$DelayMs = 500) {
+  for ($i = 1; $i -le $Attempts; $i++) {
+    try {
+      return (& $Action $Path)
+    } catch {
+      if ($i -eq $Attempts) { throw }
+      Start-Sleep -Milliseconds $DelayMs
+    }
+  }
+}
+
 function Write-IncrementalFixture([string]$Directory, [string]$FileName, [int]$BytesToAppend) {
   New-Item -ItemType Directory -Force -Path $Directory | Out-Null
   $path = Join-Path $Directory $FileName
@@ -221,7 +260,7 @@ function Write-IncrementalFixture([string]$Directory, [string]$FileName, [int]$B
     $rng.Dispose()
   }
 
-  $stream = [System.IO.File]::Open($path, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
+  $stream = Invoke-WithFileRetry { param($p) [System.IO.File]::Open($p, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read) } $path
   try {
     $stream.Write($bytes, 0, $bytes.Length)
   } finally {
@@ -229,7 +268,7 @@ function Write-IncrementalFixture([string]$Directory, [string]$FileName, [int]$B
   }
 
   $item = Get-Item $path
-  $hash = Get-FileHash -Algorithm SHA256 -Path $path
+  $hash = Invoke-WithFileRetry { param($p) Get-FileHash -Algorithm SHA256 -Path $p -ErrorAction Stop } $path
   return [pscustomobject]@{
     path = $item.FullName
     file_name = $FileName
@@ -250,12 +289,74 @@ $ReportPath = Get-ValueOrDefault $ReportPath "SMOKE_JSON_REPORT" "docs/e2e-smoke
 $FixtureDir = Get-ValueOrDefault $FixtureDir "SMOKE_FIXTURE_DIR" "runtime/local-remote-collab/site-b-files"
 $FixtureFileName = Get-ValueOrDefault $FixtureFileName "SMOKE_FIXTURE_FILE" "local-smoke-increment.e3d"
 $AppendBytes = Get-IntOrDefault $AppendBytes "SMOKE_APPEND_BYTES" 512
-# plant-model-gen 的探测语义：test-http 对 env.file_server_host 发 GET 要 2xx；sites/{id}/test-http 取 <http_host>/metadata.json。
-# 站点根路径两者都给不出，所以默认指向 Site B 的 /files/output（= 其 output_root，setup 脚本已放好 index.html + metadata.json）。
-$SiteBFileServerHost = Get-ValueOrDefault $SiteBFileServerHost "SITE_B_FILE_SERVER_HOST" ($SiteBBase.TrimEnd("/") + "/files/output")
+# env.file_server_host 的真实语义（plant-model-gen）：本站广播 SyncE3dFileMsg 时带上它，**对端**从 <file_server_host>/<file>.cba
+# 下载本站的 CBA；web_server 把 assets/archives 挂在 /assets/archives。test-http 对它 GET 要 2xx（setup 放了 index.html）。
+# sites/{id}/test-http 取 <http_host>/metadata.json，所以站点的 http_host 仍指 Site B 的 /files/output。
+$SiteAArchivesHost = Get-ValueOrDefault $SiteAArchivesHost "SITE_A_ARCHIVES_HOST" ""
+if ([string]::IsNullOrWhiteSpace($SiteAArchivesHost)) {
+  # 旧参数 -SiteBFileServerHost 曾被写进 A 的 env.file_server_host；给了就沿用，否则用正确的默认值
+  $SiteAArchivesHost = Get-ValueOrDefault $SiteBFileServerHost "SITE_B_FILE_SERVER_HOST" ($SiteABase.TrimEnd("/") + "/assets/archives")
+}
+$SiteBArchivesHost = Get-ValueOrDefault $SiteBArchivesHost "SITE_B_ARCHIVES_HOST" ($SiteBBase.TrimEnd("/") + "/assets/archives")
 $SiteBHttpHost = Get-ValueOrDefault $SiteBHttpHost "SITE_B_HTTP_HOST" ($SiteBBase.TrimEnd("/") + "/files/output")
 $MosquittoDir = Get-ValueOrDefault $MosquittoDir "MOSQUITTO_DIR" ""
 $MqttReceiveTimeoutSec = Get-IntOrDefault $MqttReceiveTimeoutSec "SMOKE_MQTT_RECEIVE_TIMEOUT_SEC" 20
+
+# LS-23/24（中继链路）：两站的 SQLite 与演练用 db 文件。默认按 setup 脚本的落盘约定（后端与本仓同级）。
+$backendRootGuess = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "plant-model-gen"
+$SiteASqlite = Get-ValueOrDefault $SiteASqlite "SITE_A_SQLITE" (Join-Path $backendRootGuess "runtime\local-collab\site-a\deployment_sites.sqlite")
+$SiteBSqlite = Get-ValueOrDefault $SiteBSqlite "SITE_B_SQLITE" (Join-Path $backendRootGuess "runtime\local-collab\site-b\deployment_sites.sqlite")
+$RelayFileA = Get-ValueOrDefault $RelayFileA "RELAY_FILE_A" (Join-Path $backendRootGuess "runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001")
+$RelayFileB = Get-ValueOrDefault $RelayFileB "RELAY_FILE_B" (Join-Path $backendRootGuess "runtime\local-collab\site-b\project\SCB\scb000\scb6000_0001")
+$RelayRewindSessions = Get-IntOrDefault $RelayRewindSessions "RELAY_REWIND_SESSIONS" 1
+$RelayDetectIntervalSec = Get-IntOrDefault $RelayDetectIntervalSec "RELAY_DETECT_INTERVAL_SEC" 5
+$RelayTimeoutSec = Get-IntOrDefault $RelayTimeoutSec "RELAY_TIMEOUT_SEC" 90
+$SqliteExe = Get-ValueOrDefault $SqliteExe "SQLITE_EXE" ""
+
+# ---------------------------------------------------------------------------
+# SQLite 只读 / 小写：优先 sqlite3.exe（-json），没有就用 python 的 sqlite3 模块
+# ---------------------------------------------------------------------------
+function Find-SqliteTool([string]$Preferred) {
+  if (-not [string]::IsNullOrWhiteSpace($Preferred) -and (Test-Path $Preferred)) { return [pscustomobject]@{ kind = "sqlite3"; path = $Preferred } }
+  $cmd = Get-Command "sqlite3" -ErrorAction SilentlyContinue
+  if ($null -ne $cmd) { return [pscustomobject]@{ kind = "sqlite3"; path = $cmd.Source } }
+  $py = Get-Command "python" -ErrorAction SilentlyContinue
+  if ($null -ne $py) { return [pscustomobject]@{ kind = "python"; path = $py.Source } }
+  return $null
+}
+
+# 返回行数组（每行一个 PSCustomObject）；SQL 里的参数由调用方自己转义（只传我们自己拼的字面量）
+function Invoke-SqliteQuery($Tool, [string]$DbPath, [string]$Sql) {
+  if ($null -eq $Tool) { throw "no sqlite tool" }
+  if ($Tool.kind -eq "sqlite3") {
+    $raw = & $Tool.path -json $DbPath $Sql 2>&1
+    if ($LASTEXITCODE -ne 0) { throw ("sqlite3 failed: " + ($raw -join " ")) }
+    $text = ($raw -join "`n").Trim()
+    if ([string]::IsNullOrWhiteSpace($text)) { return @() }
+    # PS 5.1 的 ConvertFrom-Json 把整个 JSON 数组当成一个对象往下传，直接 @(...) 会得到「一个元素、里面是数组」；
+    # 先落到变量再展开，否则多行结果上 $rows[0] 拿到的是全部行。
+    $parsed = ConvertFrom-Json $text
+    if ($null -eq $parsed) { return @() }
+    return @($parsed)
+  }
+  $script = "import sqlite3,sys,json`nc=sqlite3.connect(sys.argv[1]);c.row_factory=sqlite3.Row`nrows=[dict(r) for r in c.execute(sys.argv[2])]`nc.commit();print(json.dumps(rows))"
+  $raw = & $Tool.path -c $script $DbPath $Sql 2>&1
+  if ($LASTEXITCODE -ne 0) { throw ("python sqlite3 failed: " + ($raw -join " ")) }
+  $text = ($raw -join "`n").Trim()
+  if ([string]::IsNullOrWhiteSpace($text) -or $text -eq "[]") { return @() }
+  $parsed = ConvertFrom-Json $text
+  if ($null -eq $parsed) { return @() }
+  return @($parsed)
+}
+
+function ConvertTo-SqlLiteral([string]$Value) {
+  return "'" + $Value.Replace("'", "''") + "'"
+}
+
+function Get-FileSha256([string]$Path) {
+  if (-not (Test-Path $Path)) { return $null }
+  return (Invoke-WithFileRetry { param($p) Get-FileHash -Algorithm SHA256 -Path $p -ErrorAction Stop } $Path).Hash
+}
 
 function Find-MosquittoPub([string]$Dir) {
   $cmd = Get-Command "mosquitto_pub" -ErrorAction SilentlyContinue
@@ -355,14 +456,44 @@ Add-Check $checks "site-a-admin-login" ($(if ($login.ok -and $headers.ContainsKe
   error = $login.error
 }
 
+# activate 会把 env 的 location / location_dbs 写回站点 toml：把 Site A 当前的 location_dbs（自有库）原样带上，
+# 否则会被清成 []，中继就会把收到的别家文件也当自有库再广播出去。
+function Get-RuntimeLocationDbs([string]$Base, [hashtable]$Hdrs) {
+  $cfg = Invoke-SmokeJson "GET" (Join-Url $Base "/api/remote-sync/runtime/config") $null $Hdrs
+  if (-not $cfg.ok) { return $null }
+  $dbs = Get-NestedValue $cfg.response @("config", "location_dbs")
+  if ($null -eq $dbs) { return $null }
+  $list = @($dbs | ForEach-Object { [string]$_ })
+  if ($list.Count -eq 0) { return $null }
+  return ($list -join ",")
+}
+
+# 把 smoke env 的 detect_interval 调小，LS-23/24 才不用等 30 s 一轮
+function Set-EnvDetectInterval([string]$Base, [hashtable]$Hdrs, [string]$Id, [int]$Seconds) {
+  $current = Invoke-SmokeJson "GET" (Join-Url $Base "/api/remote-sync/envs/$Id/config") $null $Hdrs
+  $cfg = [ordered]@{
+    auto_detect = $true; detect_interval = $Seconds; auto_sync = $false; batch_size = 10; max_concurrent = 3
+    reconnect_initial_ms = 1000; reconnect_max_ms = 30000; enable_notifications = $true; log_retention_days = 30
+  }
+  if ($current.ok -and $null -ne $current.response) {
+    foreach ($key in @($cfg.Keys)) {
+      if ($key -eq "detect_interval") { continue }
+      $value = Get-ObjectValue $current.response @($key)
+      if ($null -ne $value) { $cfg[$key] = $value }
+    }
+  }
+  return Invoke-SmokeJson "PUT" (Join-Url $Base "/api/remote-sync/envs/$Id/config") $cfg $Hdrs
+}
+
+$siteALocationDbs = Get-RuntimeLocationDbs $SiteABase $headers
 $envName = "local-dual-site-" + (Get-Date -Format "yyyyMMdd-HHmmss")
 $envPayload = @{
   name = $envName
   mqtt_host = $MqttHost
   mqtt_port = $MqttPort
-  file_server_host = $SiteBFileServerHost
+  file_server_host = $SiteAArchivesHost
   location = $siteALocation
-  location_dbs = $null
+  location_dbs = $siteALocationDbs
 }
 $createEnv = Invoke-SmokeJson "POST" (Join-Url $SiteABase "/api/remote-sync/envs") $envPayload $headers
 if ($createEnv.ok) {
@@ -370,8 +501,14 @@ if ($createEnv.ok) {
 }
 Add-Check $checks "remote-env-create" ($(if ($createEnv.ok -and -not [string]::IsNullOrWhiteSpace($envId)) { "passed" } else { "failed" })) @{
   env_id = $envId
+  location_dbs = $siteALocationDbs
+  file_server_host = $SiteAArchivesHost
   error = $createEnv.error
   response = $createEnv.response
+}
+$envDetectInterval = $null
+if (-not [string]::IsNullOrWhiteSpace($envId) -and -not $SkipRelay) {
+  $envDetectInterval = Set-EnvDetectInterval $SiteABase $headers $envId $RelayDetectIntervalSec
 }
 
 if (-not [string]::IsNullOrWhiteSpace($envId)) {
@@ -471,11 +608,12 @@ if ($SkipMqttPublish) {
       $topic = "Sync/E3d"
     }
     # 字段与 plant-model-gen mqtt_service::SyncE3dFileMsg 一致；location 必须 != Site A 的 location 才会被处理。
-    # 注意后端用 serde_json::from_slice(..).unwrap() 反序列化，字段缺失 / 类型不对会让订阅任务 panic 退出。
+    # 坏包（字段缺失 / 类型不对）自 2026-09-15 起只记 warn 跳过，不再 panic 掉订阅任务；这条 fixture 不是
+    # Site A 索引里的 db 文件，A 会在 e3d_sync_ledger 落一行 inbound/skipped（unknown_local_file），不 clone。
     $message = @{
       file_names = @($(if ($null -ne $fixture) { $fixture.file_name } else { $FixtureFileName }))
       file_hashes = @($(if ($null -ne $fixture) { $fixture.sha256 } else { "" }))
-      file_server_host = $SiteBFileServerHost
+      file_server_host = $SiteBArchivesHost
       location = $siteBLocation
       timestamp = (Get-Date).ToUniversalTime().ToString("o")
     } | ConvertTo-Json -Compress -Depth 8
@@ -526,6 +664,195 @@ Start-Sleep -Seconds 2
 $logs = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/logs?limit=5") $null $headers
 Add-Check $checks "remote-sync-logs" ($(if ($logs.ok) { "passed" } else { "failed" })) @{ error = $logs.error; response = $logs.response }
 
+# ---------------------------------------------------------------------------
+# LS-23 / LS-24 · 中继链路（SQLite-only 方案 P4）——必须在 LS-22 stop 之前跑，结果压到 LS-22 之后再记，
+# 保住 LS-01..22 的编号。
+#   1. Site B 也激活一个 env（B 的订阅随 activate 起）；
+#   2. 等 A 的中继轮询给 -RelayFileB 对应的库写了基线水位；
+#   3. 给 B 的副本追加垃圾字节（之后要看它被 A 的 CBA 还原）；
+#   4. 把 A 的水位回退 N 个会话——A 下一轮判定「sesno 前进了」→ e3d-io diff → 广播；
+#   5. LS-23：A 台账出现 outbound/ok；LS-24：B 台账出现 inbound/ok 且 sesno_seen == sesno_to，副本 SHA256 == A 的源文件。
+# ---------------------------------------------------------------------------
+$relayChecks = [System.Collections.Generic.List[object]]::new()
+$siteBHeaders = @{}
+$siteBEnvId = ""
+$relayFileName = [System.IO.Path]::GetFileName($RelayFileB)
+$sqliteTool = Find-SqliteTool $SqliteExe
+
+function Wait-LedgerRow($Tool, [string]$DbPath, [string]$Direction, [string]$FileName, [string]$SinceIso, [int]$TimeoutSec, [string]$MsgId = "") {
+  # 给了 msg_id 就只认这一条：broker 上的 retained 消息会让 B 一订阅就把上一轮的文件再收一遍，
+  # 那一行同样是 inbound/ok，不锁定 msg_id 就分不清收到的是不是本轮广播的。
+  $msgFilter = $(if ([string]::IsNullOrWhiteSpace($MsgId)) { "" } else { " AND msg_id = $(ConvertTo-SqlLiteral $MsgId)" })
+  $sql = "SELECT direction, file_name, verify_status, verify_detail, diff_status, sesno_from, sesno_to, sesno_seen, diff_inserted, diff_deleted, diff_modified, msg_id, created_at, (SELECT COUNT(*) FROM e3d_sync_changes c WHERE c.ledger_id = l.id) AS changes FROM e3d_sync_ledger l WHERE direction = $(ConvertTo-SqlLiteral $Direction) AND file_name = $(ConvertTo-SqlLiteral $FileName) AND created_at > $(ConvertTo-SqlLiteral $SinceIso)$msgFilter ORDER BY created_at DESC LIMIT 5"
+  $deadline = (Get-Date).AddSeconds($TimeoutSec)
+  $attempts = 0
+  $rows = @()
+  do {
+    $attempts++
+    try { $rows = @(Invoke-SqliteQuery $Tool $DbPath $sql) } catch { $rows = @() }
+    $ok = @($rows | Where-Object { $_.verify_status -eq "ok" })
+    if ($ok.Count -gt 0) { return [pscustomobject]@{ found = $true; row = $ok[0]; rows = $rows; attempts = $attempts } }
+    Start-Sleep -Seconds 1
+  } while ((Get-Date) -lt $deadline)
+  return [pscustomobject]@{ found = $false; row = $null; rows = $rows; attempts = $attempts }
+}
+
+if ($SkipRelay) {
+  $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = "SkipRelay was set" } }) | Out-Null
+  $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "SkipRelay was set" } }) | Out-Null
+} elseif ([string]::IsNullOrWhiteSpace($envId) -or -not $runtimeHasActiveField) {
+  $reason = $(if ([string]::IsNullOrWhiteSpace($envId)) { "env creation failed (Site A not activated)" } else { "runtime/status has no active field (plant-web-server semantics; relay needs plant-model-gen)" })
+  $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+  $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+} elseif ($null -eq $sqliteTool) {
+  $reason = "neither sqlite3.exe nor python found (use -SqliteExe); LS-23/24 read both sites' SQLite ledgers"
+  $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+  $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+} elseif (-not (Test-Path $SiteASqlite)) {
+  $reason = "Site A sqlite not found: $SiteASqlite (pass -SiteASqlite)"
+  $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+  $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
+} else {
+  $outDetails = [ordered]@{ tool = $sqliteTool.kind; site_a_sqlite = $SiteASqlite; file_name = $relayFileName; rewind_sessions = $RelayRewindSessions; detect_interval_sec = $RelayDetectIntervalSec }
+  $outDetails.site_a_env_config = @{ ok = $envDetectInterval.ok; error = $envDetectInterval.error }
+
+  # 1. Site B：登录 → 建 env（file_server_host = B 自己的 CBA 目录）→ detect_interval → activate
+  $siteB = [ordered]@{}
+  $loginB = Invoke-SmokeJson "POST" (Join-Url $SiteBBase "/api/admin/auth/login") @{ username = $AdminUser; password = $AdminPass } @{}
+  if ($loginB.ok) {
+    $tokenB = Get-TokenFromLoginResponse $loginB.response
+    if (-not [string]::IsNullOrWhiteSpace($tokenB)) { $siteBHeaders = @{ Authorization = "Bearer $tokenB" } }
+  }
+  $siteB.login = @{ ok = ($loginB.ok -and $siteBHeaders.ContainsKey("Authorization")); error = $loginB.error }
+  if ($siteB.login.ok) {
+    $siteBLocationDbs = Get-RuntimeLocationDbs $SiteBBase $siteBHeaders
+    $envB = Invoke-SmokeJson "POST" (Join-Url $SiteBBase "/api/remote-sync/envs") @{
+      name = "local-dual-site-b-" + (Get-Date -Format "yyyyMMdd-HHmmss")
+      mqtt_host = $MqttHost
+      mqtt_port = $MqttPort
+      file_server_host = $SiteBArchivesHost
+      location = $siteBLocation
+      location_dbs = $siteBLocationDbs
+    } $siteBHeaders
+    if ($envB.ok) { $siteBEnvId = Get-EntityId $envB.response }
+    $siteB.env = @{ ok = ($envB.ok -and -not [string]::IsNullOrWhiteSpace($siteBEnvId)); id = $siteBEnvId; location_dbs = $siteBLocationDbs; error = $envB.error }
+    if (-not [string]::IsNullOrWhiteSpace($siteBEnvId)) {
+      $cfgB = Set-EnvDetectInterval $SiteBBase $siteBHeaders $siteBEnvId $RelayDetectIntervalSec
+      $siteB.env_config = @{ ok = $cfgB.ok; error = $cfgB.error }
+      $activateB = Invoke-SmokeJson "POST" (Join-Url $SiteBBase "/api/remote-sync/envs/$siteBEnvId/activate") @{} $siteBHeaders
+      $statusB = Invoke-SmokeJson "GET" (Join-Url $SiteBBase "/api/remote-sync/runtime/status") $null $siteBHeaders
+      $siteB.activate = @{ ok = $activateB.ok; response = $activateB.response; error = $activateB.error }
+      $siteB.runtime = @{ active = (Get-ObjectValue $statusB.response @("active")); relay = (Get-ObjectValue $statusB.response @("relay")); env_id = (Get-ObjectValue $statusB.response @("env_id")) }
+    }
+  }
+  $outDetails.site_b = $siteB
+  $siteBActive = ($null -ne $siteB.runtime -and $siteB.runtime.active -eq $true -and (Get-ObjectValue $siteB.activate.response @("status")) -eq "success")
+
+  # 2. 等 A 的中继轮询给这个库写基线（首轮 db_index 扫描 + 基线，工程小的话几秒）
+  $wmSql = "SELECT dbnum, file_name, sesno, last_seen_fingerprint FROM relay_sync_watermark WHERE file_name = $(ConvertTo-SqlLiteral $relayFileName)"
+  $deadline = (Get-Date).AddSeconds($RelayTimeoutSec)
+  $baseline = $null
+  do {
+    try { $baseline = @(Invoke-SqliteQuery $sqliteTool $SiteASqlite $wmSql) | Select-Object -First 1 } catch { $baseline = $null }
+    if ($null -ne $baseline) { break }
+    Start-Sleep -Seconds 1
+  } while ((Get-Date) -lt $deadline)
+  $outDetails.baseline = $baseline
+
+  if ($null -eq $baseline) {
+    $outDetails.hint = "Site A 的 relay_sync_watermark 里没有 $relayFileName：确认 A 是中继模式（runtime/status.relay == true）、该库在 A 的 included_projects / location_dbs 内、-RelayFileB 文件名与 A 的 db_index file_name 一致"
+    $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "failed"; details = $outDetails }) | Out-Null
+    $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "LS-23 did not pass" } }) | Out-Null
+  } else {
+    # 3. 弄脏 B 的副本（有的话）：追加随机字节，clone 后应被还原成 A 的源文件
+    $copyB = [ordered]@{ path = $RelayFileB; exists = (Test-Path $RelayFileB) }
+    if ($copyB.exists) {
+      $copyB.length_before = (Get-Item $RelayFileB).Length
+      $copyB.sha256_before = Get-FileSha256 $RelayFileB
+      try {
+        $dirty = Write-IncrementalFixture (Split-Path -Parent $RelayFileB) $relayFileName $AppendBytes
+        $copyB.dirtied = @{ appended_bytes = $dirty.appended_bytes; length = $dirty.length; sha256 = $dirty.sha256 }
+      } catch {
+        $copyB.dirtied = @{ error = $_.Exception.Message }
+      }
+    }
+    $outDetails.site_b_copy = $copyB
+
+    # 4. 回退 A 的水位（指纹不动，免去一拍去抖）
+    $sinceIso = (Get-Date).ToUniversalTime().AddSeconds(-1).ToString("yyyy-MM-ddTHH:mm:ss")
+    $rewindSql = "UPDATE relay_sync_watermark SET sesno = CASE WHEN sesno > $RelayRewindSessions THEN sesno - $RelayRewindSessions ELSE 0 END, updated_at = $(ConvertTo-SqlLiteral $sinceIso) WHERE file_name = $(ConvertTo-SqlLiteral $relayFileName); SELECT dbnum, sesno FROM relay_sync_watermark WHERE file_name = $(ConvertTo-SqlLiteral $relayFileName)"
+    try {
+      $after = @(Invoke-SqliteQuery $sqliteTool $SiteASqlite $rewindSql) | Select-Object -First 1
+      $outDetails.rewind = @{ ok = $true; sesno_before = $baseline.sesno; sesno_after = $after.sesno; at = $sinceIso }
+    } catch {
+      $outDetails.rewind = @{ ok = $false; error = $_.Exception.Message }
+    }
+
+    if (-not $outDetails.rewind.ok) {
+      $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "failed"; details = $outDetails }) | Out-Null
+      $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "LS-23 did not pass" } }) | Out-Null
+    } else {
+      # 5a. LS-23：A 台账 outbound/ok
+      $outWait = Wait-LedgerRow $sqliteTool $SiteASqlite "outbound" $relayFileName $sinceIso $RelayTimeoutSec
+      $outDetails.attempts = $outWait.attempts
+      $outDetails.ledger = $outWait.row
+      if (-not $outWait.found) {
+        $outDetails.recent_rows = $outWait.rows
+        $outDetails.hint = "A 没有在 $RelayTimeoutSec s 内广播：看 A 日志里 relay-sync 行（open_failed / sesno_disagree / publish_failed 会落台账，见 recent_rows）；detect_interval 是否生效"
+      }
+      $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = $(if ($outWait.found) { "passed" } else { "failed" }); details = $outDetails }) | Out-Null
+
+      # 5b. LS-24：B 台账 inbound/ok 且 sesno_seen == sesno_to；副本被还原
+      if (-not $outWait.found) {
+        $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "LS-23 did not pass" } }) | Out-Null
+      } elseif (-not $siteBActive) {
+        $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "failed"; details = @{ reason = "Site B runtime not active (see LS-23 details.site_b)"; site_b = $siteB } }) | Out-Null
+      } elseif (-not (Test-Path $SiteBSqlite)) {
+        $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "Site B sqlite not found: $SiteBSqlite (pass -SiteBSqlite)" } }) | Out-Null
+      } else {
+        $expectedMsgId = [string]$outWait.row.msg_id
+        $inDetails = [ordered]@{ site_b_sqlite = $SiteBSqlite; file_name = $relayFileName; expected_sesno_to = $outWait.row.sesno_to; expected_msg_id = $expectedMsgId }
+        $inWait = Wait-LedgerRow $sqliteTool $SiteBSqlite "inbound" $relayFileName $sinceIso $RelayTimeoutSec $expectedMsgId
+        $inDetails.attempts = $inWait.attempts
+        $inDetails.ledger = $inWait.row
+        $sesnoMatches = $false
+        if ($inWait.found) {
+          $sesnoMatches = ($null -ne $inWait.row.sesno_seen) -and ([string]$inWait.row.sesno_seen -eq [string]$inWait.row.sesno_to) -and ([string]$inWait.row.sesno_to -eq [string]$outWait.row.sesno_to)
+        }
+        $inDetails.sesno_seen_equals_sesno_to = $sesnoMatches
+        if ($copyB.exists) {
+          $restored = [ordered]@{ length_after = (Get-Item $RelayFileB).Length; sha256_after = Get-FileSha256 $RelayFileB }
+          $restored.length_restored = ($restored.length_after -eq $copyB.length_before)
+          if (Test-Path $RelayFileA) {
+            $restored.sha256_source_a = Get-FileSha256 $RelayFileA
+            $restored.matches_site_a = ($restored.sha256_after -eq $restored.sha256_source_a)
+          }
+          $inDetails.site_b_copy = $restored
+        }
+        $copyOk = (-not $copyB.exists) -or ($null -eq $inDetails.site_b_copy.matches_site_a) -or ($inDetails.site_b_copy.matches_site_a -eq $true)
+        # clone 没发生（或没还原）时把副本截回原长度：追加的垃圾在文件尾，截掉就是原文件，别让下次 smoke 越叠越脏
+        if ($copyB.exists -and $null -ne $copyB.length_before -and -not $inDetails.site_b_copy.length_restored) {
+          try {
+            $fs = Invoke-WithFileRetry { param($p) [System.IO.File]::Open($p, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read) } $RelayFileB
+            try { $fs.SetLength([long]$copyB.length_before) } finally { $fs.Dispose() }
+            $inDetails.site_b_copy.truncated_back_by_smoke = ((Get-FileSha256 $RelayFileB) -eq $copyB.sha256_before)
+          } catch {
+            $inDetails.site_b_copy.truncated_back_by_smoke = "failed: " + $_.Exception.Message
+          }
+        }
+        if (-not $inWait.found) {
+          # 锁了 msg_id 时 $inWait.rows 必然是空的，诊断要看同窗口内 B 收到的所有行
+          try { $inDetails.recent_rows = (Wait-LedgerRow $sqliteTool $SiteBSqlite "inbound" $relayFileName $sinceIso 0).rows } catch { $inDetails.recent_rows = $inWait.rows }
+          $inDetails.hint = "B 没有 msg_id = $expectedMsgId 的 inbound/ok：recent_rows 里若是 clone_failed → 看 A 的 env.file_server_host（$SiteAArchivesHost）能否 GET 到 $relayFileName.cba；hash_mismatch / sesno_mismatch → 两站读的不是同一份源；没有任何行 → B 没订到（broker / B 的 activate）"
+        } elseif (-not $copyOk) {
+          $inDetails.hint = "B 台账 ok 但副本与 A 源文件 SHA256 不一致：clone 写的不是 -RelayFileB 这个路径？"
+        }
+        $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = $(if ($inWait.found -and $sesnoMatches -and $copyOk) { "passed" } else { "failed" }); details = $inDetails }) | Out-Null
+      }
+    }
+  }
+}
+
 # LS-22 + 收尾：停止运行时（应清掉 active），删掉 smoke 建的站点 / env；-KeepEnv 时全部跳过
 $cleanup = [ordered]@{ performed = (-not $KeepEnv) }
 if ($KeepEnv) {
@@ -556,6 +883,18 @@ if ($KeepEnv) {
   $cleanup.delete_env = @{ id = $envId; ok = $delEnv.ok; error = $delEnv.error }
 }
 
+# LS-23 / LS-24 压在 LS-22 之后记（结果在 stop 之前已经算好）
+foreach ($relayCheck in $relayChecks) {
+  Add-Check $checks $relayCheck.name $relayCheck.status $relayCheck.details
+}
+
+# Site B 收尾：LS-23 给 B 激活的 env 也停掉、删掉（-KeepEnv 时保留）
+if (-not $KeepEnv -and -not [string]::IsNullOrWhiteSpace($siteBEnvId)) {
+  $stopB = Invoke-SmokeJson "POST" (Join-Url $SiteBBase "/api/remote-sync/runtime/stop") @{} $siteBHeaders
+  $delEnvB = Invoke-SmokeJson "DELETE" (Join-Url $SiteBBase "/api/remote-sync/envs/$siteBEnvId") $null $siteBHeaders
+  $cleanup.site_b = @{ stop = @{ ok = $stopB.ok; error = $stopB.error }; delete_env = @{ id = $siteBEnvId; ok = $delEnvB.ok; error = $delEnvB.error } }
+}
+
 $failed = @($checks | Where-Object { $_.status -eq "failed" })
 $passed = @($checks | Where-Object { $_.status -eq "passed" })
 $skipped = @($checks | Where-Object { $_.status -eq "skipped" })
@@ -569,7 +908,8 @@ $report = [pscustomobject]@{
   endpoints = [pscustomobject]@{
     site_a_base = $SiteABase
     site_b_base = $SiteBBase
-    site_b_file_server_host = $SiteBFileServerHost
+    site_a_archives_host = $SiteAArchivesHost
+    site_b_archives_host = $SiteBArchivesHost
     site_b_http_host = $SiteBHttpHost
     mqtt_host = $MqttHost
     mqtt_port = $MqttPort
@@ -577,7 +917,17 @@ $report = [pscustomobject]@{
   ids = [pscustomobject]@{
     env_id = $envId
     site_id = $siteId
+    site_b_env_id = $siteBEnvId
     topic = $topic
+  }
+  relay = [pscustomobject]@{
+    site_a_sqlite = $SiteASqlite
+    site_b_sqlite = $SiteBSqlite
+    file_a = $RelayFileA
+    file_b = $RelayFileB
+    rewind_sessions = $RelayRewindSessions
+    detect_interval_sec = $RelayDetectIntervalSec
+    timeout_sec = $RelayTimeoutSec
   }
   fixture = $fixture
   cleanup = $cleanup

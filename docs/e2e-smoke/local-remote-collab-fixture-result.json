@@ -1,0 +1,13 @@
+﻿{
+    "passed":  true,
+    "mode":  "fixture-only",
+    "fixture":  {
+                    "path":  "C:\\Users\\dpc\\AppData\\Local\\Temp\\remote-collab-fixture\\local-smoke-increment.e3d",
+                    "file_name":  "local-smoke-increment.e3d",
+                    "appended_bytes":  512,
+                    "length":  512,
+                    "sha256":  "45BAE1E6D3AF6AD9713DF19C68F7901EC6320831EF0CE4609CA4206BFCB0FB1E",
+                    "updated_at":  "2026-09-15T15:33:48.0390399Z"
+                },
+    "finished_at":  "2026-09-15T15:33:48.0844195Z"
+}

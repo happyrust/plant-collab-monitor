@@ -6,7 +6,7 @@
 
 ## 一句话
 
-前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · 仍欠：本机双站点 e2e smoke 跑通（P3）。
+前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）**。
 
 ---
 
@@ -17,7 +17,7 @@
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
 | **看 / 重出异地部署操作教程（19 张图，每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md`；改了 `/topology` 先 `npm run smoke:topology-deploy`，再 `npm run tutorial:topology-deploy` 重出图 + 文；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
-| 跑本机双站点 smoke（P3） | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1`（生成 site-a/site-b 配置 + 启动器 + 前置检查）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`（22 项）；细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
+| **跑本机双站点 smoke（中继模式 · 24 项 · 已 24/24）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**，后端要 `--features web_server,relay-sync`。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
 | **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md) |

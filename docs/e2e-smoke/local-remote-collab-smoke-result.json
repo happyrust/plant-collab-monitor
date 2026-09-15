@@ -1,0 +1,620 @@
+﻿{
+    "passed":  true,
+    "summary":  {
+                    "passed":  24,
+                    "failed":  0,
+                    "skipped":  0
+                },
+    "endpoints":  {
+                      "site_a_base":  "http://127.0.0.1:4100",
+                      "site_b_base":  "http://127.0.0.1:4101",
+                      "site_a_archives_host":  "http://127.0.0.1:4100/assets/archives",
+                      "site_b_archives_host":  "http://127.0.0.1:4101/assets/archives",
+                      "site_b_http_host":  "http://127.0.0.1:4101/files/output",
+                      "mqtt_host":  "127.0.0.1",
+                      "mqtt_port":  1883
+                  },
+    "ids":  {
+                "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                "site_id":  "1874e812-f882-4fda-81cb-ec600b607b58",
+                "site_b_env_id":  "ca637eb5-495c-4a6c-9d0d-92dc2f13af58",
+                "topic":  "S"
+            },
+    "relay":  {
+                  "site_a_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\deployment_sites.sqlite",
+                  "site_b_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\deployment_sites.sqlite",
+                  "file_a":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\project\\SCB\\scb000\\scb6000_0001",
+                  "file_b":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\project\\SCB\\scb000\\scb6000_0001",
+                  "rewind_sessions":  1,
+                  "detect_interval_sec":  5,
+                  "timeout_sec":  90
+              },
+    "fixture":  {
+                    "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\output\\local-smoke-increment.e3d",
+                    "file_name":  "local-smoke-increment.e3d",
+                    "appended_bytes":  512,
+                    "length":  4096,
+                    "sha256":  "A924A5288242683C6A937FB96BF998B85EEA9653B1CE53E1EFC3D3EFFDFC4CF0",
+                    "updated_at":  "2026-09-15T15:33:34.1663937Z"
+                },
+    "cleanup":  {
+                    "performed":  true,
+                    "stop":  {
+                                 "ok":  true,
+                                 "error":  null,
+                                 "response":  {
+                                                  "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                  "message":  "å·²åæ­¢è¿è¡æ¶ watcher + MQTT",
+                                                  "status":  "success"
+                                              }
+                             },
+                    "delete_site":  {
+                                        "ok":  true,
+                                        "error":  null,
+                                        "id":  "1874e812-f882-4fda-81cb-ec600b607b58"
+                                    },
+                    "delete_env":  {
+                                       "ok":  true,
+                                       "error":  null,
+                                       "id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718"
+                                   },
+                    "site_b":  {
+                                   "delete_env":  {
+                                                      "ok":  true,
+                                                      "error":  null,
+                                                      "id":  "ca637eb5-495c-4a6c-9d0d-92dc2f13af58"
+                                                  },
+                                   "stop":  {
+                                                "error":  null,
+                                                "ok":  true
+                                            }
+                               }
+                },
+    "checks":  [
+                   {
+                       "name":  "site-a-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "base":  "http://127.0.0.1:4100"
+                                   }
+                   },
+                   {
+                       "name":  "site-b-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "base":  "http://127.0.0.1:4101"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "host":  "127.0.0.1",
+                                       "port":  1883
+                                   }
+                   },
+                   {
+                       "name":  "site-a-identity",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4100/api/site/identity",
+                                       "response":  {
+                                                        "api_base_url":  "http://127.0.0.1:4100/api",
+                                                        "backend_url":  "http://127.0.0.1:4100",
+                                                        "bind_host":  "127.0.0.1",
+                                                        "bind_port":  4100,
+                                                        "deployment_model":  "one_web_server_per_site",
+                                                        "frontend_url":  "http://123.57.182.243",
+                                                        "note":  "ä¸ä¸ª web_server è¿ç¨åªä»£è¡¨ä¸ä¸ªç«ç¹ä¸ä¸ä¸ªé¡¹ç®ï¼ç«ç¹æ¸\u0085åæ¥èªä¸­å¿ SQLite æ³¨åè¡¨ã",
+                                                        "project_code":  1516,
+                                                        "project_name":  "AvevaMarineSample",
+                                                        "project_path":  "runtime/local-collab/site-a/project",
+                                                        "public_base_url":  "http://127.0.0.1:4100",
+                                                        "region":  "local-a",
+                                                        "registration_status":  "registered",
+                                                        "site_id":  "local-a",
+                                                        "site_name":  "Local Site A",
+                                                        "sites_list_endpoints":  [
+                                                                                     "/api/sites",
+                                                                                     "/api/deployment-sites"
+                                                                                 ],
+                                                        "web_listen_host":  "127.0.0.1",
+                                                        "web_listen_port":  4100
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "site-b-identity",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4101/api/site/identity",
+                                       "response":  {
+                                                        "api_base_url":  "http://127.0.0.1:4101/api",
+                                                        "backend_url":  "http://127.0.0.1:4101",
+                                                        "bind_host":  "127.0.0.1",
+                                                        "bind_port":  4101,
+                                                        "deployment_model":  "one_web_server_per_site",
+                                                        "frontend_url":  "http://123.57.182.243",
+                                                        "note":  "ä¸ä¸ª web_server è¿ç¨åªä»£è¡¨ä¸ä¸ªç«ç¹ä¸ä¸ä¸ªé¡¹ç®ï¼ç«ç¹æ¸\u0085åæ¥èªä¸­å¿ SQLite æ³¨åè¡¨ã",
+                                                        "project_code":  1516,
+                                                        "project_name":  "AvevaMarineSample",
+                                                        "project_path":  "runtime/local-collab/site-b/project",
+                                                        "public_base_url":  "http://127.0.0.1:4101",
+                                                        "region":  "local-b",
+                                                        "registration_status":  "registered",
+                                                        "site_id":  "local-b",
+                                                        "site_name":  "Local Site B",
+                                                        "sites_list_endpoints":  [
+                                                                                     "/api/sites",
+                                                                                     "/api/deployment-sites"
+                                                                                 ],
+                                                        "web_listen_host":  "127.0.0.1",
+                                                        "web_listen_port":  4101
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "site-identity-distinct",
+                       "status":  "passed",
+                       "details":  {
+                                       "site_a":  "local-a",
+                                       "site_b":  "local-b"
+                                   }
+                   },
+                   {
+                       "name":  "site-a-admin-login",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4100/api/admin/auth/login"
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-create",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                       "error":  null,
+                                       "location_dbs":  "6000",
+                                       "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                       "response":  {
+                                                        "id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                        "status":  "success"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-site-create",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "site_id":  "1874e812-f882-4fda-81cb-ec600b607b58",
+                                       "response":  {
+                                                        "id":  "1874e812-f882-4fda-81cb-ec600b607b58",
+                                                        "status":  "success"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-test-mqtt",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "addr":  "127.0.0.1:1883",
+                                                        "checked_at":  "2026-09-15T15:33:34.007661200+00:00",
+                                                        "latency_ms":  0,
+                                                        "message":  "MQTT è¿æ¥å¯è¾¾",
+                                                        "status":  "success"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-test-http",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "checked_at":  "2026-09-15T15:33:34.017031900+00:00",
+                                                        "code":  200,
+                                                        "latency_ms":  3,
+                                                        "message":  "æä»¶æå¡å¯è¾¾",
+                                                        "status":  "success",
+                                                        "url":  "http://127.0.0.1:4100/assets/archives"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-site-test-http",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "checked_at":  "2026-09-15T15:33:34.026339600+00:00",
+                                                        "code":  200,
+                                                        "latency_ms":  3,
+                                                        "message":  "metadata.json å¯è¾¾",
+                                                        "status":  "success",
+                                                        "url":  "http://127.0.0.1:4101/files/output/metadata.json"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-activate",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                        "message":  "å·²åå\u0085¥é\u0085ç½®æä»¶å¹¶å¯å¨ watcher + MQTT è®¢é\u0085ã",
+                                                        "status":  "success"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-runtime-status",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "active":  true,
+                                                        "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                        "mqtt_connected":  true,
+                                                        "relay":  true,
+                                                        "status":  "success"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-runtime-active-env",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                       "backend":  "plant-model-gen",
+                                       "active":  true,
+                                       "mqtt_connected":  true,
+                                       "expected_env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718"
+                                   }
+                   },
+                   {
+                       "name":  "remote-topology",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "status":  "success",
+                                                        "data":  {
+                                                                     "environments":  [
+                                                                                          {
+                                                                                              "id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                                                              "name":  "local-dual-site-20260915-233333",
+                                                                                              "mqtt_host":  "127.0.0.1",
+                                                                                              "mqtt_port":  1883,
+                                                                                              "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                                              "location":  "local-a",
+                                                                                              "location_dbs":  "6000",
+                                                                                              "reconnect_initial_ms":  null,
+                                                                                              "reconnect_max_ms":  null,
+                                                                                              "created_at":  "2026-09-15T15:33:33.964114700+00:00",
+                                                                                              "updated_at":  "2026-09-15T15:33:33.964114700+00:00"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c",
+                                                                                              "name":  "local-dual-site-20260915-233122",
+                                                                                              "mqtt_host":  "127.0.0.1",
+                                                                                              "mqtt_port":  1883,
+                                                                                              "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                                              "location":  "local-a",
+                                                                                              "location_dbs":  "6000",
+                                                                                              "reconnect_initial_ms":  null,
+                                                                                              "reconnect_max_ms":  null,
+                                                                                              "created_at":  "2026-09-15T15:31:22.107342100+00:00",
+                                                                                              "updated_at":  "2026-09-15T15:31:22.107342100+00:00"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "17f38173-d6f0-4eb7-b948-9cdc5b0995c7",
+                                                                                              "name":  "local-dual-site-20260915-233040",
+                                                                                              "mqtt_host":  "127.0.0.1",
+                                                                                              "mqtt_port":  1883,
+                                                                                              "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                                              "location":  "local-a",
+                                                                                              "location_dbs":  "6000",
+                                                                                              "reconnect_initial_ms":  null,
+                                                                                              "reconnect_max_ms":  null,
+                                                                                              "created_at":  "2026-09-15T15:30:40.389296400+00:00",
+                                                                                              "updated_at":  "2026-09-15T15:30:40.389296400+00:00"
+                                                                                          },
+                                                                                          {
+                                                                                              "id":  "e15ab06e-b28c-4293-8e75-49e4d6953b42",
+                                                                                              "name":  "local-dual-site-20260915-233021",
+                                                                                              "mqtt_host":  "127.0.0.1",
+                                                                                              "mqtt_port":  1883,
+                                                                                              "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                                              "location":  "local-a",
+                                                                                              "location_dbs":  "6000",
+                                                                                              "reconnect_initial_ms":  null,
+                                                                                              "reconnect_max_ms":  null,
+                                                                                              "created_at":  "2026-09-15T15:30:21.167558400+00:00",
+                                                                                              "updated_at":  "2026-09-15T15:30:21.167558400+00:00"
+                                                                                          }
+                                                                                      ],
+                                                                     "sites":  [
+                                                                                   {
+                                                                                       "id":  "1874e812-f882-4fda-81cb-ec600b607b58",
+                                                                                       "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                                                       "name":  "site-b-local",
+                                                                                       "location":  "local-b",
+                                                                                       "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                                       "dbnums":  null,
+                                                                                       "notes":  "Created by local remote-collab smoke",
+                                                                                       "created_at":  "2026-09-15T15:33:34.000616200+00:00",
+                                                                                       "updated_at":  "2026-09-15T15:33:34.000616200+00:00"
+                                                                                   },
+                                                                                   {
+                                                                                       "id":  "33d2e5e1-7259-4f44-821c-33c06403fa54",
+                                                                                       "env_id":  "4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c",
+                                                                                       "name":  "site-b-local",
+                                                                                       "location":  "local-b",
+                                                                                       "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                                       "dbnums":  null,
+                                                                                       "notes":  "Created by local remote-collab smoke",
+                                                                                       "created_at":  "2026-09-15T15:31:22.172677100+00:00",
+                                                                                       "updated_at":  "2026-09-15T15:31:22.172677100+00:00"
+                                                                                   },
+                                                                                   {
+                                                                                       "id":  "c9cd78ca-ecde-4126-b2fb-914db07c4352",
+                                                                                       "env_id":  "17f38173-d6f0-4eb7-b948-9cdc5b0995c7",
+                                                                                       "name":  "site-b-local",
+                                                                                       "location":  "local-b",
+                                                                                       "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                                       "dbnums":  null,
+                                                                                       "notes":  "Created by local remote-collab smoke",
+                                                                                       "created_at":  "2026-09-15T15:30:40.425636200+00:00",
+                                                                                       "updated_at":  "2026-09-15T15:30:40.425636200+00:00"
+                                                                                   },
+                                                                                   {
+                                                                                       "id":  "0f569894-69df-46c9-85af-5653b26ee3c8",
+                                                                                       "env_id":  "e15ab06e-b28c-4293-8e75-49e4d6953b42",
+                                                                                       "name":  "site-b-local",
+                                                                                       "location":  "local-b",
+                                                                                       "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                                       "dbnums":  null,
+                                                                                       "notes":  "Created by local remote-collab smoke",
+                                                                                       "created_at":  "2026-09-15T15:30:21.199004100+00:00",
+                                                                                       "updated_at":  "2026-09-15T15:30:21.199004100+00:00"
+                                                                                   }
+                                                                               ],
+                                                                     "connections":  [
+                                                                                         {
+                                                                                             "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                                                             "site_id":  "1874e812-f882-4fda-81cb-ec600b607b58"
+                                                                                         },
+                                                                                         {
+                                                                                             "env_id":  "4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c",
+                                                                                             "site_id":  "33d2e5e1-7259-4f44-821c-33c06403fa54"
+                                                                                         },
+                                                                                         {
+                                                                                             "env_id":  "17f38173-d6f0-4eb7-b948-9cdc5b0995c7",
+                                                                                             "site_id":  "c9cd78ca-ecde-4126-b2fb-914db07c4352"
+                                                                                         },
+                                                                                         {
+                                                                                             "env_id":  "e15ab06e-b28c-4293-8e75-49e4d6953b42",
+                                                                                             "site_id":  "0f569894-69df-46c9-85af-5653b26ee3c8"
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                        "error":  null
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-subscription-status",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "connection_status":  "connected",
+                                                        "is_master_node":  false,
+                                                        "is_running":  true,
+                                                        "is_server_running":  false,
+                                                        "is_subscription_running":  true,
+                                                        "location":  "local-a",
+                                                        "master_info":  null,
+                                                        "mqtt_server_port":  1883,
+                                                        "node_role":  "client",
+                                                        "status":  "success",
+                                                        "subscribed_topics":  [
+                                                                                  "Sync/E3d"
+                                                                              ]
+                                                    },
+                                       "topic":  "S"
+                                   }
+                   },
+                   {
+                       "name":  "incremental-fixture-append",
+                       "status":  "passed",
+                       "details":  {
+                                       "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\output\\local-smoke-increment.e3d",
+                                       "file_name":  "local-smoke-increment.e3d",
+                                       "appended_bytes":  512,
+                                       "length":  4096,
+                                       "sha256":  "A924A5288242683C6A937FB96BF998B85EEA9653B1CE53E1EFC3D3EFFDFC4CF0",
+                                       "updated_at":  "2026-09-15T15:33:34.1663937Z"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-publish-test",
+                       "status":  "passed",
+                       "details":  {
+                                       "publisher":  "C:\\Program Files\\mosquitto\\mosquitto_pub.exe",
+                                       "message":  "{\"timestamp\":\"2026-09-15T15:33:34.2443155Z\",\"file_hashes\":[\"A924A5288242683C6A937FB96BF998B85EEA9653B1CE53E1EFC3D3EFFDFC4CF0\"],\"location\":\"local-b\",\"file_server_host\":\"http://127.0.0.1:4101/assets/archives\",\"file_names\":[\"local-smoke-increment.e3d\"]}",
+                                       "topic":  "S"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-received-after-publish",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                       "timeout_sec":  20,
+                                       "active":  true,
+                                       "hint":  null,
+                                       "mqtt_connected":  true,
+                                       "attempts":  1
+                                   }
+                   },
+                   {
+                       "name":  "remote-sync-logs",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "items":  [
+
+                                                                  ],
+                                                        "limit":  5,
+                                                        "offset":  0,
+                                                        "status":  "success",
+                                                        "total":  0
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "runtime-stop-clears-active",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  null,
+                                       "active":  false,
+                                       "stop_response":  {
+                                                             "env_id":  "b3488d73-5405-4b8e-92a6-70a8e45ef718",
+                                                             "message":  "å·²åæ­¢è¿è¡æ¶ watcher + MQTT",
+                                                             "status":  "success"
+                                                         }
+                                   }
+                   },
+                   {
+                       "name":  "relay-outbound-ledger",
+                       "status":  "passed",
+                       "details":  {
+                                       "tool":  "sqlite3",
+                                       "site_a_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\deployment_sites.sqlite",
+                                       "file_name":  "scb6000_0001",
+                                       "rewind_sessions":  1,
+                                       "detect_interval_sec":  5,
+                                       "site_a_env_config":  {
+                                                                 "error":  null,
+                                                                 "ok":  true
+                                                             },
+                                       "site_b":  {
+                                                      "login":  {
+                                                                    "error":  null,
+                                                                    "ok":  true
+                                                                },
+                                                      "env":  {
+                                                                  "ok":  true,
+                                                                  "error":  null,
+                                                                  "id":  "ca637eb5-495c-4a6c-9d0d-92dc2f13af58",
+                                                                  "location_dbs":  null
+                                                              },
+                                                      "env_config":  {
+                                                                         "error":  null,
+                                                                         "ok":  true
+                                                                     },
+                                                      "activate":  {
+                                                                       "ok":  true,
+                                                                       "error":  null,
+                                                                       "response":  {
+                                                                                        "env_id":  "ca637eb5-495c-4a6c-9d0d-92dc2f13af58",
+                                                                                        "message":  "å·²åå\u0085¥é\u0085ç½®æä»¶å¹¶å¯å¨ watcher + MQTT è®¢é\u0085ã",
+                                                                                        "status":  "success"
+                                                                                    }
+                                                                   },
+                                                      "runtime":  {
+                                                                      "relay":  true,
+                                                                      "active":  true,
+                                                                      "env_id":  "ca637eb5-495c-4a6c-9d0d-92dc2f13af58"
+                                                                  }
+                                                  },
+                                       "baseline":  {
+                                                        "dbnum":  6000,
+                                                        "file_name":  "scb6000_0001",
+                                                        "sesno":  33,
+                                                        "last_seen_fingerprint":  "1655368834000000000:2398208"
+                                                    },
+                                       "site_b_copy":  {
+                                                           "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\project\\SCB\\scb000\\scb6000_0001",
+                                                           "exists":  true,
+                                                           "length_before":  2398208,
+                                                           "sha256_before":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "dirtied":  {
+                                                                           "appended_bytes":  512,
+                                                                           "sha256":  "FFE4F36E070A34266DD70F339CDE3B6FDEFE3E05D3A37364CAD56B5ECAA19EE1",
+                                                                           "length":  2398720
+                                                                       }
+                                                       },
+                                       "rewind":  {
+                                                      "ok":  true,
+                                                      "sesno_before":  33,
+                                                      "sesno_after":  32,
+                                                      "at":  "2026-09-15T15:33:36"
+                                                  },
+                                       "attempts":  4,
+                                       "ledger":  {
+                                                      "direction":  "outbound",
+                                                      "file_name":  "scb6000_0001",
+                                                      "verify_status":  "ok",
+                                                      "verify_detail":  null,
+                                                      "diff_status":  "ok",
+                                                      "sesno_from":  32,
+                                                      "sesno_to":  33,
+                                                      "sesno_seen":  33,
+                                                      "diff_inserted":  10,
+                                                      "diff_deleted":  0,
+                                                      "diff_modified":  2,
+                                                      "msg_id":  "bee31ef4c3f86f384df2ec2bf6adeee0",
+                                                      "created_at":  "2026-09-15T15:33:39.351868800+00:00",
+                                                      "changes":  12
+                                                  }
+                                   }
+                   },
+                   {
+                       "name":  "relay-inbound-ledger",
+                       "status":  "passed",
+                       "details":  {
+                                       "site_b_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\deployment_sites.sqlite",
+                                       "file_name":  "scb6000_0001",
+                                       "expected_sesno_to":  33,
+                                       "expected_msg_id":  "bee31ef4c3f86f384df2ec2bf6adeee0",
+                                       "attempts":  1,
+                                       "ledger":  {
+                                                      "direction":  "inbound",
+                                                      "file_name":  "scb6000_0001",
+                                                      "verify_status":  "ok",
+                                                      "verify_detail":  null,
+                                                      "diff_status":  null,
+                                                      "sesno_from":  null,
+                                                      "sesno_to":  33,
+                                                      "sesno_seen":  33,
+                                                      "diff_inserted":  null,
+                                                      "diff_deleted":  null,
+                                                      "diff_modified":  null,
+                                                      "msg_id":  "bee31ef4c3f86f384df2ec2bf6adeee0",
+                                                      "created_at":  "2026-09-15T15:33:39.605717700+00:00",
+                                                      "changes":  0
+                                                  },
+                                       "sesno_seen_equals_sesno_to":  true,
+                                       "site_b_copy":  {
+                                                           "length_after":  2398208,
+                                                           "sha256_after":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "length_restored":  true,
+                                                           "sha256_source_a":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "matches_site_a":  true
+                                                       }
+                                   }
+                   }
+               ],
+    "started_at":  "2026-09-15T15:33:33.8523434Z",
+    "finished_at":  "2026-09-15T15:33:40.1852475Z"
+}

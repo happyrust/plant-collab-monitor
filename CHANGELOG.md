@@ -6,6 +6,31 @@
 
 ---
 
+## 2026-09-15
+
+### 异地协同转「只依赖 SQLite」的中继模式 · 本机双站点 smoke 24/24
+
+> 依据 `docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md`（P0–P4）。中继模式与 e3d-io 变更判定落在后端 `plant-model-gen`（非本仓）；本仓负责双站点环境与验收。结论：一个站点只要 Mosquitto + 一个 `web_server`，**不再需要 SurrealDB**。
+
+#### Added
+
+- `docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md` — 方案 v2（P0 e3d-io 落位 / P1 台账搬 SQLite / P2 开关与解闸 / P3 中继轮询 / P4 双站点验收），含各阶段执行记录。
+- `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` — P4 执行报告：无 broker 20/24 → 装 Mosquitto 后 24/24 → 接手会话复验连跑两次 24/24（§3.3）。
+- `scripts/local-remote-collab-smoke.ps1` — 新增 LS-23 `relay-outbound-ledger` / LS-24 `relay-inbound-ledger`：用「回退 A 的水位」模拟新会话（机器上没有 E3D，没法真保存一个 session），跑通 A 判变更 → 广播 → B 下载 CBA → clone → 校验 → 两站台账的完整中继链路。
+- `docs/e2e-smoke/local-remote-collab-smoke-result.json` / `local-remote-collab-fixture-result.json` — 结果入库（覆盖 2026-05-17 的失败结果）。
+
+#### Changed
+
+- `scripts/local-remote-collab-setup.ps1` — 生成的两份 `DbOption.toml` 带 `sync_relay_mode = true`、`auto_start_surreal = false`；前置检查去掉 `surreal`，构建命令改 `--features web_server,relay-sync`；每站各一份工程副本（默认只收 `SCB`，避免 B 的 clone 写到 A 正在读的真实工程）；`file_server_host` 指向本站 `/assets/archives`（别站来下载 CBA 的地址）。
+- `docs/e2e-smoke/local-remote-collab-test-plan.md` — §3「为什么必须 `auto_start_surreal`」整段重写为中继模式说明，验收点 22 → 24 项。
+
+#### Fixed
+
+- smoke 自身的两个缺陷（复验时暴露，产品侧零改动）：① 中继站点的轮询每周期都会打开那批 db 文件，smoke 紧接着去哈希同一个文件必然抢不到句柄 → 开文件统一走 `Invoke-WithFileRetry`；② Windows PowerShell 5.1 的 `ConvertFrom-Json` 把 JSON 数组当一个对象传下来，台账有多行时 `$rows[0]` 取到的是全部行，`sesno` 比成了 `"33 33"` vs `"33"`。
+- LS-24 收紧为「必须是 A 本轮那条 `msg_id`」：broker 上的 retained 消息会让 B 一订阅就把上一轮的广播再收一遍，只看有没有 `inbound/ok` 行会假绿。
+
+---
+
 ## 2026-09-14
 
 ### 异地部署 · 部署动作面接入 `/topology` + API 层收敛 + 文档校准
