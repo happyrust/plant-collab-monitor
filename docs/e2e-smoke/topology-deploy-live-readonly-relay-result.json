@@ -1,0 +1,172 @@
+{
+  "mode": "readonly",
+  "api": "http://127.0.0.1:4100",
+  "envName": null,
+  "generatedAt": "2026-09-15T16:55:03.228Z",
+  "backend": {
+    "shape": "pmg",
+    "health": {
+      "database": "healthy",
+      "is_primary": true,
+      "litefs": {
+        "enabled": false,
+        "message": "LiteFS health check disabled",
+        "status": "disabled"
+      },
+      "status": "ok",
+      "timestamp": "2026-09-15T16:55:03.250130700+00:00"
+    },
+    "mode": null,
+    "loginHasExpiresAt": true,
+    "envCount": 3,
+    "activeEnvId": null,
+    "runtime": {
+      "active": false,
+      "env_id": null,
+      "mqtt_connected": null,
+      "relay": false,
+      "status": "success"
+    }
+  },
+  "cases": [
+    {
+      "id": "LR-00",
+      "title": "后端可达、admin 登录、识别响应形状",
+      "status": "passed",
+      "ms": 23,
+      "details": {
+        "shape": "pmg",
+        "health": {
+          "database": "healthy",
+          "is_primary": true,
+          "litefs": {
+            "enabled": false,
+            "message": "LiteFS health check disabled",
+            "status": "disabled"
+          },
+          "status": "ok",
+          "timestamp": "2026-09-15T16:55:03.250130700+00:00"
+        },
+        "mode": null,
+        "loginHasExpiresAt": true,
+        "envCount": 3,
+        "activeEnvId": null,
+        "runtime": {
+          "active": false,
+          "env_id": null,
+          "mqtt_connected": null,
+          "relay": false,
+          "status": "success"
+        }
+      }
+    },
+    {
+      "id": "LR-01",
+      "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
+      "status": "passed",
+      "ms": 1927,
+      "details": {
+        "loginStatus": 200,
+        "pill": "运行时 · 未激活",
+        "title": "后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动"
+      }
+    },
+    {
+      "id": "LR-02",
+      "title": "env 卡片与「已激活」徽标一致：徽标 ≤1，挂徽标的卡「激活」置灰",
+      "status": "passed",
+      "ms": 4,
+      "details": {
+        "envCards": 3,
+        "badges": 0
+      }
+    },
+    {
+      "id": "LR-03",
+      "title": "环境「测 MQTT」→ 后端返回诊断（可达 / 不可达皆可），非传输失败",
+      "status": "passed",
+      "ms": 84,
+      "details": {
+        "env": "local-dual-site-20260915-233122",
+        "banner": "测 MQTT：MQTT 连接可达 · 127.0.0.1:1883 · 0 ms 00:55:05"
+      }
+    },
+    {
+      "id": "LR-04",
+      "title": "环境「测文件服务」→ 后端返回诊断，非传输失败",
+      "status": "passed",
+      "ms": 149,
+      "details": {
+        "env": "local-dual-site-20260915-233122",
+        "banner": "测文件服务：文件服务可达 · http://127.0.0.1:4100/assets/archives · HTTP 200 · 3 ms 00:55:05"
+      }
+    },
+    {
+      "id": "LR-05",
+      "title": "选中 env → 站点表加载 → 有站点则后端 test-http 出结果",
+      "status": "passed",
+      "ms": 2758,
+      "details": {
+        "rowCount": 1,
+        "siteTest": {
+          "summary": "可达 · 3 ms",
+          "title": "后端探测：metadata.json 可达 · http://127.0.0.1:4101/files/output/metadata.json · HTTP 200 · 3 ms"
+        }
+      }
+    },
+    {
+      "id": "LR-06",
+      "title": "安全闸：全程 0 次非探测写请求、0 pageerror",
+      "status": "passed",
+      "ms": 0,
+      "details": {
+        "apiCalls": [
+          "GET /api/site/info",
+          "GET /api/sync/status",
+          "GET /api/sync/queue",
+          "GET /api/sync/metrics",
+          "GET /api/mqtt/nodes",
+          "GET /api/sync/history",
+          "POST /api/admin/auth/login",
+          "GET /api/remote-sync/envs",
+          "GET /api/site-config",
+          "GET /api/remote-sync/runtime/status",
+          "POST /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/test-mqtt",
+          "POST /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/test-http",
+          "GET /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/sites",
+          "POST /api/remote-sync/sites/33d2e5e1-7259-4f44-821c-33c06403fa54/test-http"
+        ]
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/sync/metrics",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "POST /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/test-mqtt",
+    "POST /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/test-http",
+    "GET /api/remote-sync/envs/4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c/sites",
+    "POST /api/remote-sync/sites/33d2e5e1-7259-4f44-821c-33c06403fa54/test-http"
+  ],
+  "mutatingBlocked": [],
+  "writes": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": [],
+  "cleanup": null,
+  "passed": true,
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy-live\\readonly-relay"
+}

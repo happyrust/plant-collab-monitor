@@ -5,6 +5,7 @@
 > 状态：**24/24 通过（2026-09-15 22:23，机器上没有 `surreal`，只有 Mosquitto + 两个中继 `web_server`）**——方案 P4 验收（≥ 22/24）达成。
 > 同一天早一点的无 broker 一跑是 20/24（§3.1），装上 Mosquitto 后 §3.2 全绿。结果 JSON：`local-remote-collab-smoke-result.json` / `local-remote-collab-fixture-result.json`（覆盖了 2026-05-17 的旧结果）。
 > **23:33 由接手会话独立复验：连跑两次 24/24（§3.3），且两站的 SurrealDB 端口都指向无人监听处。复验过程中发现并修掉了 smoke 自己的两个缺陷（与产品无关），LS-24 因此比 22:23 那一跑更严格——现在要求 B 收到的就是 A 本轮那条消息。结果 JSON 是复验这一跑写的。**
+> **2026-09-16 00:54 补跑只读控制面 live smoke（`topology-deploy-live-smoke.mjs`）打到中继模式的 Site A：LR-00–LR-06 三跑各 7/7（§3.4）。同时记下一点：中继站点仍会尝试连 SurrealDB 并失败，「不需要 SurrealDB」指的是中继链路，校审等接口在这套环境里不可用。**
 
 ## 1. 这次改了什么
 
@@ -76,6 +77,33 @@ E3D 不在机器上，smoke 没法真的「保存一个 session」，所以用**
 
 复验这一跑的中继链路证据：A `outbound/ok` `32 → 33` `+10 -0 ~2`、12 条变更、`msg_id 8f450e3b…`；B **同一个 `msg_id`** 的 `inbound/ok`，`sesno_seen = sesno_to = 33`，副本 `2 398 208 B` / SHA256 `D9E9385F…` 与 A 的源一致；两站 env 收尾 stop + delete 全 ok，跑完两站进程已停、真实工程 `D:\AVEVA\Projects\E3D2.1` 三小时内零写入。
 
+### 3.4 只读控制面 live smoke 打到中继站点（2026-09-16 00:54–00:55 · 三跑各 7/7）
+
+交接单上「monitor 的 `topology-deploy-live-smoke`（只读控制面）本轮没跑」的补跑。这套 L2 只读用例此前只对着 `plant-web-server`（shape `pws`，2026-09-14 @ :3100）跑过；这次让它对着**中继模式的 Site A**（`plant-model-gen`，shape `pmg`，:4100）跑，问的是「控制面 UI 在 `sync_relay_mode = true` / 不起 SurrealDB 的后端上还能不能用」。
+
+```powershell
+node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --build   # 默认 readonly；脚本层安全闸拦下一切非探测写请求
+```
+
+**LR-00…LR-06 全 passed（7 / 0 / 0，约 10 s），连跑三次结果一致**；第三跑 Site B 也起着，入库的就是这一跑。
+
+| 用例 | 这一跑看到的 |
+|---|---|
+| LR-00 | 形状识别为 `pmg`；`/health` `status ok` / `database healthy`（LiteFS disabled）；`envCount 3`、`activeEnvId null`、`runtime { active: false, relay: false, status: success }` |
+| LR-01 | UI admin 登录 → 重定向回 `/topology`，运行时 pill = `运行时 · 未激活` |
+| LR-02 | 3 张 env 卡、0 个「已激活」徽标，与 `activeEnvId null` 自洽 |
+| LR-03 | 测 MQTT → `MQTT 连接可达 · 127.0.0.1:1883 · 0 ms` |
+| LR-04 | 测文件服务 → `文件服务可达 · http://127.0.0.1:4100/assets/archives · HTTP 200 · 4 ms` |
+| LR-05 | 站点表 1 行；Site B 没起的前两跑后端如实报「不可达」，起了之后 `metadata.json 可达 · HTTP 200 · 3 ms` |
+| LR-06 | 14 次 API 调用全在探测白名单内，**0 次非探测写请求、0 pageerror** |
+
+结果 JSON：`docs/e2e-smoke/topology-deploy-live-readonly-relay-result.json`；截图 3 张在 `docs/e2e-smoke/screenshots/topology-deploy-live/readonly-relay/`（目录 `.gitignore`，JSON 里的 `screenshots` 已从跑时的 `%TEMP%` 改指到这里，其余字段原样）。2026-09-14 那份 pws 的 `topology-deploy-live-readonly-result.json` **没有被覆盖**。
+
+两件顺带的事：
+
+- 唯一一条 `consoleError` 是 `404`：`dist/` 里没有 `favicon.ico`（`index.html` 引用的 7 个资源都在），Chrome 自动请根 favicon 的结果，与后端无关。Site B 没起的那两跑各 2 条，多出来的一条是 `ERR_CONNECTION_REFUSED`。
+- **中继站点照样会去连 SurrealDB**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程仍按 `[surrealdb]` 配的地址连。site-a 日志里 `⚠️ 数据库基础连接失败，后续将继续后台重试` → `❌ 连接尝试 1/2/3 失败` → `❌ SurrealDB 连接失败` → `⚠️ review 专用数据库连接初始化失败，后续校审接口可能不可用`，前后约 15 s（`os error 10061`）。中继链路和本节 7 项只读用例都不受影响，`/health` 也仍报 `database: healthy`——也就是说这个健康检查并不覆盖 SurrealDB。准确的说法是「**中继链路**不需要 SurrealDB」，而不是「这套环境里所有接口都不需要」：校审等依赖 SurrealDB 的接口在这里是不可用的。
+
 ### 3.1 无 broker（21:48 · 20/24，仅作对照）
 
 ```text
@@ -136,6 +164,14 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 `
 ```
 
 预期 **24/24，`passed: true`**（通过线是 ≥ 22/24：LS-19/20 允许因缺 `mosquitto_pub` skipped）。报告默认写到 `docs/e2e-smoke/local-remote-collab-smoke-result.json`；`-FixtureOnly -FixtureDir $env:TEMP\remote-collab-fixture -ReportPath docs/e2e-smoke/local-remote-collab-fixture-result.json` 刷新另一份。两份 2026-05-17 的旧结果（1/19 失败）已被本次覆盖。
+
+§3.4 的只读控制面那一跑（两站起着就能跑，别覆盖 pws 那份结果）：
+
+```powershell
+node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 `
+  --report docs/e2e-smoke/topology-deploy-live-readonly-relay-result.json `
+  --shots docs/e2e-smoke/screenshots/topology-deploy-live/readonly-relay
+```
 
 ## 5. 顺带记录
 

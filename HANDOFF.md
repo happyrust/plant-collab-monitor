@@ -1,4 +1,4 @@
-# HANDOFF · plant-collab-monitor 当前状态（2026-09-14）
+# HANDOFF · plant-collab-monitor 当前状态（2026-09-16）
 
 > 5 秒钟交接清单。详细背景看 `AGENTS.md` / `README.md` / `docs/plans/`。
 
@@ -75,9 +75,9 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 
 ## 仍欠
 
-1. **P3 本机双站点 smoke**：配置 / 启动器 / fixture 已由 `scripts/local-remote-collab-setup.ps1` 生成到 `../plant-model-gen/runtime/local-collab/`（tomllib 校验通过）；smoke 脚本已扩到 22 项（新增 LS-15 激活生效、LS-20 MQTT 收包、LS-22 stop 清 active + 收尾）。**仍缺两个外部二进制**：Mosquitto（`winget install --id EclipseFoundation.Mosquitto -e`）与 `surreal`（`iwr https://windows.surrealdb.com -useb | iex`；`web_server.exe` 只编了 kv-mem，站点靠 `auto_start_surreal` 各自拉 SurrealDB :8021/:8022）。装好后三个长驻进程要在用户自己的终端里起（见 `COMMANDS.md`），再跑 smoke；最近一次真实结果仍是 2026-05-17 的 1 passed / 12 failed。
+1. ~~**P3 本机双站点 smoke**~~ → 2026-09-15 已跑通：转中继模式（`sync_relay_mode = true`）后**不再需要 `surreal`**，只要 Mosquitto（`winget install --id EclipseFoundation.Mosquitto -e`，装完是常驻服务）+ 两个 `web_server`；smoke 扩到 24 项，22:23 首绿、23:33 复验连跑两次 **24/24**。两个长驻站点进程仍要在你自己的终端里起（见 `COMMANDS.md`），复跑命令见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4。**注意**：`auto_start_surreal = false` 只是不自己拉起 surreal，进程照样会连 `[surrealdb]` 配的地址并失败（约 15 s 重试，随后「review 专用数据库…可能不可用」）——中继链路不受影响，但依赖 SurrealDB 的接口在这套环境里用不了。
 2. ~~`/topology` 的「从 DbOption 导入」按钮~~ → 2026-09-14 晚已落地（确认弹窗 → `importEnvFromDbOption()` → 刷新并选中；mock 用例 DA-16）。
-3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。剩：L3 full 的 plant-model-gen 路径与 L4 双站点等 P3 环境。
+3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。L4 双站点 2026-09-15 已跑通（24/24）；L2 只读 2026-09-16 也已打到中继模式的 plant-model-gen Site A（`--api http://127.0.0.1:4100`，三跑各 7/7，见报告 §3.4）。**只剩 L3 full 的 plant-model-gen 路径**——它会真改 `DbOption.toml` 并重启 watcher + MQTT，只在 `runtime/local-collab` 这类隔离配置上跑，且要 `--mode full --confirm-writes`。
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
 
 ---

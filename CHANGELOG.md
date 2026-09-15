@@ -6,6 +6,28 @@
 
 ---
 
+## 2026-09-16
+
+### 只读控制面 live smoke 补跑到中继模式的 plant-model-gen（LR-00–LR-06 · 7/7）
+
+> 补上 2026-09-15 交接单里「`topology-deploy-live-smoke`（只读控制面）本轮没跑」这一项。此前这套 L2 用例只对着 `plant-web-server`（shape `pws`）跑过。
+
+#### Added
+
+- `docs/e2e-smoke/topology-deploy-live-readonly-relay-result.json` — `node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100` 打到中继模式 Site A（shape `pmg`）的结果：**7 passed / 0 failed / 0 skipped**，0 次非探测写请求、0 pageerror，连跑三次一致。2026-09-14 那份 pws 的 `topology-deploy-live-readonly-result.json` 未被覆盖。
+- `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §3.4 — 这一跑的用例逐项记录、复跑命令，以及下面两条观察。
+
+#### Fixed
+
+- `HANDOFF.md` 「仍欠」第 1 条仍写着「缺 Mosquitto 与 `surreal`、最近一次真实结果是 2026-05-17 的 1 passed / 12 failed」——双站点 smoke 2026-09-15 已 24/24，同步更正；第 3 条的「剩 L3 full + L4 双站点」收敛为只剩 L3 full 的 plant-model-gen 路径。
+
+#### 观察（未改代码）
+
+- **中继站点仍会尝试连 SurrealDB 并失败**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程照样按 `[surrealdb]` 配的地址连，日志里 `连接尝试 1/2/3 失败` → `SurrealDB 连接失败` → `review 专用数据库连接初始化失败`（`os error 10061`，前后约 15 s）。中继链路与 7 项只读用例都不受影响，`/health` 也仍报 `database: healthy`（该健康检查不覆盖 SurrealDB）。准确的说法是「**中继链路**不需要 SurrealDB」。
+- 唯一一条 `consoleError` 是根 `favicon.ico` 404（`dist/` 里没有这个文件，`index.html` 引用的 7 个资源都在），与后端无关。
+
+---
+
 ## 2026-09-15
 
 ### 异地协同转「只依赖 SQLite」的中继模式 · 本机双站点 smoke 24/24
