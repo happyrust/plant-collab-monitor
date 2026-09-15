@@ -199,14 +199,62 @@ function normalizeInline(text) {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 }
 
+// --- Markdown 表格 → Word 表格 ------------------------------------------
+const isTableRow = (line) => /^\|.*\|$/.test(line.trim());
+const isTableDivider = (line) => /^\|[\s:|-]+\|$/.test(line.trim()) && line.includes('-');
+
+function splitRow(line) {
+  return line
+    .trim()
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => normalizeInline(cell.trim()));
+}
+
+function tableCell(text, { header = false, width } = {}) {
+  const shading = header ? '<w:shd w:val="clear" w:color="auto" w:fill="EEF2F7"/>' : '';
+  const runProps = header ? '<w:rPr><w:b/></w:rPr>' : '';
+  const widthXml = width ? `<w:tcW w:w="${width}" w:type="dxa"/>` : '';
+  return `<w:tc><w:tcPr>${widthXml}${shading}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr><w:r>${runProps}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p></w:tc>`;
+}
+
+/** rows[0] 当表头；列宽按整页 9638 dxa 均分 */
+function tableXml(rows) {
+  const columns = Math.max(...rows.map((r) => r.length));
+  const width = Math.floor(9638 / columns);
+  const borders = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
+    .map((side) => `<w:${side} w:val="single" w:sz="4" w:space="0" w:color="C9D2DC"/>`)
+    .join('');
+  const grid = Array.from({ length: columns }, () => `<w:gridCol w:w="${width}"/>`).join('');
+  const body = rows
+    .map((cells, rowIndex) => {
+      const padded = [...cells, ...Array.from({ length: columns - cells.length }, () => '')];
+      const header = rowIndex === 0;
+      const rowProps = header ? '<w:trPr><w:tblHeader/></w:trPr>' : '';
+      return `<w:tr>${rowProps}${padded.map((c) => tableCell(c, { header, width })).join('')}</w:tr>`;
+    })
+    .join('');
+  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblBorders>${borders}</w:tblBorders></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${body}</w:tbl>`;
+}
+
 const media = [];
 const bodyParts = [];
 let inCode = false;
+let pendingTable = [];
+
+function flushTable() {
+  if (!pendingTable.length) return;
+  bodyParts.push(tableXml(pendingTable));
+  bodyParts.push('<w:p/>');
+  pendingTable = [];
+}
 
 for (const rawLine of markdown.split(/\r?\n/)) {
   const line = rawLine.trimEnd();
 
   if (line.startsWith('```')) {
+    flushTable();
     inCode = !inCode;
     continue;
   }
@@ -215,6 +263,12 @@ for (const rawLine of markdown.split(/\r?\n/)) {
     bodyParts.push(codeParagraph(line));
     continue;
   }
+
+  if (isTableRow(line)) {
+    if (!isTableDivider(line)) pendingTable.push(splitRow(line));
+    continue;
+  }
+  flushTable();
 
   if (!line.trim()) {
     bodyParts.push('<w:p/>');
@@ -253,6 +307,7 @@ for (const rawLine of markdown.split(/\r?\n/)) {
     bodyParts.push(paragraph(normalizeInline(line)));
   }
 }
+flushTable();
 
 const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"

@@ -1,0 +1,298 @@
+{
+  "mode": "full",
+  "api": "http://127.0.0.1:4100",
+  "envName": "monitor-e2e-20260915-171210",
+  "generatedAt": "2026-09-15T17:12:10.910Z",
+  "backend": {
+    "shape": "pmg",
+    "health": {
+      "database": "healthy",
+      "is_primary": true,
+      "litefs": {
+        "enabled": false,
+        "message": "LiteFS health check disabled",
+        "status": "disabled"
+      },
+      "status": "ok",
+      "timestamp": "2026-09-15T17:12:10.936691300+00:00"
+    },
+    "mode": null,
+    "loginHasExpiresAt": true,
+    "envCount": 3,
+    "activeEnvId": null,
+    "runtime": {
+      "active": false,
+      "env_id": null,
+      "mqtt_connected": null,
+      "relay": false,
+      "status": "success"
+    }
+  },
+  "cases": [
+    {
+      "id": "LF-00",
+      "title": "后端可达、admin 登录、识别响应形状",
+      "status": "passed",
+      "ms": 24,
+      "details": {
+        "shape": "pmg",
+        "health": {
+          "database": "healthy",
+          "is_primary": true,
+          "litefs": {
+            "enabled": false,
+            "message": "LiteFS health check disabled",
+            "status": "disabled"
+          },
+          "status": "ok",
+          "timestamp": "2026-09-15T17:12:10.936691300+00:00"
+        },
+        "mode": null,
+        "loginHasExpiresAt": true,
+        "envCount": 3,
+        "activeEnvId": null,
+        "runtime": {
+          "active": false,
+          "env_id": null,
+          "mqtt_connected": null,
+          "relay": false,
+          "status": "success"
+        }
+      }
+    },
+    {
+      "id": "LF-01",
+      "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
+      "status": "passed",
+      "ms": 2169,
+      "details": {
+        "loginStatus": 200,
+        "pill": "运行时 · 未激活",
+        "title": "后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动"
+      }
+    },
+    {
+      "id": "LF-02",
+      "title": "UI 新建测试 env → 卡片出现 → 后端能查到（含自动加入的本站站点）",
+      "status": "passed",
+      "ms": 2211,
+      "details": {
+        "id": "68c171a2-f9ca-4623-9ac8-74fc28b2d610",
+        "autoSites": [
+          {
+            "id": "c0af7679-d731-4515-8e56-9ecd11938c64",
+            "name": "AvevaMarineSample",
+            "http_host": "http://localhost:4178"
+          }
+        ]
+      }
+    },
+    {
+      "id": "LF-03",
+      "title": "测 MQTT / 测文件服务 → 都拿到后端诊断（结果按环境真实情况记录）",
+      "status": "passed",
+      "ms": 168,
+      "details": {
+        "mqtt": "测 MQTT：MQTT 连接可达 · 127.0.0.1:1883 · 0 ms 01:12:16",
+        "http": "测文件服务：文件服务返回异常状态: 404 Not Found · http://127.0.0.1:4101 · HTTP 404 · 5 ms 01:12:16"
+      }
+    },
+    {
+      "id": "LF-04",
+      "title": "激活 → 确认 → pill 切到测试 env，后端激活态 == 测试 env",
+      "status": "passed",
+      "ms": 1543,
+      "details": {
+        "dialogText": "确认激活环境 将把环境「monitor-e2e-20260915-171210」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。 取消 确定",
+        "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 01:12:16",
+        "backendActive": "68c171a2-f9ca-4623-9ac8-74fc28b2d610",
+        "mqtt_connected": true
+      }
+    },
+    {
+      "id": "LF-05",
+      "title": "应用 → 确认 → 拿到后端结果 banner",
+      "status": "passed",
+      "ms": 513,
+      "details": {
+        "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 01:12:18"
+      }
+    },
+    {
+      "id": "LF-06",
+      "title": "站点 test-http → 结果；编辑备注 → PUT → 后端 notes 更新",
+      "status": "passed",
+      "ms": 4046,
+      "details": {
+        "rowCount": 1,
+        "siteTest": {
+          "summary": "不可达",
+          "title": "后端探测：metadata.json 返回异常状态: 404 Not Found · http://localhost:4178/metadata.json · HTTP 404 · 6 ms"
+        },
+        "notes": "edited by topology-deploy-live-smoke 20260915-171210"
+      }
+    },
+    {
+      "id": "LF-07",
+      "title": "停止运行时 → 确认 → 后端运行时状态按各自语义变化",
+      "status": "passed",
+      "ms": 3105,
+      "details": {
+        "pill": "运行时 · 未激活",
+        "runtime": {
+          "active": false,
+          "env_id": null,
+          "mqtt_connected": true,
+          "relay": false,
+          "status": "success"
+        },
+        "backendActive": null
+      }
+    },
+    {
+      "id": "LF-08",
+      "title": "收尾：删测试 env / 站点，恢复原激活态，env 集合与联调前一致",
+      "status": "passed",
+      "details": {
+        "envIdsRestored": true,
+        "activeRestored": true,
+        "leftoverEnvIds": [],
+        "error": null
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/sync/metrics",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/site-config/server-ip",
+    "POST /api/remote-sync/envs",
+    "POST /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/sites",
+    "GET /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/test-mqtt",
+    "POST /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/test-http",
+    "POST /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/activate",
+    "POST /api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/apply",
+    "POST /api/remote-sync/sites/c0af7679-d731-4515-8e56-9ecd11938c64/test-http",
+    "PUT /api/remote-sync/sites/c0af7679-d731-4515-8e56-9ecd11938c64",
+    "POST /api/remote-sync/runtime/stop"
+  ],
+  "mutatingBlocked": [],
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs",
+      "status": 200,
+      "body": "{\"id\":\"68c171a2-f9ca-4623-9ac8-74fc28b2d610\",\"status\":\"success\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/sites",
+      "status": 200,
+      "body": "{\"id\":\"c0af7679-d731-4515-8e56-9ecd11938c64\",\"status\":\"success\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/activate",
+      "status": 200,
+      "body": "{\"env_id\":\"68c171a2-f9ca-4623-9ac8-74fc28b2d610\",\"message\":\"已写入配置文件并启动 watcher + MQTT 订阅。\",\"status\":\"success\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/68c171a2-f9ca-4623-9ac8-74fc28b2d610/apply",
+      "status": 200,
+      "body": "{\"env_id\":\"68c171a2-f9ca-4623-9ac8-74fc28b2d610\",\"message\":\"已写入配置文件。部分运行期组件需重启或重新加载配置后生效。\",\"status\":\"success\"}"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/remote-sync/sites/c0af7679-d731-4515-8e56-9ecd11938c64",
+      "status": 200,
+      "body": "{\"status\":\"success\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/runtime/stop",
+      "status": 200,
+      "body": "{\"env_id\":\"68c171a2-f9ca-4623-9ac8-74fc28b2d610\",\"message\":\"已停止运行时 watcher + MQTT\",\"status\":\"success\"}"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "cleanup": {
+    "steps": [
+      {
+        "name": "delete-site",
+        "id": "c0af7679-d731-4515-8e56-9ecd11938c64",
+        "status": 200,
+        "body": {
+          "status": "success"
+        }
+      },
+      {
+        "name": "delete-env",
+        "id": "68c171a2-f9ca-4623-9ac8-74fc28b2d610",
+        "status": 200,
+        "body": {
+          "status": "success"
+        }
+      },
+      {
+        "name": "apply-dboption-snapshot",
+        "id": "fafbfc6d-98e1-4c68-a872-e64e22373dc7",
+        "status": 200,
+        "body": {
+          "env_id": "fafbfc6d-98e1-4c68-a872-e64e22373dc7",
+          "message": "已写入配置文件。部分运行期组件需重启或重新加载配置后生效。",
+          "status": "success"
+        }
+      },
+      {
+        "name": "stop-runtime",
+        "status": 200,
+        "body": {
+          "env_id": null,
+          "message": "已停止运行时 watcher + MQTT",
+          "status": "success"
+        }
+      },
+      {
+        "name": "delete-snapshot-env",
+        "id": "fafbfc6d-98e1-4c68-a872-e64e22373dc7",
+        "status": 200,
+        "body": {
+          "status": "success"
+        }
+      }
+    ],
+    "envIdsRestored": true,
+    "activeRestored": true,
+    "taskTotalBefore": 0,
+    "taskTotalAfter": 0,
+    "leftoverEnvIds": []
+  },
+  "passed": true,
+  "before": {
+    "activeEnvId": null,
+    "envIds": [
+      "4f0c69cb-d18b-4c2b-b2c1-7924f9c15b9c",
+      "17f38173-d6f0-4eb7-b948-9cdc5b0995c7",
+      "e15ab06e-b28c-4293-8e75-49e4d6953b42"
+    ],
+    "taskTotal": 0,
+    "snapshotEnvId": "fafbfc6d-98e1-4c68-a872-e64e22373dc7"
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy-live\\full-relay"
+}

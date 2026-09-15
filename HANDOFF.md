@@ -6,7 +6,7 @@
 
 ## 一句话
 
-前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）**。
+前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）** · **四层自动化用例全覆盖，并有一份真浏览器 + 真后端跑出来的操作教程（2026-09-16）**。
 
 ---
 
@@ -17,6 +17,7 @@
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
 | **看 / 重出异地部署操作教程（19 张图，每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md`；改了 `/topology` 先 `npm run smoke:topology-deploy`，再 `npm run tutorial:topology-deploy` 重出图 + 文；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
+| **要一份「真后端实操」的教程 / Word（16 张图，截图里都是真响应）** | 先起本机两站（`COMMANDS.md`），再 `npm run tutorial:topology-deploy:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` → `docs/tutorials/topology-deploy-live-tutorial.md`，Word 版 `npm run docx:topology-deploy:live`。它**会真的改后端**（建 env、激活、写 `DbOption.toml`），跑完自动复原，**只对隔离环境跑** |
 | **跑本机双站点 smoke（中继模式 · 24 项 · 已 24/24）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**，后端要 `--features web_server,relay-sync`。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
@@ -78,7 +79,7 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 
 1. ~~**P3 本机双站点 smoke**~~ → 2026-09-15 已跑通：转中继模式（`sync_relay_mode = true`）后**不再需要 `surreal`**，只要 Mosquitto（`winget install --id EclipseFoundation.Mosquitto -e`，装完是常驻服务）+ 两个 `web_server`；smoke 扩到 24 项，22:23 首绿、23:33 复验连跑两次 **24/24**。两个长驻站点进程仍要在你自己的终端里起（见 `COMMANDS.md`），复跑命令见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4。**注意**：`auto_start_surreal = false` 只是不自己拉起 surreal，进程照样会连 `[surrealdb]` 配的地址并失败（约 15 s 重试，随后「review 专用数据库…可能不可用」）——中继链路不受影响，但依赖 SurrealDB 的接口在这套环境里用不了。
 2. ~~`/topology` 的「从 DbOption 导入」按钮~~ → 2026-09-14 晚已落地（确认弹窗 → `importEnvFromDbOption()` → 刷新并选中；mock 用例 DA-16）。
-3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。L4 双站点 2026-09-15 已跑通（24/24）；L2 只读 2026-09-16 也已打到中继模式的 plant-model-gen Site A（`--api http://127.0.0.1:4100`，三跑各 7/7，见报告 §3.4）。**只剩 L3 full 的 plant-model-gen 路径**——它会真改 `DbOption.toml` 并重启 watcher + MQTT，只在 `runtime/local-collab` 这类隔离配置上跑，且要 `--mode full --confirm-writes`。
+3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。**四层用例 2026-09-16 已全部覆盖**：L1 mock（DA-01–16）、L2 只读（LR-00–06，对中继 pmg 三跑各 7/7）、**L3 完整闭环（LF-00–08，对中继 pmg 9/9，`docs/e2e-smoke/topology-deploy-live-full-relay-result.json`）**、L4 双站点（24/24）。L3 会真改 `DbOption.toml` 并重启 watcher + MQTT，**只在 `runtime/local-collab` 这类隔离配置上跑**，命令要带 `--mode full --confirm-writes`，报告路径也要另给（别覆盖 2026-09-14 那份 pws 的）。
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
 
 ---

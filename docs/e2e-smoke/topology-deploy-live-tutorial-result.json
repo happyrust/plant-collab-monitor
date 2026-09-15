@@ -1,0 +1,313 @@
+{
+  "generatedAt": "2026-09-15T17:10:56.183Z",
+  "api": "http://127.0.0.1:4100",
+  "peer": "http://127.0.0.1:4101",
+  "backend": {
+    "shape": "pmg",
+    "health": {
+      "database": "healthy",
+      "is_primary": true,
+      "litefs": {
+        "enabled": false,
+        "message": "LiteFS health check disabled",
+        "status": "disabled"
+      },
+      "status": "ok",
+      "timestamp": "2026-09-15T17:10:56.202851900+00:00"
+    },
+    "envCountBefore": 3,
+    "activeEnvIdBefore": null,
+    "runtimeBefore": {
+      "active": false,
+      "env_id": null,
+      "mqtt_connected": true,
+      "relay": false,
+      "status": "success"
+    },
+    "site": {
+      "info": {
+        "file_server_host": "http://127.0.0.1:4100/assets/archives",
+        "location": "local-a",
+        "location_dbs": [
+          6000
+        ],
+        "mqtt_host": "127.0.0.1",
+        "mqtt_port": 1883,
+        "project_code": "1516",
+        "project_name": "AvevaMarineSample"
+      },
+      "config": {
+        "config": {
+          "apply_boolean_operation": true,
+          "file_server_host": "http://127.0.0.1:4100/assets/archives",
+          "gen_mesh": false,
+          "gen_model": false,
+          "gen_spatial_tree": false,
+          "included_projects": [
+            "SCB"
+          ],
+          "incr_sync": false,
+          "ip": "127.0.0.1",
+          "location": "local-a",
+          "location_dbs": [
+            6000
+          ],
+          "mesh_tol_ratio": 3,
+          "module": "DESI",
+          "mqtt_host": "127.0.0.1",
+          "mqtt_port": 1883,
+          "password": "",
+          "port": "3306",
+          "project_code": "1516",
+          "project_name": "AvevaMarineSample",
+          "project_path": "runtime/local-collab/site-a/project",
+          "server_release_ip": "",
+          "sync_live": false,
+          "sync_push_db_types": [
+            "DESI"
+          ],
+          "total_sync": false,
+          "user": "root"
+        },
+        "config_file_location": "local-a",
+        "status": "success"
+      }
+    }
+  },
+  "steps": [
+    {
+      "name": "first-screen",
+      "at": "2026-09-15T17:10:59.326Z",
+      "pill": "运行时 · 未激活",
+      "pillTitle": "后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动",
+      "envCards": 3
+    },
+    {
+      "name": "import-from-dboption",
+      "at": "2026-09-15T17:11:02.279Z",
+      "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+      "envName": "导入环境 - 20260916_011100",
+      "mqtt": "127.0.0.1:1883",
+      "file_server_host": "http://127.0.0.1:4100/assets/archives"
+    },
+    {
+      "name": "create-env",
+      "at": "2026-09-15T17:11:05.044Z",
+      "id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+      "autoSites": [
+        {
+          "id": "0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+          "name": "AvevaMarineSample",
+          "http_host": "http://localhost:4179"
+        }
+      ]
+    },
+    {
+      "name": "probe",
+      "at": "2026-09-15T17:11:06.142Z",
+      "mqtt": "测 MQTT：MQTT 连接可达 · 127.0.0.1:1883 · 0 ms 01:11:05",
+      "http": "测文件服务：文件服务可达 · http://127.0.0.1:4101/assets/archives · HTTP 200 · 4 ms 01:11:06"
+    },
+    {
+      "name": "activate",
+      "at": "2026-09-15T17:11:08.873Z",
+      "backendActive": "363418e6-8c07-4048-84bf-051f21d04ff6",
+      "matchesDemoEnv": true,
+      "runtime": {
+        "active": true,
+        "env_id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+        "mqtt_connected": true,
+        "relay": true,
+        "status": "success"
+      },
+      "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 01:11:07"
+    },
+    {
+      "name": "apply",
+      "at": "2026-09-15T17:11:09.877Z",
+      "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 01:11:09"
+    },
+    {
+      "name": "site-actions",
+      "at": "2026-09-15T17:11:16.907Z",
+      "rowCount": 1,
+      "autoHost": "http://localhost:4179",
+      "probeBefore": {
+        "summary": "不可达",
+        "title": "后端探测：metadata.json 返回异常状态: 404 Not Found · http://localhost:4179/metadata.json · HTTP 404 · 2 ms"
+      },
+      "newHost": "http://127.0.0.1:4101/files/output",
+      "savedToBackend": true,
+      "probeAfter": {
+        "summary": "可达 · 4 ms",
+        "title": "后端探测：metadata.json 可达 · http://127.0.0.1:4101/files/output/metadata.json · HTTP 200 · 4 ms"
+      }
+    },
+    {
+      "name": "stop-runtime",
+      "at": "2026-09-15T17:11:20.775Z",
+      "pill": "运行时 · 未激活",
+      "runtime": {
+        "active": false,
+        "env_id": null,
+        "mqtt_connected": true,
+        "relay": false,
+        "status": "success"
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/metrics",
+    "GET /api/sync/queue",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/site/info",
+    "POST /api/remote-sync/envs/import-from-dboption",
+    "GET /api/remote-sync/envs",
+    "GET /api/remote-sync/envs/27c6e433-23d9-45b9-acd2-dc53d4238e67/sites",
+    "GET /api/site-config/server-ip",
+    "GET /api/site-config/server-ip",
+    "POST /api/remote-sync/envs",
+    "GET /api/remote-sync/envs",
+    "GET /api/remote-sync/envs/27c6e433-23d9-45b9-acd2-dc53d4238e67/sites",
+    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-mqtt",
+    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-http",
+    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/activate",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/remote-sync/envs",
+    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/apply",
+    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+    "PUT /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "POST /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+    "POST /api/remote-sync/runtime/stop",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/remote-sync/envs",
+    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites"
+  ],
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/admin/auth/login",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/import-from-dboption",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-mqtt",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-http",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/activate",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/apply",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+      "status": 200
+    },
+    {
+      "method": "PUT",
+      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/runtime/stop",
+      "status": 200
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": [],
+  "demoEnvId": "363418e6-8c07-4048-84bf-051f21d04ff6",
+  "importedEnvId": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+  "cleanup": {
+    "steps": [
+      {
+        "name": "delete-site",
+        "id": "0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+        "status": 200
+      },
+      {
+        "name": "delete-demo-env",
+        "id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+        "status": 200
+      },
+      {
+        "name": "apply-dboption-snapshot",
+        "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+        "status": 200
+      },
+      {
+        "name": "stop-runtime",
+        "status": 200
+      },
+      {
+        "name": "delete-snapshot-env",
+        "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+        "status": 200
+      }
+    ],
+    "envIdsRestored": true,
+    "activeRestored": true,
+    "leftoverEnvIds": [],
+    "runtimeAfter": {
+      "active": false,
+      "env_id": null,
+      "mqtt_connected": true,
+      "relay": false,
+      "status": "success"
+    }
+  },
+  "ok": true,
+  "error": null
+}

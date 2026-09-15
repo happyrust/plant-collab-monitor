@@ -8,7 +8,7 @@
 
 ## 2026-09-16
 
-### 只读控制面 live smoke 补跑到中继模式的 plant-model-gen（LR-00–LR-06 · 7/7）
+### 真后端 live 用例补齐（只读 7/7 · 完整闭环 9/9）+ 真浏览器实操版操作教程
 
 > 补上 2026-09-15 交接单里「`topology-deploy-live-smoke`（只读控制面）本轮没跑」这一项。此前这套 L2 用例只对着 `plant-web-server`（shape `pws`）跑过。
 
@@ -21,8 +21,23 @@
 
 - `HANDOFF.md` 「仍欠」第 1 条仍写着「缺 Mosquitto 与 `surreal`、最近一次真实结果是 2026-05-17 的 1 passed / 12 failed」——双站点 smoke 2026-09-15 已 24/24，同步更正；第 3 条的「剩 L3 full + L4 双站点」收敛为只剩 L3 full 的 plant-model-gen 路径。
 
+#### Added · 真浏览器 + 真后端的操作教程
+
+> 此前唯一的《异地部署操作教程》是 mock 驱动的：页面是真的，后端数据是假的。这一条补的是另一半——**把操作真的做一遍**，截图里每条提示都是真后端当时的响应。
+
+- `scripts/topology-deploy-live-tutorial.mjs` — Playwright 开真实 Chrome，对着中继模式的 Site A（`:4100`）走完整条部署链：登录 → 从 DbOption 导入 → 新建环境（对端填 Site B）→ 测 MQTT / 测文件服务 → 激活（真写 `DbOption.toml` + 重启 watcher/MQTT）→ 应用 → 站点探测不通 → 改 HTTP 地址 → 再探测可达 → 停止运行时，逐步截图并整篇生成 Markdown。**跑完自动复原**：删掉本次新建的 env / 站点，用第 3 步「从 DbOption 导入」那张快照 `apply` 回去再 `stop`，env 集合与激活态回到开跑前。
+- `docs/tutorials/topology-deploy-live-tutorial.md` + `screenshots/topology-deploy-live/`（16 张）— 生成物。Word 版 `npm run docx:topology-deploy:live`。
+- `docs/e2e-smoke/topology-deploy-live-tutorial-result.json` — 这一跑的机器记录：每步的真实返回、页面发出的写请求、收尾复原核对。
+- `docs/e2e-smoke/topology-deploy-live-full-relay-result.json` — 顺手把 **L3 完整闭环（`--mode full --confirm-writes`）对 plant-model-gen 的路径**也跑了，这是四层用例里最后一块没覆盖的：**LF-00–LF-08 共 9 passed / 0 failed**，6 次写请求，收尾 `envIdsRestored` / `activeRestored` 均为真。
+- `package.json` — 新增 `tutorial:topology-deploy:live` 与 `docx:topology-deploy:live`。
+
+#### Changed
+
+- `scripts/generate-remote-collab-docx.mjs` — Markdown 表格改为渲染成**真正的 Word 表格**（表头加粗 + 底纹、细边框、按页宽等分列宽、跨页重复表头）。此前表格是整行原样落成 `| 字段 | 填什么 |` 的文字。三份 docx 已用新渲染重出。
+
 #### 观察（未改代码）
 
+- **自动加入的那个站点指向的是监控台自己**：保存新环境时前端会把本站加为第一个站点，`http_host` 取的是当前页面地址（这一跑是 `vite preview` 的 `http://localhost:4179`），所以站点探测第一次必然 404。要用起来必须手动改成对端地址——教程第 8 节就是照这条真实链路写的。
 - **中继站点仍会尝试连 SurrealDB 并失败**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程照样按 `[surrealdb]` 配的地址连，日志里 `连接尝试 1/2/3 失败` → `SurrealDB 连接失败` → `review 专用数据库连接初始化失败`（`os error 10061`，前后约 15 s）。中继链路与 7 项只读用例都不受影响，`/health` 也仍报 `database: healthy`（该健康检查不覆盖 SurrealDB）。准确的说法是「**中继链路**不需要 SurrealDB」。
 - 唯一一条 `consoleError` 是根 `favicon.ico` 404（`dist/` 里没有这个文件，`index.html` 引用的 7 个资源都在），与后端无关。
 
