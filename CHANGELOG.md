@@ -19,7 +19,7 @@
 - 中继按激活时读到的配置建 MQTT 连接、填消息来源字段、做回声与自有库过滤（`relay::context`）。轮询与发布端连接每次激活重建；**订阅连接只在 `host / port / location / project_code` 变了时重连**，没变就沿用、只换它读的上下文——保住 `478bced`「不轻易拆订阅」的意图，也不会因重订阅再收一遍 retain 消息。
 - `runtime/status` 多 `relay_location` / `relay_mqtt_host` / `relay_mqtt_port`（未激活 null）；`activate` 响应多 `runtime_config: {path, keys, changed}`。监控台不读这些字段，不受影响。
 - 验证：单站点有尽头脚本 21/21（同值 env → toml 不变；换 `location` → toml 只改那一键、日志「连接参数变了 … 重建订阅」、`relay_location` 跟着变；同 env 再激活 → 「沿用已有订阅」；换到无人监听的 1999 端口 → `relay_mqtt_port=1999`、`mqtt_connected` 变 false；换回 → toml 逐字节还原、重新连上）；本仓 24 项双站点 smoke 对新 exe **24/24（32 s）**，两站 toml 跑前跑后逐字节一致（smoke 的 env 与 toml 同值，`location_dbs` 为 null 不碰），结果 JSON 写在 %TEMP%、未覆盖仓内那份。
-- 顺手：pws `dev-dependencies` 补 `tempfile`（`db_index` 单测从 pmg 搬来就用它，此前 lib test 编不过）；`cargo test --lib relay::` 18/19，唯一红的 `db_index::tests::test_store_roundtrip` 是搬家前就有的测试数据问题（重复 ref0 撞 UNIQUE 索引），未动。
+- 顺手：pws `dev-dependencies` 补 `tempfile`（`db_index` 单测从 pmg 搬来就用它，此前 lib test 编不过）。紧接着的 pws `d8a9ca4` 把 `replace_ref0_owners` 改成先去重再写——那不是测试数据问题，是从 pmg 搬来就有的口子：扫描器把同一个 ref0 报两次会撞 `(dbnum, ref0)` 主键、整个事务回滚、该文件的索引写入被跳过；跨 dbnum 的 ref0 冲突仍回滚（单测补了断言）。`cargo test --lib relay::` **19/19**。pmg 那份同名函数仍是裸 INSERT，未动（待废弃）。
 - 方案文档 `docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md` 头部补了「后记」（实现已搬进 pws、pmg 那份已删、正文里 pmg 的路径怎么读），并把这一条从「仍开着的口子」改成已补。
 
 ### 中继实现搬进 `plant-web-server`，站点后端换成它（跨仓，记在这里备查）
