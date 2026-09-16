@@ -83,8 +83,9 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 2. ~~`/topology` 的「从 DbOption 导入」按钮~~ → 2026-09-14 晚已落地（确认弹窗 → `importEnvFromDbOption()` → 刷新并选中；mock 用例 DA-16）。
 3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。**四层用例 2026-09-16 已全部覆盖**：L1 mock（DA-01–16）、L2 只读（LR-00–06，对中继 pmg 三跑各 7/7）、**L3 完整闭环（LF-00–08，对中继 pmg 9/9，`docs/e2e-smoke/topology-deploy-live-full-relay-result.json`）**、L4 双站点（24/24）。L3 会真改 `DbOption.toml` 并重启 watcher + MQTT，**只在 `runtime/local-collab` 这类隔离配置上跑**，命令要带 `--mode full --confirm-writes`，报告路径也要另给（别覆盖 2026-09-14 那份 pws 的）。
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
-5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（3 条提交：重建的改动前基线 → 中继模式那批后端改动 → `db_index` 的 `spawn_blocking`）。**还欠一步：没有 remote、没有推送**，要建远端（GitHub / 别的）得你点头。另外那份 `runtime/backup-2026-09-15/` 现在只是冗余（内容已成为第 1 条提交的一部分），按 `.gitignore` 不入库，留着也不碍事。
-6. **中继模式下站点仍会去连 SurrealDB 并失败**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程照样按 `[surrealdb]` 里配的地址连（`os error 10061`，重试约 15 s），随后「review 专用数据库连接初始化失败」。中继链路与四层用例都不受影响，但校审那类接口在这套环境里是废的，且每次启动白等 15 s。还没人动。
+5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（4 条提交）。`plant-web-server` 同日也补了首次提交（此前有 `.git` 但**一条提交都没有**，13000 多行全 untracked）。**两个仓都还没有 remote、没有推送**，要建远端得你点头。
+6. ~~**中继模式下站点仍会去连 SurrealDB 并失败**~~ → 2026-09-16 换了根治路径：**中继实现已搬进 `plant-web-server`**（`src/relay/`，约 2800 行），站点后端改用它，不再拖着模型库 / 校审那半个产品，那 15 s 重试与「review 专用数据库初始化失败」随之消失。`plant-model-gen` 里那份中继实现还留着（在 `relay-sync` feature 后面），要不要删等你定。
+7. **本机双站点 24 项 smoke 还没换到新后端**：`scripts/local-remote-collab-setup.ps1` 生成的 `start.ps1` 仍指向 `D:\Rust\target\debug\web_server.exe`（plant-model-gen）。手工用 `plant-web-server.exe` 起两站已经把中继链路验通了（见 CHANGELOG 2026-09-16），但 24 项那套还没复跑；pws 的控制面 env / site 存 JSON 文件而不是 sqlite 的 `remote_sync_envs` 表，几条查表的用例可能要改。
 
 ---
 

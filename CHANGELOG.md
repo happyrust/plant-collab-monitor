@@ -8,6 +8,16 @@
 
 ## 2026-09-16
 
+### 中继实现搬进 `plant-web-server`，站点后端换成它（跨仓，记在这里备查）
+
+> 起因是「中继模式为什么还在依赖 SurrealDB」：那个开关只接在 3 个会致命的点上，`web_server` 自己的启动序列压根不看它，无条件按 `[surrealdb]` 连、重试约 15 s。根子是中继跟模型库 / 校审挤在同一个二进制里。换的是路径而不是补丁——把中继搬出来。
+
+- `plant-web-server/src/relay/`（新，约 2800 行）：`ledger`（SQLite 台账）、`db_index`（pdms_io 预扫 sesno + 指纹）、`mqtt_msg`（线格式 `SyncE3dFileMsg`）、`file_sync`（CBA 压缩 / 广播 / clone / 校验）、`watch`（水位 + e3d-io 会话 diff 的轮询）。按原样搬，只重写了两处与模型库耦合的取值口径（`output_root`、`sync_relay_mode` 直接从 `DB_OPTION_FILE` 的 toml 读）。
+- 接线：`activate` 真起中继运行态（起不来整条失败），`apply` 只落账；`runtime/status` 增加 `active / env_id / relay / mqtt_connected`，与 `pmg` 形状对齐；`runtime/stop` 先停中继。
+- 跑多站必须的两处：`PLANT_WEB_RUNTIME_DIR`（各 service 状态目录此前硬编码在源码树，一台机器两个站会共用同一份）、`/assets/archives` 静态路由（此前没有，对端 clone 必然 404）与 `/files/output` 按配置的 `output_root` 路由。
+- **实测**（两站都用 `plant-web-server.exe`）：A 的水位回退到 30 逼它重广播 → A 台账 `outbound ok / diff ok / 30→33`、`e3d_sync_changes` 156 条；B 台账 `inbound ok / sesno_to=33 / sesno_seen=33`；B 那份被故意弄脏的工程副本 clone 之后与 A 逐字节一致。收尾两站 `DbOption.toml` 与开跑前一致，真实工程零写入。
+- 还没做：本仓 24 项双站点 smoke 仍对着 `plant-model-gen` 的 `web_server` 跑，没换过来。
+
 ### 后端 `plant-model-gen` 建了 git 仓（跨仓，记在这里备查）
 
 > 交接单里连着两版列为「风险最大」的一条：后端一直不在版本管理里，中继模式那批改动只有 `plant-model-gen/runtime/backup-2026-09-15/` 这份手工备份兜着。本仓没有代码改动，这一段只是记录。
