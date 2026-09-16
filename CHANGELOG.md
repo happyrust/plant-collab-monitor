@@ -16,6 +16,11 @@
 - 接线：`activate` 真起中继运行态（起不来整条失败），`apply` 只落账；`runtime/status` 增加 `active / env_id / relay / mqtt_connected`，与 `pmg` 形状对齐；`runtime/stop` 先停中继。
 - 跑多站必须的两处：`PLANT_WEB_RUNTIME_DIR`（各 service 状态目录此前硬编码在源码树，一台机器两个站会共用同一份）、`/assets/archives` 静态路由（此前没有，对端 clone 必然 404）与 `/files/output` 按配置的 `output_root` 路由。
 - **实测**（两站都用 `plant-web-server.exe`）：A 的水位回退到 30 逼它重广播 → A 台账 `outbound ok / diff ok / 30→33`、`e3d_sync_changes` 156 条；B 台账 `inbound ok / sesno_to=33 / sesno_seen=33`；B 那份被故意弄脏的工程副本 clone 之后与 A 逐字节一致。收尾两站 `DbOption.toml` 与开跑前一致，真实工程零写入。
+#### 仓与远端
+
+- `plant-web-server` 已推到 **https://github.com/happyrust/plant-web-server（私有）**，3 条提交 / 124 个文件。转公开：`gh repo edit happyrust/plant-web-server --visibility public`。
+- `plant-model-gen` 建了本地 git 仓（6 条提交）但**故意不建远端**——这个仓待废弃，中继搬走之后它只剩完整站点那条路径。
+
 #### Removed · `plant-model-gen` 里那份中继实现删掉了，只留 `plant-web-server` 一份
 
 - 删：`src/version_management/relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关（`options.rs` / `bin/web_server.rs` / `remote_runtime.rs` 三处读它的地方一并回退）。`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」，`runtime/status` 的 `relay` 恒为 `false`（字段保留，监控台按它区分两类站点）。

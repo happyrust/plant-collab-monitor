@@ -35,12 +35,15 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
 本地与 origin/main: 一致，工作树无本仓待提交改动
 type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
 
-后端仓 ../plant-model-gen: 2026-09-16 建的本地 git 仓，HEAD = 7f766ec，**无 remote、未推送**
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main
+旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓（6 条提交），**故意不建远端**——这个仓待废弃
 ```
 
 ---
 
 ## 先看清楚后端是谁
+
+> **2026-09-16 起，异地协同的站点后端是 `../plant-web-server`**（中继实现在它的 `src/relay/`）。`plant-model-gen` 待废弃：它已经没有中继，只剩完整站点那条路径。下面这一段讲的是 `:3100` 上那个历史实例，仍然有效。
 
 - 本机 `:3100` 现在跑的是 **`../plant-web-server`**（`D:\Rust\target\release\plant-web-server.exe`，2026-09-09 起，`--repo-root ../plant-model-gen --config db_options/DbOption-cursor`，`mode: standalone-real`）。它的 remote-sync 数据在 `plant-web-server/runtime/remote_sync/`，已有 4 个 env（2026-05-23/24 smoke 留下的 `Smoke Env` / `Persistence Env`）。
 - `plant-model-gen/web_server` 与它路由相同、**响应形状不同**，见 `AGENTS.md` §4.3.2；监控台已两边兼容。
@@ -83,7 +86,7 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 2. ~~`/topology` 的「从 DbOption 导入」按钮~~ → 2026-09-14 晚已落地（确认弹窗 → `importEnvFromDbOption()` → 刷新并选中；mock 用例 DA-16）。
 3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。**四层用例 2026-09-16 已全部覆盖**：L1 mock（DA-01–16）、L2 只读（LR-00–06，对中继 pmg 三跑各 7/7）、**L3 完整闭环（LF-00–08，对中继 pmg 9/9，`docs/e2e-smoke/topology-deploy-live-full-relay-result.json`）**、L4 双站点（24/24）。L3 会真改 `DbOption.toml` 并重启 watcher + MQTT，**只在 `runtime/local-collab` 这类隔离配置上跑**，命令要带 `--mode full --confirm-writes`，报告路径也要另给（别覆盖 2026-09-14 那份 pws 的）。
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
-5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（4 条提交）。`plant-web-server` 同日也补了首次提交（此前有 `.git` 但**一条提交都没有**，13000 多行全 untracked）。**两个仓都还没有 remote、没有推送**，要建远端得你点头。
+5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（6 条提交）。`plant-web-server` 同日也补了首次提交（此前有 `.git` 但**一条提交都没有**，13000 多行全 untracked），并已推到 https://github.com/happyrust/plant-web-server（**私有**——要转公开 `gh repo edit happyrust/plant-web-server --visibility public`）。`plant-model-gen` **故意没有远端**：这个仓待废弃，盘坏了就没了，心里有数。
 6. ~~**中继模式下站点仍会去连 SurrealDB 并失败**~~ → 2026-09-16 换了根治路径：**中继实现已搬进 `plant-web-server`**（`src/relay/`，约 2800 行），站点后端改用它，不再拖着模型库 / 校审那半个产品，那 15 s 重试与「review 专用数据库初始化失败」随之消失。
 7. ~~**本机双站点 24 项 smoke 还没换到新后端**~~ → 2026-09-16 已换：`local-remote-collab-setup.ps1` 默认 `-Backend pws`，两站都用 `plant-web-server.exe`，**同一对进程里连跑三次 24/24**（见报告 §3.5，结果 JSON `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`）。换的过程括出并修掉三个缺陷，其中「重新激活会把 MQTT 订阅弄死（`Unsolicited pubrel`）」那条 **`plant-model-gen` 里那份同样有**。
 8. ~~**`plant-model-gen` 里那份中继实现还留着**~~ → 2026-09-16 已删：`relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关全部移除，`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」。`sync_ledger` / `mqtt_file_sync` / `SyncE3dFileMsg`（含 `file_sesnos`）留着——完整站点仍要收发 MQTT 源文件并记这本账，线格式也要跟 `plant-web-server` 保持兼容。`cargo check --bin web_server --features web_server,mqtt` 通过（2 m 45 s）。
