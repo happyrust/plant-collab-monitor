@@ -8,6 +8,17 @@
 
 ## 2026-09-16
 
+### 后端 `plant-model-gen` 建了 git 仓（跨仓，记在这里备查）
+
+> 交接单里连着两版列为「风险最大」的一条：后端一直不在版本管理里，中继模式那批改动只有 `plant-model-gen/runtime/backup-2026-09-15/` 这份手工备份兜着。本仓没有代码改动，这一段只是记录。
+
+- `plant-model-gen` 现在是**本地 git 仓**（898 个文件 / 约 20 MB，`.git` 5.9 MB），3 条提交：
+  1. `c110092` 建仓基线 — 树是当前工作区，但备份覆盖的 14 个文件换回备份版本、中继模式新增的两个模块先拿掉。**不是真实存在过的快照，也编不过**，它的用处只有一个：让下一条的 diff 就是那批改动本身。
+  2. `14be1ce` 中继模式（SQLite-only）后端改动首次入库 — 15 个文件 `+1904 / −58`，含新模块 `data_interface/sync_ledger.rs`（837 行）与 `version_management/relay_sync.rs`（633 行）。
+  3. `7f766ec` `db_index::rebuild_from_config` 改走 `spawn_blocking`（2026-09-16 00:15 另一个会话在工作区里改的，单独一条以便回滚）。
+- 沿用后端原有的 `.gitignore`，另补三类：`runtime/local-collab` 只留配置与启动器（工程副本 / sqlite / output 由 `scripts/local-remote-collab-setup.ps1` 重新生成）、`__pycache__/`、`*.pyc`；新增 `.gitattributes`（索引一律 LF，`*.bat`/`*.cmd` 保持 CRLF）。
+- **没有配 remote，也没有推送**；建远端要用户点头。工作区文件一字未动（只动索引），`git status` 干净，`git fsck` 无异常。
+
 ### 真后端 live 用例补齐（只读 7/7 · 完整闭环 9/9）+ 真浏览器实操版操作教程
 
 > 补上 2026-09-15 交接单里「`topology-deploy-live-smoke`（只读控制面）本轮没跑」这一项。此前这套 L2 用例只对着 `plant-web-server`（shape `pws`）跑过。

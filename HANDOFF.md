@@ -30,10 +30,12 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 30e0f78 test(topology): 只读控制面 live smoke 补跑到中继模式的 plant-model-gen（7/7）（2026-09-16）
-                 ↑ 这一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
+上一次推送: 0bb00ca docs(tutorial): 真浏览器 + 真后端跑出《异地部署操作教程 · 实操版》，并补齐 L3 完整闭环（9/9）（2026-09-16）
+                 ↑ 此前一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
 本地与 origin/main: 一致，工作树无本仓待提交改动
 type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
+
+后端仓 ../plant-model-gen: 2026-09-16 建的本地 git 仓，HEAD = 7f766ec，**无 remote、未推送**
 ```
 
 ---
@@ -46,7 +48,7 @@ type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
 
 ## 启动验证（前置说明）
 
-后端 `plant-model-gen` **不是** git 仓；`cargo` 的 target 在 `D:\Rust\target`（`CARGO_TARGET_DIR`），2026-09-14 已编出 `D:\Rust\target\debug\web_server.exe`（`web_server,mqtt`，142 MB）。`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
+后端 `plant-model-gen` **2026-09-16 起是 git 仓了**（本地仓，898 个文件、3 条提交，**没有配 remote、没有推送**——要不要建远端由你定）。此前它一直不在版本管理里，中继模式那批改动只有 `runtime/backup-2026-09-15/` 兜底；现在 `git log` 里第 2 条就是那批改动的完整 diff，第 3 条是 `db_index` 的 `spawn_blocking`。`cargo` 的 target 在 `D:\Rust\target`（`CARGO_TARGET_DIR`），2026-09-14 已编出 `D:\Rust\target\debug\web_server.exe`（`web_server,mqtt`，142 MB）。`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
 
 ```powershell
 # 1. 编译后端（必须带 mqtt，否则 activate 的 MQTT 订阅分支为空）
@@ -81,6 +83,8 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 2. ~~`/topology` 的「从 DbOption 导入」按钮~~ → 2026-09-14 晚已落地（确认弹窗 → `importEnvFromDbOption()` → 刷新并选中；mock 用例 DA-16）。
 3. ~~部署动作面新按钮尚未进浏览器 smoke~~ → 已由 `scripts/topology-deploy-smoke.mjs`（mock，DA-01–16）+ `scripts/topology-deploy-live-smoke.mjs`（真后端 LR/LF）覆盖；`phase7-plus-smoke.mjs` 仍只管 11 视图 + login + SSE。**四层用例 2026-09-16 已全部覆盖**：L1 mock（DA-01–16）、L2 只读（LR-00–06，对中继 pmg 三跑各 7/7）、**L3 完整闭环（LF-00–08，对中继 pmg 9/9，`docs/e2e-smoke/topology-deploy-live-full-relay-result.json`）**、L4 双站点（24/24）。L3 会真改 `DbOption.toml` 并重启 watcher + MQTT，**只在 `runtime/local-collab` 这类隔离配置上跑**，命令要带 `--mode full --confirm-writes`，报告路径也要另给（别覆盖 2026-09-14 那份 pws 的）。
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
+5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（3 条提交：重建的改动前基线 → 中继模式那批后端改动 → `db_index` 的 `spawn_blocking`）。**还欠一步：没有 remote、没有推送**，要建远端（GitHub / 别的）得你点头。另外那份 `runtime/backup-2026-09-15/` 现在只是冗余（内容已成为第 1 条提交的一部分），按 `.gitignore` 不入库，留着也不碍事。
+6. **中继模式下站点仍会去连 SurrealDB 并失败**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程照样按 `[surrealdb]` 里配的地址连（`os error 10061`，重试约 15 s），随后「review 专用数据库连接初始化失败」。中继链路与四层用例都不受影响，但校审那类接口在这套环境里是废的，且每次启动白等 15 s。还没人动。
 
 ---
 
