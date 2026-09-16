@@ -104,6 +104,28 @@ node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --build 
 - 唯一一条 `consoleError` 是 `404`：`dist/` 里没有 `favicon.ico`（`index.html` 引用的 7 个资源都在），Chrome 自动请根 favicon 的结果，与后端无关。Site B 没起的那两跑各 2 条，多出来的一条是 `ERR_CONNECTION_REFUSED`。
 - **中继站点照样会去连 SurrealDB**：`auto_start_surreal = false` 只管「不自己拉起 `surreal`」，进程仍按 `[surrealdb]` 配的地址连。site-a 日志里 `⚠️ 数据库基础连接失败，后续将继续后台重试` → `❌ 连接尝试 1/2/3 失败` → `❌ SurrealDB 连接失败` → `⚠️ review 专用数据库连接初始化失败，后续校审接口可能不可用`，前后约 15 s（`os error 10061`）。中继链路和本节 7 项只读用例都不受影响，`/health` 也仍报 `database: healthy`——也就是说这个健康检查并不覆盖 SurrealDB。准确的说法是「**中继链路**不需要 SurrealDB」，而不是「这套环境里所有接口都不需要」：校审等依赖 SurrealDB 的接口在这里是不可用的。
 
+### 3.5 站点后端换成 `plant-web-server`（2026-09-16 09:54–09:56 · 连跑三次 24/24 · 各 31–32 s）
+
+中继实现搬进 `plant-web-server` 之后，两站都改用 `D:\Rust\target\debug\plant-web-server.exe` 起，**同一套 24 项用例原样跑**（`scripts/local-remote-collab-smoke.ps1` 只改了一处判定，见下）。**三跑都是 24 / 0 / 0**，而且**三跑在同一对进程里**——这点是故意的，因为重新激活正是下面那个订阅缺陷的触发条件。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force   # 默认 -Backend pws
+# 按 ../plant-model-gen/runtime/local-collab/COMMANDS.md 起 Mosquitto / Site A / Site B
+powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101 ...
+```
+
+结果 JSON：`docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`（第三跑）。`plant-model-gen` 那份 `local-remote-collab-smoke-result.json` 没有被覆盖。
+
+换后端时括出来的三件事，都已修掉：
+
+| 现象 | 根因 | 改在哪 |
+|---|---|---|
+| 首跑 LS-24 `Site B runtime not active`，但 LS-23 明明记着 B `active: true` | 判定写死了 `activate.response.status == "success"`（plant-model-gen 的形状）；plant-web-server 给的是 `success: true`，它的 `status` 在 `item` 里、是 env 的状态不是调用结果 | `local-remote-collab-smoke.ps1` 该判定改为两种形状都认 |
+| 次跑 LS-24 B 一条 inbound 都没有；B 日志刷 `Unsolicited pubrel packet: 20` → `MQTT 文件订阅连接异常`，重连后又是同一条 | 重新激活会把 MQTT 订阅拆了重建。上一条 QoS 2 事务断在半程，broker 替这个 client id 记着；新 client 一连上就收到 PUBREL，被判成 unsolicited ack。**这个缺陷 `plant-model-gen` 里那份同样有**，只是此前每个进程只激活一次，碰不到 | 订阅改为**跟着进程走**（重新激活只换轮询，订阅原样留着），并且订阅端用 clean session——它补课靠的是 retain 消息 + 中继水位，不靠 broker 的会话存储 |
+| B clone 全部 `clone_failed: Failed to read archive at .../assets/archives/...` | `plant-web-server` 根本没有 `/assets/archives` 路由，对端下载 CBA 必然 404；`/files/output` 也固定指 `<repo_root>/output`，两站会指到同一个目录 | 补 `/assets/archives` 静态路由；`/files/output` 改为按配置的 `output_root` |
+
+顺带一提，`plant-web-server` 启动时也会碰一下 SurrealDB（`MbdService`），但它**失败即返回、不重试**，只打一行 `MBD V2 data source unavailable at startup`——不是 §3.4 里那 15 s。
+
 ### 3.1 无 broker（21:48 · 20/24，仅作对照）
 
 ```text

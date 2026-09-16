@@ -18,7 +18,7 @@
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
 | **看 / 重出异地部署操作教程（19 张图，每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md`；改了 `/topology` 先 `npm run smoke:topology-deploy`，再 `npm run tutorial:topology-deploy` 重出图 + 文；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
 | **要一份「真后端实操」的教程 / Word（16 张图，截图里都是真响应）** | 先起本机两站（`COMMANDS.md`），再 `npm run tutorial:topology-deploy:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` → `docs/tutorials/topology-deploy-live-tutorial.md`，Word 版 `npm run docx:topology-deploy:live`。它**会真的改后端**（建 env、激活、写 `DbOption.toml`），跑完自动复原，**只对隔离环境跑** |
-| **跑本机双站点 smoke（中继模式 · 24 项 · 已 24/24）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**，后端要 `--features web_server,relay-sync`。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
+| **跑本机双站点 smoke（中继模式 · 24 项 · 已 24/24）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查；**默认 `-Backend pws`**，要回旧后端加 `-Backend pmg`）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**。站点后端是 `../plant-web-server`（`cargo build --bin plant-web-server`）。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4 / §3.5，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
 | **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md) |
@@ -85,7 +85,8 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 4. 工作区 57 个文件在 Windows 上是 CRLF（索引一律 LF，`.gitattributes` 已固定）；git 视为干净，不必处理；想让工作区也统一成 LF，在**没有未提交改动**时跑 `git rm -r --cached . ; git reset --hard`。
 5. ~~**`plant-model-gen` 不在版本管理里**~~ → 2026-09-16 已建本地 git 仓（4 条提交）。`plant-web-server` 同日也补了首次提交（此前有 `.git` 但**一条提交都没有**，13000 多行全 untracked）。**两个仓都还没有 remote、没有推送**，要建远端得你点头。
 6. ~~**中继模式下站点仍会去连 SurrealDB 并失败**~~ → 2026-09-16 换了根治路径：**中继实现已搬进 `plant-web-server`**（`src/relay/`，约 2800 行），站点后端改用它，不再拖着模型库 / 校审那半个产品，那 15 s 重试与「review 专用数据库初始化失败」随之消失。`plant-model-gen` 里那份中继实现还留着（在 `relay-sync` feature 后面），要不要删等你定。
-7. **本机双站点 24 项 smoke 还没换到新后端**：`scripts/local-remote-collab-setup.ps1` 生成的 `start.ps1` 仍指向 `D:\Rust\target\debug\web_server.exe`（plant-model-gen）。手工用 `plant-web-server.exe` 起两站已经把中继链路验通了（见 CHANGELOG 2026-09-16），但 24 项那套还没复跑；pws 的控制面 env / site 存 JSON 文件而不是 sqlite 的 `remote_sync_envs` 表，几条查表的用例可能要改。
+7. ~~**本机双站点 24 项 smoke 还没换到新后端**~~ → 2026-09-16 已换：`local-remote-collab-setup.ps1` 默认 `-Backend pws`，两站都用 `plant-web-server.exe`，**同一对进程里连跑三次 24/24**（见报告 §3.5，结果 JSON `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`）。换的过程括出并修掉三个缺陷，其中「重新激活会把 MQTT 订阅弄死（`Unsolicited pubrel`）」那条 **`plant-model-gen` 里那份同样有**。
+8. **`plant-model-gen` 里那份中继实现还留着**（在 `relay-sync` feature 后面），现在是两份。要不要删等你定；删之前它仍是 `-Backend pmg` 那条退路。
 
 ---
 

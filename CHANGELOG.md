@@ -16,7 +16,13 @@
 - 接线：`activate` 真起中继运行态（起不来整条失败），`apply` 只落账；`runtime/status` 增加 `active / env_id / relay / mqtt_connected`，与 `pmg` 形状对齐；`runtime/stop` 先停中继。
 - 跑多站必须的两处：`PLANT_WEB_RUNTIME_DIR`（各 service 状态目录此前硬编码在源码树，一台机器两个站会共用同一份）、`/assets/archives` 静态路由（此前没有，对端 clone 必然 404）与 `/files/output` 按配置的 `output_root` 路由。
 - **实测**（两站都用 `plant-web-server.exe`）：A 的水位回退到 30 逼它重广播 → A 台账 `outbound ok / diff ok / 30→33`、`e3d_sync_changes` 156 条；B 台账 `inbound ok / sesno_to=33 / sesno_seen=33`；B 那份被故意弄脏的工程副本 clone 之后与 A 逐字节一致。收尾两站 `DbOption.toml` 与开跑前一致，真实工程零写入。
-- 还没做：本仓 24 项双站点 smoke 仍对着 `plant-model-gen` 的 `web_server` 跑，没换过来。
+#### Changed · 24 项双站点 smoke 换到新后端，连跑三次 24/24
+
+- `scripts/local-remote-collab-setup.ps1` 新增 `-Backend pws|pmg`（**默认 `pws`**）：生成的 `start.ps1` 改起 `plant-web-server.exe`，带 `--repo-root` 与每站一个的 `PLANT_WEB_RUNTIME_DIR`。要回旧后端加 `-Backend pmg`。
+- `scripts/local-remote-collab-smoke.ps1`：LS-23 判断 Site B 是否激活成功时写死了 `activate.response.status == "success"`（`pmg` 的形状），`pws` 给的是 `success: true`——改为两种形状都认。这是首跑唯一的红。
+- **结果：同一对进程里连跑三次 24 / 0 / 0，各 31–32 s**（`docs/e2e-smoke/local-remote-collab-smoke-result-pws.json` 是第三跑；`plant-model-gen` 那份结果没被覆盖）。三跑同进程是故意的——重新激活正是下面那个订阅缺陷的触发条件。
+- 换的过程括出两个 `plant-web-server` 侧的真缺陷，都已修：`/assets/archives` 路由缺失（对端下载 CBA 必然 404）、重新激活会拆重建 MQTT 订阅导致 `Unsolicited pubrel packet` 后再也收不到消息。**后一个 `plant-model-gen` 里那份同样有**，只是此前每个进程只激活一次，碰不到。
+- 详见报告 §3.5：`docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md`。
 
 ### 后端 `plant-model-gen` 建了 git 仓（跨仓，记在这里备查）
 

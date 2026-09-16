@@ -1,0 +1,682 @@
+﻿{
+    "passed":  true,
+    "summary":  {
+                    "passed":  24,
+                    "failed":  0,
+                    "skipped":  0
+                },
+    "endpoints":  {
+                      "site_a_base":  "http://127.0.0.1:4100",
+                      "site_b_base":  "http://127.0.0.1:4101",
+                      "site_a_archives_host":  "http://127.0.0.1:4100/assets/archives",
+                      "site_b_archives_host":  "http://127.0.0.1:4101/assets/archives",
+                      "site_b_http_host":  "http://127.0.0.1:4101/files/output",
+                      "mqtt_host":  "127.0.0.1",
+                      "mqtt_port":  1883
+                  },
+    "ids":  {
+                "env_id":  "env-1789523651",
+                "site_id":  "site-1789523651",
+                "site_b_env_id":  "env-1789523653",
+                "topic":  "S"
+            },
+    "relay":  {
+                  "site_a_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\deployment_sites.sqlite",
+                  "site_b_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\deployment_sites.sqlite",
+                  "file_a":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\project\\SCB\\scb000\\scb6000_0001",
+                  "file_b":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\project\\SCB\\scb000\\scb6000_0001",
+                  "rewind_sessions":  1,
+                  "detect_interval_sec":  5,
+                  "timeout_sec":  90
+              },
+    "fixture":  {
+                    "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\output\\local-smoke-increment.e3d",
+                    "file_name":  "local-smoke-increment.e3d",
+                    "appended_bytes":  512,
+                    "length":  7680,
+                    "sha256":  "0AE30D9962E7E6D1A7FC3BFEB47D2CFEAF97F48827DC2F72A85B2F2E43B92B86",
+                    "updated_at":  "2026-09-16T01:54:11.2614731Z"
+                },
+    "cleanup":  {
+                    "performed":  true,
+                    "stop":  {
+                                 "ok":  true,
+                                 "error":  null,
+                                 "response":  {
+                                                  "mode":  "standalone-real",
+                                                  "relay_stopped":  true,
+                                                  "stopped":  true,
+                                                  "success":  true
+                                              }
+                             },
+                    "delete_site":  {
+                                        "ok":  true,
+                                        "error":  null,
+                                        "id":  "site-1789523651"
+                                    },
+                    "delete_env":  {
+                                       "ok":  true,
+                                       "error":  null,
+                                       "id":  "env-1789523651"
+                                   },
+                    "site_b":  {
+                                   "delete_env":  {
+                                                      "ok":  true,
+                                                      "error":  null,
+                                                      "id":  "env-1789523653"
+                                                  },
+                                   "stop":  {
+                                                "error":  null,
+                                                "ok":  true
+                                            }
+                               }
+                },
+    "checks":  [
+                   {
+                       "name":  "site-a-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "base":  "http://127.0.0.1:4100"
+                                   }
+                   },
+                   {
+                       "name":  "site-b-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "base":  "http://127.0.0.1:4101"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-port",
+                       "status":  "passed",
+                       "details":  {
+                                       "host":  "127.0.0.1",
+                                       "port":  1883
+                                   }
+                   },
+                   {
+                       "name":  "site-a-identity",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4100/api/site/identity",
+                                       "response":  {
+                                                        "backend_url":  "http://127.0.0.1:4100",
+                                                        "bind_host":  "127.0.0.1",
+                                                        "bind_port":  4100,
+                                                        "config":  "runtime/local-collab/site-a/DbOption.toml",
+                                                        "mode":  "detached",
+                                                        "repo_root":  "D:\\work\\plant-code\\plant-model-gen",
+                                                        "site_id":  "local-a",
+                                                        "site_name":  "Local Site A"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "site-b-identity",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4101/api/site/identity",
+                                       "response":  {
+                                                        "backend_url":  "http://127.0.0.1:4101",
+                                                        "bind_host":  "127.0.0.1",
+                                                        "bind_port":  4101,
+                                                        "config":  "runtime/local-collab/site-b/DbOption.toml",
+                                                        "mode":  "detached",
+                                                        "repo_root":  "D:\\work\\plant-code\\plant-model-gen",
+                                                        "site_id":  "local-b",
+                                                        "site_name":  "Local Site B"
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "site-identity-distinct",
+                       "status":  "passed",
+                       "details":  {
+                                       "site_a":  "local-a",
+                                       "site_b":  "local-b"
+                                   }
+                   },
+                   {
+                       "name":  "site-a-admin-login",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "url":  "http://127.0.0.1:4100/api/admin/auth/login"
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-create",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "env-1789523651",
+                                       "error":  null,
+                                       "location_dbs":  null,
+                                       "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                       "response":  {
+                                                        "data":  {
+                                                                     "active":  false,
+                                                                     "created_at":  "2026-09-16T01:54:11.0927086Z",
+                                                                     "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                     "id":  "env-1789523651",
+                                                                     "location":  "local-a",
+                                                                     "location_dbs":  null,
+                                                                     "mode":  "standalone-real",
+                                                                     "mqtt_host":  "127.0.0.1",
+                                                                     "mqtt_port":  1883,
+                                                                     "name":  "local-dual-site-20260916-095411",
+                                                                     "status":  "created",
+                                                                     "updated_at":  "2026-09-16T01:54:11.0927235Z"
+                                                                 },
+                                                        "item":  {
+                                                                     "active":  false,
+                                                                     "created_at":  "2026-09-16T01:54:11.0927086Z",
+                                                                     "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                     "id":  "env-1789523651",
+                                                                     "location":  "local-a",
+                                                                     "location_dbs":  null,
+                                                                     "mode":  "standalone-real",
+                                                                     "mqtt_host":  "127.0.0.1",
+                                                                     "mqtt_port":  1883,
+                                                                     "name":  "local-dual-site-20260916-095411",
+                                                                     "status":  "created",
+                                                                     "updated_at":  "2026-09-16T01:54:11.0927235Z"
+                                                                 },
+                                                        "mode":  "standalone-real",
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-site-create",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "site_id":  "site-1789523651",
+                                       "response":  {
+                                                        "data":  {
+                                                                     "created_at":  "2026-09-16T01:54:11.1110635Z",
+                                                                     "dbnums":  null,
+                                                                     "env_id":  "env-1789523651",
+                                                                     "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                     "id":  "site-1789523651",
+                                                                     "location":  "local-b",
+                                                                     "mode":  "standalone-real",
+                                                                     "name":  "site-b-local",
+                                                                     "notes":  "Created by local remote-collab smoke",
+                                                                     "status":  "created",
+                                                                     "updated_at":  "2026-09-16T01:54:11.111071Z"
+                                                                 },
+                                                        "item":  {
+                                                                     "created_at":  "2026-09-16T01:54:11.1110635Z",
+                                                                     "dbnums":  null,
+                                                                     "env_id":  "env-1789523651",
+                                                                     "http_host":  "http://127.0.0.1:4101/files/output",
+                                                                     "id":  "site-1789523651",
+                                                                     "location":  "local-b",
+                                                                     "mode":  "standalone-real",
+                                                                     "name":  "site-b-local",
+                                                                     "notes":  "Created by local remote-collab smoke",
+                                                                     "status":  "created",
+                                                                     "updated_at":  "2026-09-16T01:54:11.111071Z"
+                                                                 },
+                                                        "mode":  "standalone-real",
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-test-mqtt",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "host":  "127.0.0.1",
+                                                        "id":  "env-1789523651",
+                                                        "kind":  "mqtt",
+                                                        "mode":  "standalone-real",
+                                                        "port":  null,
+                                                        "reachable":  false,
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-test-http",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "host":  "127.0.0.1",
+                                                        "id":  "env-1789523651",
+                                                        "kind":  "http",
+                                                        "mode":  "standalone-real",
+                                                        "port":  null,
+                                                        "reachable":  false,
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-site-test-http",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "host":  "127.0.0.1",
+                                                        "id":  "site-1789523651",
+                                                        "kind":  "http",
+                                                        "mode":  "standalone-real",
+                                                        "port":  null,
+                                                        "reachable":  false,
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-env-activate",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "data":  {
+                                                                     "activated_at":  "2026-09-16T01:54:11.1163804Z",
+                                                                     "active":  true,
+                                                                     "config":  {
+                                                                                    "auto_detect":  true,
+                                                                                    "auto_sync":  false,
+                                                                                    "batch_size":  10,
+                                                                                    "detect_interval":  5,
+                                                                                    "enable_notifications":  true,
+                                                                                    "log_retention_days":  30,
+                                                                                    "max_concurrent":  3,
+                                                                                    "reconnect_initial_ms":  1000,
+                                                                                    "reconnect_max_ms":  30000
+                                                                                },
+                                                                     "created_at":  "2026-09-16T01:54:11.0927086Z",
+                                                                     "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                     "id":  "env-1789523651",
+                                                                     "location":  "local-a",
+                                                                     "location_dbs":  null,
+                                                                     "mode":  "standalone-real",
+                                                                     "mqtt_host":  "127.0.0.1",
+                                                                     "mqtt_port":  1883,
+                                                                     "name":  "local-dual-site-20260916-095411",
+                                                                     "status":  "active",
+                                                                     "updated_at":  "2026-09-16T01:54:11.1077337Z"
+                                                                 },
+                                                        "item":  {
+                                                                     "activated_at":  "2026-09-16T01:54:11.1163804Z",
+                                                                     "active":  true,
+                                                                     "config":  {
+                                                                                    "auto_detect":  true,
+                                                                                    "auto_sync":  false,
+                                                                                    "batch_size":  10,
+                                                                                    "detect_interval":  5,
+                                                                                    "enable_notifications":  true,
+                                                                                    "log_retention_days":  30,
+                                                                                    "max_concurrent":  3,
+                                                                                    "reconnect_initial_ms":  1000,
+                                                                                    "reconnect_max_ms":  30000
+                                                                                },
+                                                                     "created_at":  "2026-09-16T01:54:11.0927086Z",
+                                                                     "file_server_host":  "http://127.0.0.1:4100/assets/archives",
+                                                                     "id":  "env-1789523651",
+                                                                     "location":  "local-a",
+                                                                     "location_dbs":  null,
+                                                                     "mode":  "standalone-real",
+                                                                     "mqtt_host":  "127.0.0.1",
+                                                                     "mqtt_port":  1883,
+                                                                     "name":  "local-dual-site-20260916-095411",
+                                                                     "status":  "active",
+                                                                     "updated_at":  "2026-09-16T01:54:11.1077337Z"
+                                                                 },
+                                                        "mode":  "standalone-real",
+                                                        "relay":  true,
+                                                        "success":  true,
+                                                        "task":  {
+                                                                     "action":  "activate",
+                                                                     "env_id":  "env-1789523651",
+                                                                     "id":  "remote-sync-activate-env-1789523651",
+                                                                     "mode":  "standalone-real",
+                                                                     "progress":  100,
+                                                                     "started_at":  "2026-09-16T01:54:11.1173754Z",
+                                                                     "status":  "Active",
+                                                                     "task_id":  "remote-sync-activate-env-1789523651",
+                                                                     "task_name":  "Remote sync activate env-1789523651",
+                                                                     "task_type":  "RemoteSyncRuntime",
+                                                                     "updated_at":  "2026-09-16T01:54:11.1173754Z"
+                                                                 }
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-runtime-status",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "active":  true,
+                                                        "active_task_count":  5,
+                                                        "env_count":  1,
+                                                        "env_id":  "env-1789523651",
+                                                        "mode":  "standalone-real",
+                                                        "mqtt_connected":  true,
+                                                        "relay":  true,
+                                                        "root":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+                                                        "running":  true,
+                                                        "site_count":  1,
+                                                        "success":  true
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "remote-runtime-active-env",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "env-1789523651",
+                                       "backend":  "plant-model-gen",
+                                       "active":  true,
+                                       "mqtt_connected":  true,
+                                       "expected_env_id":  "env-1789523651"
+                                   }
+                   },
+                   {
+                       "name":  "remote-topology",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "data":  {
+
+                                                                 },
+                                                        "mode":  "standalone-real",
+                                                        "success":  true,
+                                                        "topology":  {
+
+                                                                     }
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-subscription-status",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "connection_status":  "disconnected",
+                                                        "is_master_node":  false,
+                                                        "is_running":  false,
+                                                        "is_server_running":  false,
+                                                        "is_subscription_running":  false,
+                                                        "location":  "local-a",
+                                                        "master_info":  null,
+                                                        "mode":  "standalone-real",
+                                                        "mqtt_server_port":  1883,
+                                                        "node_role":  "client",
+                                                        "status":  "success",
+                                                        "subscribed_topics":  [
+                                                                                  "Sync/E3d"
+                                                                              ],
+                                                        "success":  true
+                                                    },
+                                       "topic":  "S"
+                                   }
+                   },
+                   {
+                       "name":  "incremental-fixture-append",
+                       "status":  "passed",
+                       "details":  {
+                                       "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\output\\local-smoke-increment.e3d",
+                                       "file_name":  "local-smoke-increment.e3d",
+                                       "appended_bytes":  512,
+                                       "length":  7680,
+                                       "sha256":  "0AE30D9962E7E6D1A7FC3BFEB47D2CFEAF97F48827DC2F72A85B2F2E43B92B86",
+                                       "updated_at":  "2026-09-16T01:54:11.2614731Z"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-publish-test",
+                       "status":  "passed",
+                       "details":  {
+                                       "publisher":  "C:\\Program Files\\mosquitto\\mosquitto_pub.exe",
+                                       "message":  "{\"timestamp\":\"2026-09-16T01:54:11.3419881Z\",\"file_hashes\":[\"0AE30D9962E7E6D1A7FC3BFEB47D2CFEAF97F48827DC2F72A85B2F2E43B92B86\"],\"location\":\"local-b\",\"file_server_host\":\"http://127.0.0.1:4101/assets/archives\",\"file_names\":[\"local-smoke-increment.e3d\"]}",
+                                       "topic":  "S"
+                                   }
+                   },
+                   {
+                       "name":  "mqtt-received-after-publish",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  "env-1789523651",
+                                       "timeout_sec":  20,
+                                       "active":  true,
+                                       "hint":  null,
+                                       "mqtt_connected":  true,
+                                       "attempts":  1
+                                   }
+                   },
+                   {
+                       "name":  "remote-sync-logs",
+                       "status":  "passed",
+                       "details":  {
+                                       "error":  null,
+                                       "response":  {
+                                                        "items":  [
+                                                                      {
+                                                                          "file_name":  "runtime.log",
+                                                                          "path":  "D:/work/plant-code/plant-model-gen/runtime/local-collab/site-a/pws-runtime/remote_sync/logs/runtime.log",
+                                                                          "size":  330
+                                                                      }
+                                                                  ],
+                                                        "mode":  "standalone-real",
+                                                        "success":  true,
+                                                        "total":  1
+                                                    }
+                                   }
+                   },
+                   {
+                       "name":  "runtime-stop-clears-active",
+                       "status":  "passed",
+                       "details":  {
+                                       "env_id":  null,
+                                       "active":  false,
+                                       "stop_response":  {
+                                                             "mode":  "standalone-real",
+                                                             "relay_stopped":  true,
+                                                             "stopped":  true,
+                                                             "success":  true
+                                                         }
+                                   }
+                   },
+                   {
+                       "name":  "relay-outbound-ledger",
+                       "status":  "passed",
+                       "details":  {
+                                       "tool":  "sqlite3",
+                                       "site_a_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-a\\deployment_sites.sqlite",
+                                       "file_name":  "scb6000_0001",
+                                       "rewind_sessions":  1,
+                                       "detect_interval_sec":  5,
+                                       "site_a_env_config":  {
+                                                                 "error":  null,
+                                                                 "ok":  true
+                                                             },
+                                       "site_b":  {
+                                                      "login":  {
+                                                                    "error":  null,
+                                                                    "ok":  true
+                                                                },
+                                                      "env":  {
+                                                                  "ok":  true,
+                                                                  "error":  null,
+                                                                  "id":  "env-1789523653",
+                                                                  "location_dbs":  null
+                                                              },
+                                                      "env_config":  {
+                                                                         "error":  null,
+                                                                         "ok":  true
+                                                                     },
+                                                      "activate":  {
+                                                                       "ok":  true,
+                                                                       "error":  null,
+                                                                       "response":  {
+                                                                                        "data":  {
+                                                                                                     "activated_at":  "2026-09-16T01:54:13.4438852Z",
+                                                                                                     "active":  true,
+                                                                                                     "config":  {
+                                                                                                                    "auto_detect":  true,
+                                                                                                                    "auto_sync":  false,
+                                                                                                                    "batch_size":  10,
+                                                                                                                    "detect_interval":  5,
+                                                                                                                    "enable_notifications":  true,
+                                                                                                                    "log_retention_days":  30,
+                                                                                                                    "max_concurrent":  3,
+                                                                                                                    "reconnect_initial_ms":  1000,
+                                                                                                                    "reconnect_max_ms":  30000
+                                                                                                                },
+                                                                                                     "created_at":  "2026-09-16T01:54:13.434537Z",
+                                                                                                     "file_server_host":  "http://127.0.0.1:4101/assets/archives",
+                                                                                                     "id":  "env-1789523653",
+                                                                                                     "location":  "local-b",
+                                                                                                     "location_dbs":  null,
+                                                                                                     "mode":  "standalone-real",
+                                                                                                     "mqtt_host":  "127.0.0.1",
+                                                                                                     "mqtt_port":  1883,
+                                                                                                     "name":  "local-dual-site-b-20260916-095413",
+                                                                                                     "status":  "active",
+                                                                                                     "updated_at":  "2026-09-16T01:54:13.4405276Z"
+                                                                                                 },
+                                                                                        "item":  {
+                                                                                                     "activated_at":  "2026-09-16T01:54:13.4438852Z",
+                                                                                                     "active":  true,
+                                                                                                     "config":  {
+                                                                                                                    "auto_detect":  true,
+                                                                                                                    "auto_sync":  false,
+                                                                                                                    "batch_size":  10,
+                                                                                                                    "detect_interval":  5,
+                                                                                                                    "enable_notifications":  true,
+                                                                                                                    "log_retention_days":  30,
+                                                                                                                    "max_concurrent":  3,
+                                                                                                                    "reconnect_initial_ms":  1000,
+                                                                                                                    "reconnect_max_ms":  30000
+                                                                                                                },
+                                                                                                     "created_at":  "2026-09-16T01:54:13.434537Z",
+                                                                                                     "file_server_host":  "http://127.0.0.1:4101/assets/archives",
+                                                                                                     "id":  "env-1789523653",
+                                                                                                     "location":  "local-b",
+                                                                                                     "location_dbs":  null,
+                                                                                                     "mode":  "standalone-real",
+                                                                                                     "mqtt_host":  "127.0.0.1",
+                                                                                                     "mqtt_port":  1883,
+                                                                                                     "name":  "local-dual-site-b-20260916-095413",
+                                                                                                     "status":  "active",
+                                                                                                     "updated_at":  "2026-09-16T01:54:13.4405276Z"
+                                                                                                 },
+                                                                                        "mode":  "standalone-real",
+                                                                                        "relay":  true,
+                                                                                        "success":  true,
+                                                                                        "task":  {
+                                                                                                     "action":  "activate",
+                                                                                                     "env_id":  "env-1789523653",
+                                                                                                     "id":  "remote-sync-activate-env-1789523653",
+                                                                                                     "mode":  "standalone-real",
+                                                                                                     "progress":  100,
+                                                                                                     "started_at":  "2026-09-16T01:54:13.4448649Z",
+                                                                                                     "status":  "Active",
+                                                                                                     "task_id":  "remote-sync-activate-env-1789523653",
+                                                                                                     "task_name":  "Remote sync activate env-1789523653",
+                                                                                                     "task_type":  "RemoteSyncRuntime",
+                                                                                                     "updated_at":  "2026-09-16T01:54:13.4448649Z"
+                                                                                                 }
+                                                                                    }
+                                                                   },
+                                                      "runtime":  {
+                                                                      "relay":  true,
+                                                                      "active":  true,
+                                                                      "env_id":  "env-1789523653"
+                                                                  }
+                                                  },
+                                       "baseline":  {
+                                                        "dbnum":  6000,
+                                                        "file_name":  "scb6000_0001",
+                                                        "sesno":  33,
+                                                        "last_seen_fingerprint":  "1655368834000000000:2398208"
+                                                    },
+                                       "site_b_copy":  {
+                                                           "path":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\project\\SCB\\scb000\\scb6000_0001",
+                                                           "exists":  true,
+                                                           "length_before":  2398720,
+                                                           "sha256_before":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "dirtied":  {
+                                                                           "appended_bytes":  512,
+                                                                           "sha256":  "7C8AD81707710E44C57F91EFF56E40ECAE321F8040E99EB1480A83B5B7948386",
+                                                                           "length":  2398720
+                                                                       }
+                                                       },
+                                       "rewind":  {
+                                                      "ok":  true,
+                                                      "sesno_before":  33,
+                                                      "sesno_after":  32,
+                                                      "at":  "2026-09-16T01:54:13"
+                                                  },
+                                       "attempts":  28,
+                                       "ledger":  {
+                                                      "direction":  "outbound",
+                                                      "file_name":  "scb6000_0001",
+                                                      "verify_status":  "ok",
+                                                      "verify_detail":  null,
+                                                      "diff_status":  "ok",
+                                                      "sesno_from":  32,
+                                                      "sesno_to":  33,
+                                                      "sesno_seen":  33,
+                                                      "diff_inserted":  10,
+                                                      "diff_deleted":  0,
+                                                      "diff_modified":  2,
+                                                      "msg_id":  "c70f5cb15ff9d7c0eb5ce796261fca14",
+                                                      "created_at":  "2026-09-16T01:54:41.531418400+00:00",
+                                                      "changes":  12
+                                                  }
+                                   }
+                   },
+                   {
+                       "name":  "relay-inbound-ledger",
+                       "status":  "passed",
+                       "details":  {
+                                       "site_b_sqlite":  "D:\\work\\plant-code\\plant-model-gen\\runtime\\local-collab\\site-b\\deployment_sites.sqlite",
+                                       "file_name":  "scb6000_0001",
+                                       "expected_sesno_to":  33,
+                                       "expected_msg_id":  "c70f5cb15ff9d7c0eb5ce796261fca14",
+                                       "attempts":  1,
+                                       "ledger":  {
+                                                      "direction":  "inbound",
+                                                      "file_name":  "scb6000_0001",
+                                                      "verify_status":  "ok",
+                                                      "verify_detail":  null,
+                                                      "diff_status":  null,
+                                                      "sesno_from":  null,
+                                                      "sesno_to":  33,
+                                                      "sesno_seen":  33,
+                                                      "diff_inserted":  null,
+                                                      "diff_deleted":  null,
+                                                      "diff_modified":  null,
+                                                      "msg_id":  "c70f5cb15ff9d7c0eb5ce796261fca14",
+                                                      "created_at":  "2026-09-16T01:54:41.781258+00:00",
+                                                      "changes":  0
+                                                  },
+                                       "sesno_seen_equals_sesno_to":  true,
+                                       "site_b_copy":  {
+                                                           "length_after":  2398208,
+                                                           "sha256_after":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "length_restored":  false,
+                                                           "sha256_source_a":  "D9E9385F50B6B0F8700F06039E373DBE84CB2DC06AB75F480B925BB4BED49400",
+                                                           "matches_site_a":  true,
+                                                           "truncated_back_by_smoke":  false
+                                                       }
+                                   }
+                   }
+               ],
+    "started_at":  "2026-09-16T01:54:10.9959745Z",
+    "finished_at":  "2026-09-16T01:54:41.8599591Z"
+}

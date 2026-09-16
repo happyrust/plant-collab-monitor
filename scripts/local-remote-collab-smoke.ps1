@@ -746,7 +746,11 @@ if ($SkipRelay) {
     }
   }
   $outDetails.site_b = $siteB
-  $siteBActive = ($null -ne $siteB.runtime -and $siteB.runtime.active -eq $true -and (Get-ObjectValue $siteB.activate.response @("status")) -eq "success")
+  # activate 的成功标志两种后端不一样：plant-model-gen 给 status: "success"，
+  # plant-web-server 给 success: true（它的 status 在 item 里，是 env 的状态不是调用结果）。
+  $siteBActivateOk = ((Get-ObjectValue $siteB.activate.response @("status")) -eq "success") -or
+                     ((Get-ObjectValue $siteB.activate.response @("success")) -eq $true)
+  $siteBActive = ($null -ne $siteB.runtime -and $siteB.runtime.active -eq $true -and $siteBActivateOk)
 
   # 2. 等 A 的中继轮询给这个库写基线（首轮 db_index 扫描 + 基线，工程小的话几秒）
   $wmSql = "SELECT dbnum, file_name, sesno, last_seen_fingerprint FROM relay_sync_watermark WHERE file_name = $(ConvertTo-SqlLiteral $relayFileName)"
