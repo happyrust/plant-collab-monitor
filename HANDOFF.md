@@ -30,7 +30,7 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-16 晚 · docs(plan): SQLite-only 中继方案补「后记」——实现已搬进 plant-web-server、plant-model-gen 那份已删
+上一次推送: 2026-09-16 晚 · docs: 记下 pws activate 已真把 env 应用到中继（pws 581052a）+ 方案「后记」（1a9eb39）
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
 本地与 origin/main: 一致，工作树无本仓待提交改动

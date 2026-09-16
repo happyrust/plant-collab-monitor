@@ -8,6 +8,20 @@
 
 ## 2026-09-16
 
+### Fixed · `plant-web-server` 的 activate 现在真的把 env 应用到中继（跨仓，记在这里备查）
+
+> 方案文档 P3「顺带发现 2」：改了 env 再激活不生效，得重启进程。搬进 pws 之后其实断在两处：
+> `activate` 从不把 env 的连接参数写进 `--config` 指向的 toml（pmg 的 `write_env_to_runtime_config`
+> 没带过来），而中继的 MQTT 客户端、消息里的 `location` / `file_server_host`、收包端的 `location_dbs`
+> 过滤又全取 `aios_core::get_db_option()` 那份进程启动时的快照。pws 提交 `581052a`。
+
+- `activate`（仅 `sync_relay_mode = true`）先按行把 env 的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 写进 toml（`relay::runtime_config`，注释与 `[section]` 不动），再 `relay::start` 从这份 toml 读配置。**与 pmg 有意不同**：env 上缺失 / null / 空的键一律不碰——pmg 会把缺失的 `location_dbs` 写成 `[]`，等于清空自有库、让中继把收到的别家文件当自有库再广播，smoke 曾为此绕道（`Get-RuntimeLocationDbs`）。同值不落盘；写不进去 activate 直接失败。
+- 中继按激活时读到的配置建 MQTT 连接、填消息来源字段、做回声与自有库过滤（`relay::context`）。轮询与发布端连接每次激活重建；**订阅连接只在 `host / port / location / project_code` 变了时重连**，没变就沿用、只换它读的上下文——保住 `478bced`「不轻易拆订阅」的意图，也不会因重订阅再收一遍 retain 消息。
+- `runtime/status` 多 `relay_location` / `relay_mqtt_host` / `relay_mqtt_port`（未激活 null）；`activate` 响应多 `runtime_config: {path, keys, changed}`。监控台不读这些字段，不受影响。
+- 验证：单站点有尽头脚本 21/21（同值 env → toml 不变；换 `location` → toml 只改那一键、日志「连接参数变了 … 重建订阅」、`relay_location` 跟着变；同 env 再激活 → 「沿用已有订阅」；换到无人监听的 1999 端口 → `relay_mqtt_port=1999`、`mqtt_connected` 变 false；换回 → toml 逐字节还原、重新连上）；本仓 24 项双站点 smoke 对新 exe **24/24（32 s）**，两站 toml 跑前跑后逐字节一致（smoke 的 env 与 toml 同值，`location_dbs` 为 null 不碰），结果 JSON 写在 %TEMP%、未覆盖仓内那份。
+- 顺手：pws `dev-dependencies` 补 `tempfile`（`db_index` 单测从 pmg 搬来就用它，此前 lib test 编不过）；`cargo test --lib relay::` 18/19，唯一红的 `db_index::tests::test_store_roundtrip` 是搬家前就有的测试数据问题（重复 ref0 撞 UNIQUE 索引），未动。
+- 方案文档 `docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md` 头部补了「后记」（实现已搬进 pws、pmg 那份已删、正文里 pmg 的路径怎么读），并把这一条从「仍开着的口子」改成已补。
+
 ### 中继实现搬进 `plant-web-server`，站点后端换成它（跨仓，记在这里备查）
 
 > 起因是「中继模式为什么还在依赖 SurrealDB」：那个开关只接在 3 个会致命的点上，`web_server` 自己的启动序列压根不看它，无条件按 `[surrealdb]` 连、重试约 15 s。根子是中继跟模型库 / 校审挤在同一个二进制里。换的是路径而不是补丁——把中继搬出来。
