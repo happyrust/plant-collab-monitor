@@ -6,6 +6,19 @@
 
 ---
 
+## 2026-09-17
+
+### Added · `plant-web-server` 台账读侧 API：`/api/remote-sync/ledger/*` 五个只读端点（跨仓，方案 P0）
+
+> 方案 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md`（00:17 批准，§7 八条默认全接受）的后端那一半。
+> 台账三张表此前只写不读，只能 `sqlite3` 看；现在监控台能对着 pws 直接查广播 / 接收记录与 RefNo 级变更清单。
+> pws 提交 `b61b7ca`。P1（视图 `/ledger`「中继台账」+ `relayLedgerApi.ts`）与 P2（mock / live / LS-25 用例）待做。
+
+- 新模块 `src/relay/ledger_query.rs`：只读连接、**读侧不建表**（库不存在 / 表不全 → 空结果 + `note: "ledger_not_initialized"`）、参数白名单（枚举与 `ledger.rs` 一一对应，单测盯着）、SQL 全绑定、`LIKE` 前缀转义、`limit / offset` 夹取。端点：`GET ledger`（分页 + `direction / verify_status`（逗号多选）`/ diff_status / file_name` 前缀 `/ location / msg_id / since / until`，每行带 `changes_count`）、`ledger/rows/{id}`（+ `kinds` 四计数）、`ledger/rows/{id}/changes`（`kind / refno` 前缀 / 分页 ≤ 2000）、`ledger/summary`（方向 × 状态计数、总量、`problems_total` + 最近 5 条问题行、水位数、最近一次广播 / 接收）、`ledger/watermarks`。
+- 错误形状 `{success:false, status:"invalid_param" | "not_found" | "query_failed", message}`——**不会**是 `not_implemented`，前端 `isLedgerUnavailable` 照旧只认那个值。`remote_sync_route` 把 **GET** 的 query string 合进 payload（POST / PUT 不合，免得混进落盘的 env）。§7 第 7 条已做：`relay::start` 成功后预建三张表。
+- 与方案 §3.1 表的具体出入列在方案 §8（P1 写 API 层以它为准）。
+- 验证：`cargo test --lib relay::` **28/28**；有尽头双实例验收 **42/42**——site-a 真台账（16 行 / 324 变更 / 1 水位）5 个端点逐项与 `sqlite3` 一致、读前读后库文件 SHA256 一致；临时站点库不存在 → `ledger_not_initialized` 且读侧不建文件，激活后表即建出。本仓 24 项双站点 smoke 未跑（没改收发路径）。
+
 ## 2026-09-16
 
 ### Fixed · `plant-web-server` 的 activate 现在真的把 env 应用到中继（跨仓，记在这里备查）

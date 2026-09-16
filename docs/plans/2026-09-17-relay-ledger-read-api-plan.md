@@ -1,6 +1,7 @@
 # 中继台账读侧 API + 监控台「变更清单」开发方案（2026-09-17）
 
-> 状态：**待批准**（草案由 fable-5-1-28 于 2026-09-17 00:20 写出；§7 的默认项不同意就点名改哪条）
+> 状态：**已批准（2026-09-17 00:17，§7 八条默认全部接受）· P0 后端读侧已实施（pws `b61b7ca`，见 §8）· P1 前端 / P2 用例待做**
+> （草案由 fable-5-1-28 于 2026-09-17 00:20 写出；P0 由 fable-5-1-36 于同日 06:46 落地）
 > 范围：`plant-web-server`（站点后端，读侧 API）+ `plant-collab-monitor`（新视图 + API 模块 + 用例）；`plant-model-gen` **不做**（待废弃）
 > 目标读者：接手这项改造的工程师
 > 上游：`docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md` §2 目标 3 与 §7 第 4 条——「P1 只建表不给 API，读侧 API 与 L3 一起下一期」；本方案就是那个「下一期」里不需要 licensed schema 的那一半
@@ -173,3 +174,56 @@ export function isLedgerUnavailable(err | res): boolean
 6. 不加服务端鉴权，沿用 pws 现状（前端 admin 路由门）。
 7. `relay::start` 成功后 `ensure_schema` 一次（让激活过的站点立刻有表）——**可选**，不想动激活路径就去掉。
 8. Dashboard 不动。
+
+---
+
+## 8. 执行记录
+
+### P0 后端读侧 · 已完成（2026-09-17 06:46，pws `b61b7ca`，已推）
+
+按 §3.1 落地，`plant-web-server` 6 文件 +1514 / −17：新模块 `src/relay/ledger_query.rs`（1334 行，含 9 个单测），
+`standalone_runtime.rs`（5 条路由 + `remote_sync_route` 合并 query string），`standalone_services.rs`（5 个分派分支 +
+`ledger_query` 公共路径），`relay/mod.rs`（`start` 成功后 `ledger::ensure_schema_now()`），`relay/ledger.rs`
+（`open_rw` / `ensure_schema_blocking` / `ensure_schema_now`；`insert_row` 改 `pub(crate)` 供读侧单测用真写侧写样本），
+pws `README.md` 加「台账读侧」小节。
+
+**与 §3.1 表相比的几处具体化 / 小出入**（P1 写 `relayLedgerApi.ts` 时以这里为准）：
+
+| 项 | 方案写的 | 实际 | 为什么 |
+|---|---|---|---|
+| `verify_status` | 单值 | **逗号多选**（`verify_status=ok,skipped`，JSON 数组也认），逐项白名单、去重 | §3.2 前端筛选栏本来就是「校验状态（多选）」，不然前端得发 N 次 |
+| 空结果的标记 | `note: "ledger_not_initialized"` | 同；**`note` 字段只在库不存在 / 表不全时出现**，表在就没有这个键 | 前端用 `'note' in res` 或 `res.note === 'ledger_not_initialized'` 判 |
+| 错误形状 | `success:false, message:"invalid <param>"` | `{success:false, status:"invalid_param" \| "not_found" \| "query_failed", message, mode}` | 多一个 `status` 让前端分流；**不会**是 `not_implemented`，`isLedgerUnavailable` 照旧只认那个值 |
+| `summary` | 表里列的字段 | 多 **`problems_total`**（校验状态 ∉ {ok, skipped} 的行数）与 **`since`**（生效的归一值）；`since` 只圈 `by_direction_status / rows_total / changes_total / problems_*`，**`last_*_at` / `watermarks_total` 不受限**（它们是「当前状态」） | 头部 chip「问题行数」直接拿总数；「最近一次广播 · 接收」不该因为时间窗为空而消失 |
+| `changes` | `{items, total, limit, offset}` | 多 **`ledger_id`** 回显；行不存在 → `not_found`，行存在但没清单（inbound）→ `total: 0` 空列表 | 抽屉里分清「没这行」与「这行没清单」 |
+| `since / until` | RFC3339 | RFC3339（任意时区，归一成 UTC 再比）**或 `YYYY-MM-DD`（UTC 零点）**；闭区间 | 手敲 / 脚本方便 |
+| query string 合并 | `remote_sync_route` 合进 payload | **只对 GET 合**；POST / PUT 仍只取 body | `create_env` / `update_env` 把整个 payload 合进落盘对象，URL 上偶然带的参数不能混进 env |
+| §7 第 7 条 | 可选 | 已做：`relay::start` 成功后 `ledger::ensure_schema_now()`，失败只 warn | 实测激活后立刻 `GET ledger` → `total: 0` 且无 `note` |
+| `limit / offset` | 越界夹到范围 | 同；**非数字**（`limit=abc`）→ `invalid_param` 而不是静默用默认 | 契约清楚、可测 |
+| 排序 | `created_at DESC` | `created_at DESC, rowid DESC` | 同一毫秒写入的多文件行分页稳定 |
+
+**验证**（都是本轮实跑）：
+
+- `cargo test --lib relay::` **28/28**（原 19 + 新 9）；`cargo build --bin plant-web-server` 通过，本仓新增警告 0；
+  `D:\Rust\target\debug\plant-web-server.exe` 06:46 重编。
+- 有尽头的双实例验收 **42/42**（临时脚本，跑完停进程、删临时文件、两站端口空闲）：
+  - **site-a（`:4100`，真台账 16 行 / 324 变更 / 1 水位）**：`GET ledger` total 16 = sqlite3、首行 = `created_at` 最新那行；
+    `limit=1&offset=15` 拿到最早一行；`direction=outbound` 15、`direction=inbound&verify_status=skipped,ok` 1、
+    `file_name=scb` 16、`msg_id=…` 1、`since=<第 3 新行的 created_at>` 3 —— 全部与 sqlite3 一致；`rows/{id}`（变更最多那行，84 条）
+    `changes_count=84`、`kinds.inserted=79 / modified=5`、四计数之和 = 84；`changes?limit=1` total 84 且首条 = sqlite3 `ORDER BY refno` 首条、
+    `kind=modified` 5、`refno=14192` 前缀 1；`summary` rows 16 / changes 324 / wm 1 / problems 0 / `last_outbound_at` = `MAX(created_at)`、
+    `by_direction_status` = `inbound/skipped=1, outbound/ok=15`；`watermarks` total 1、dbnum 6000。
+    错误：`verify_status=bogus`、`limit=abc`、`since=yesterday` → `invalid_param`；不存在的 id（rows 与 changes）→ `not_found`；
+    `limit=9999` → 500、清单 `limit=5000` → 2000。回归：`GET envs`、`GET runtime/status?foo=bar`、`GET logs` 照常。
+    **site-a 库文件读前读后 SHA256 一致**（读侧无副作用）。
+  - **临时站点（`:4102`，toml 的 `deployment_sites_sqlite_path` 指向不存在的文件）**：`ledger` / `summary` / `watermarks` 空结果 +
+    `note: ledger_not_initialized`，`rows/x` → `not_found`，**库文件没有被读侧创建**；建 env → `activate` 成功（`relay: true`，日志
+    「[sync-ledger] 台账表就绪」）→ `GET ledger` `total: 0` 且**无 `note`**、库文件已建、`watermarks` 拿到中继基线 1 行（dbnum 6000，
+    日志「首次见到，只记水位不广播」）→ `runtime/stop`。
+- 副作用说明：临时站点那次激活对着 site-a 的工程副本跑了一轮中继基线（不广播），顺带重扫了
+  `runtime/local-collab/site-a/output/…/db_index.sqlite`（缓存索引，内容与 site-a 自己扫的一致）；site-a 的 `DbOption.toml` 未动
+  （env 上没有连接参数）。
+- **未跑**：本仓 24 项双站点 smoke（本轮没改站点收发路径，只加了读端点）；`npm run type-check` / `build`（本轮没改前端）。
+
+**P1 起手**：按上表的实际形状写 `src/api/relayLedgerApi.ts`；`isLedgerUnavailable` 只认 404（pmg）与 `status === 'not_implemented'`
+（pws 老版本）；空态判 `res.note === 'ledger_not_initialized'`。
