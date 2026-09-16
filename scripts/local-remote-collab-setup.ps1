@@ -9,8 +9,6 @@ param(
   [string]$MqttHost = "127.0.0.1",
   [int]$MqttPort = 1883,
   [string]$ExePath = "",
-  [ValidateSet("pws", "pmg")]
-  [string]$Backend = "pws",
   [string]$MosquittoDir = "",
   [string]$AdminUser = "admin",
   [string]$AdminPass = "admin",
@@ -70,21 +68,14 @@ if (-not (Test-Path (Join-Path $BackendRoot $Template))) {
 $runtimeAbs = Join-Path $BackendRoot $RuntimeDir
 $runtimeRel = $RuntimeDir.TrimEnd('/', '\').Replace('\', '/')
 
-if ($Backend -ne "pws" -and $Backend -ne "pmg") {
-  Write-Error "-Backend 只能是 pws（plant-web-server，默认）或 pmg（plant-model-gen 的 web_server）。"
-  exit 2
-}
-$backendIsPws = ($Backend -eq "pws")
+# 站点后端是 ../plant-web-server（中继实现 2026-09-16 从 plant-model-gen 搬到那儿，
+# 这边已经没有中继了）。
+$pwsRoot = Join-Path (Split-Path -Parent $BackendRoot) "plant-web-server"
 if ([string]::IsNullOrWhiteSpace($ExePath)) {
   $targetDir = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { "D:\Rust\target" }
-  $ExePath = Join-Path $targetDir $(if ($backendIsPws) { "debug\plant-web-server.exe" } else { "debug\web_server.exe" })
+  $ExePath = Join-Path $targetDir "debug\plant-web-server.exe"
 }
-$backendLabel = if ($backendIsPws) { "plant-web-server" } else { "plant-model-gen/web_server" }
-$backendBuildFix = if ($backendIsPws) {
-  "cd $(Split-Path -Parent $BackendRoot)\plant-web-server; cargo build --bin plant-web-server"
-} else {
-  "cd $BackendRoot; cargo build --bin web_server --features web_server,relay-sync"
-}
+$backendBuildFix = "cd $pwsRoot; cargo build --bin plant-web-server"
 
 # ---------------------------------------------------------------------------
 # 工具探测
@@ -106,9 +97,9 @@ $mosquittoPubExe = Find-Executable "mosquitto_pub" $mosquittoDirs
 $pythonExe = Find-Executable "python" @()
 $sqliteExe = Find-Executable "sqlite3" @()
 
-# 中继模式不需要 surreal：构建 feature 是 web_server,relay-sync（带 e3d-io），不是 web_server,mqtt
+# 中继模式不需要 surreal。站点后端是 plant-web-server（中继 + e3d-io 都在那儿）。
 $prereqs = @(
-  [pscustomobject]@{ item = "站点后端 $backendLabel"; ok = (Test-Path $ExePath); detail = $ExePath; fix = $backendBuildFix },
+  [pscustomobject]@{ item = "站点后端 plant-web-server"; ok = (Test-Path $ExePath); detail = $ExePath; fix = $backendBuildFix },
   [pscustomobject]@{ item = "mosquitto（broker）"; ok = ($null -ne $mosquittoExe); detail = $mosquittoExe; fix = "winget install --id EclipseFoundation.Mosquitto -e   # 装到 C:\Program Files\mosquitto，不进 PATH" },
   [pscustomobject]@{ item = "mosquitto_pub（smoke LS-19 用）"; ok = ($null -ne $mosquittoPubExe); detail = $mosquittoPubExe; fix = "同上；smoke 用 -MosquittoDir 'C:\Program Files\mosquitto' 指定" },
   [pscustomobject]@{ item = "sqlite3 或 python（smoke LS-23/24 查两站台账）"; ok = ($null -ne $sqliteExe -or $null -ne $pythonExe); detail = $(if ($sqliteExe) { $sqliteExe } else { $pythonExe }); fix = "winget install --id SQLite.SQLite -e   # 或装 python；smoke 用 -SqliteExe 指定" },
@@ -332,8 +323,7 @@ foreach ($site in $sites) {
   Copy-SiteProjects $site
   Write-GeneratedFile (Join-Path $siteAbs "DbOption.toml") (New-SiteConfigText $site) "config"
 
-  $start = if ($backendIsPws) {
-    @"
+  $start = @"
 # $($site.label) · plant-web-server 启动器（由 plant-collab-monitor/scripts/local-remote-collab-setup.ps1 生成）
 # 中继模式（sync_relay_mode = true）：不需要 SurrealDB。长驻进程：在你自己的终端里运行，Ctrl+C 结束。
 # --repo-root 让进程 chdir 到 plant-model-gen：配置里全是相对路径，两站也共用它下面的
@@ -352,30 +342,10 @@ if (Test-Path `$exe) {
   & `$exe --repo-root '$backendRootPs' --config '$configRel'
 } else {
   Write-Host "[$($site.key)] 未找到 `$exe，改用 cargo run（首次编译很慢）"
-  Set-Location '$(Join-Path (Split-Path -Parent $BackendRoot) "plant-web-server")'
+  Set-Location '$pwsRoot'
   cargo run --bin plant-web-server -- --repo-root '$backendRootPs' --config '$configRel'
 }
 "@
-  } else {
-    @"
-# $($site.label) · web_server 启动器（由 plant-collab-monitor/scripts/local-remote-collab-setup.ps1 生成）
-# 中继模式（sync_relay_mode = true）：不需要 SurrealDB。长驻进程：在你自己的终端里运行，Ctrl+C 结束。
-# cwd 必须是 plant-model-gen（配置里全是相对路径；两站共用 cwd 下的 assets/archives 作 CBA 目录）。
-`$ErrorActionPreference = 'Stop'
-Set-Location '$backendRootPs'
-`$env:ADMIN_USER = '$AdminUser'
-`$env:ADMIN_PASS = '$AdminPass'
-`$env:WEB_SERVER_PORT = '$($site.port)'
-`$exe = '$exePs'
-Write-Host "[$($site.key)] :$($site.port) · location $($site.location) · config $configRel.toml · relay（无 SurrealDB）"
-if (Test-Path `$exe) {
-  & `$exe --config '$configRel'
-} else {
-  Write-Host "[$($site.key)] 未找到 `$exe，改用 cargo run（首次编译很慢）"
-  cargo run --bin web_server --features web_server,relay-sync -- --config '$configRel'
-}
-"@
-  }
   Write-GeneratedFile (Join-Path $siteAbs "start.ps1") $start "launcher"
 
   # 文件服务 fixture：/files/output → <site>/output

@@ -52,7 +52,7 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -
 |---|---|
 | `site-a/DbOption.toml` · `site-b/DbOption.toml` | 隔离配置（python `tomllib` 校验通过），**两站都是 `sync_relay_mode = true`** |
 | `site-x/project/<工程>/` | 工程副本：模板 `project_path` 下的 `-IncludedProjects`（默认 `["SCB"]`，19 个文件 · 3 MB）各复制一份，跳过 `cbas/`；两站各读各的，B 收到广播后 clone 写的是自己那份。`-Force` 重新复制；`-ShareProjectPath` 改为两站直接读真实工程（B 的 clone 就会写到真实工程里，慎用） |
-| `site-a/start.ps1` · `site-b/start.ps1` | 站点启动器：设 `ADMIN_USER/ADMIN_PASS/WEB_SERVER_PORT`，cwd 切到 plant-model-gen，跑 `D:\Rust\target\debug\web_server.exe --config runtime/local-collab/site-x/DbOption`（缺 exe 回落 `cargo run --features web_server,relay-sync`） |
+| `site-a/start.ps1` · `site-b/start.ps1` | 站点启动器：设 `ADMIN_USER/ADMIN_PASS/WEB_SERVER_PORT`，cwd 切到 plant-model-gen，跑 `D:\Rust\target\debug\plant-web-server.exe --repo-root <plant-model-gen> --config runtime/local-collab/site-x/DbOption`，并设每站一个的 `PLANT_WEB_RUNTIME_DIR`（缺 exe 回落 `cargo run --bin plant-web-server`） |
 | `site-x/output/index.html` · `site-x/output/metadata.json` | 文件服务 fixture：`/files/output` 映射到 `output_root`，让 `sites/{id}/test-http`（取 `<http_host>/metadata.json`）探得到 |
 | `../plant-model-gen/assets/archives/index.html` | CBA 目录 fixture：`env.file_server_host` 指向 `<site>/assets/archives`，`envs/{id}/test-http` 对它 GET 要 2xx；ServeDir 对目录请求回这个 index.html |
 | `mosquitto.conf` · `start-mosquitto.ps1` | `listener 1883 127.0.0.1` + `allow_anonymous true` |
@@ -87,7 +87,7 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -
 
 ```powershell
 winget install --id EclipseFoundation.Mosquitto -e      # → C:\Program Files\mosquitto（不进 PATH）
-cd D:\work\plant-code\plant-model-gen; cargo build --bin web_server --features web_server,relay-sync   # 中继模式带 e3d-io；已编：D:\Rust\target\debug\web_server.exe
+cd D:\work\plant-code\plant-web-server; cargo build --bin plant-web-server   # 站点后端（中继 + e3d-io 都在这儿）；已编：D:\Rust\target\debug\plant-web-server.exe
 ```
 
 不再需要 `surreal`。`sqlite3.exe`（或 `python`）供 smoke 的 LS-23/24 查两站台账，本机已有。
