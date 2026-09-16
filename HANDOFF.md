@@ -30,8 +30,9 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 0bb00ca docs(tutorial): 真浏览器 + 真后端跑出《异地部署操作教程 · 实操版》，并补齐 L3 完整闭环（9/9）（2026-09-16）
-                 ↑ 此前一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
+上一次推送: 2026-09-16 晚 · docs(plan): SQLite-only 中继方案补「后记」——实现已搬进 plant-web-server、plant-model-gen 那份已删
+                 ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
+                 ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
 本地与 origin/main: 一致，工作树无本仓待提交改动
 type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
 
@@ -51,7 +52,7 @@ type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
 
 ## 启动验证（前置说明）
 
-后端 `plant-model-gen` **2026-09-16 起是 git 仓了**（本地仓，898 个文件、3 条提交，**没有配 remote、没有推送**——要不要建远端由你定）。此前它一直不在版本管理里，中继模式那批改动只有 `runtime/backup-2026-09-15/` 兜底；现在 `git log` 里第 2 条就是那批改动的完整 diff，第 3 条是 `db_index` 的 `spawn_blocking`。`cargo` 的 target 在 `D:\Rust\target`（`CARGO_TARGET_DIR`），2026-09-14 已编出 `D:\Rust\target\debug\web_server.exe`（`web_server,mqtt`，142 MB）。`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
+后端 `plant-model-gen` **2026-09-16 起是 git 仓了**（本地仓，6 条提交，**没有配 remote、没有推送**——故意不建远端，见「仍欠」第 5 条）。此前它一直不在版本管理里，中继模式那批改动只有 `runtime/backup-2026-09-15/` 兜底；现在 `git log` 里第 2 条就是那批改动的完整 diff，第 3 条是 `db_index` 的 `spawn_blocking`，最后一条 `ac46e70` 又把这边的中继实现删掉了（搬去 `plant-web-server`）。`cargo` 的 target 在 `D:\Rust\target`（`CARGO_TARGET_DIR`），2026-09-14 已编出 `D:\Rust\target\debug\web_server.exe`（`web_server,mqtt`，142 MB）。`Cargo.toml` 的 `[patch]` 依赖同级目录 `../rs-core`、`../pdms-io-fork`（缺则 `git clone --depth 1 --branch dev-3.1 https://github.com/happyrust/pdms-io.git ../pdms-io-fork`）。
 
 ```powershell
 # 1. 编译后端（必须带 mqtt，否则 activate 的 MQTT 订阅分支为空）

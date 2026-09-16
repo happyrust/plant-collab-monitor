@@ -1,9 +1,19 @@
 # 异地协同部署「只依赖 SQLite」开发方案 v2 · e3d-io 接入版（2026-09-15）
 
-> 状态：**v2 已批准**（2026-09-15 Plannotator `decision: approved`，无批注；v1 同日早前批准，已被本版替代）
-> 范围：`plant-model-gen` 后端 + `e3d-io` 落位（跨仓，后端不是 git 仓，方案文档放在 monitor 仓版本化）
+> 状态：**v2 已批准并已全部实施**（2026-09-15 Plannotator `decision: approved`，无批注；v1 同日早前批准，已被本版替代。P0–P4 同日落地，双站点 smoke 24/24，各阶段「执行记录」在正文）
+> **2026-09-16 起现行实现在 `plant-web-server/src/relay/`，`plant-model-gen` 侧的中继代码已删**——正文里凡是 `plant-model-gen` 的文件路径 / feature / 开关，描述的都是第一版落地位置，读之前先看下面的「后记」。
+> 范围：`plant-model-gen` 后端 + `e3d-io` 落位（跨仓；写方案时后端还不是 git 仓，方案文档因此放在 monitor 仓版本化——2026-09-16 起两个后端都已入 git，见后记）
 > 目标读者：接手这项改造的工程师
 > 依据：2026-09-15 对 `plant-model-gen` / `rs-core` / `pdms-io-fork` / `e3d-io` 源码的只读排查，所有结论都带 `文件:行号` 证据
+
+### 后记（2026-09-16）：实现搬到了 `plant-web-server`，`plant-model-gen` 那份已删
+
+- **为什么搬**：`sync_relay_mode` 只接在三个会致命的点上（`activate` 的 `ensure_surreal_init`、`watch_incremental` 分叉、`surreal` 自启动），`web_server` 自己的启动序列压根不看它，仍无条件按 `[surrealdb]` 连、重试约 15 s、再报「review 专用数据库初始化失败」（smoke 报告 §3.4 的观察）。根子是中继跟模型库 / 校审挤在同一个二进制里，补丁堵不完，于是把中继整体搬出来。
+- **搬到哪**：`plant-web-server/src/relay/{ledger, db_index, mqtt_msg, file_sync, watch}.rs`（约 2800 行，pws 提交 `1959a70`；`478bced` 把 MQTT 订阅改成跟着进程走 + clean session，修掉「重新激活后 `Unsolicited pubrel`、再也收不到消息」——`plant-model-gen` 那份同样有这个缺陷，只是此前每个进程只激活一次碰不到）。代码按原样搬，只改了模块路径与两处与模型库耦合的取值口径（`output_root`、`sync_relay_mode` 直接从 `DB_OPTION_FILE` 的 toml 读）。`plant-web-server/Cargo.toml` 直接 path 依赖 `../e3d-io`（不再有 feature 门控），P0 clone 出来的同级 `D:\work\plant-code\e3d-io` 继续用。`activate` 真起中继运行态（起不来整条失败），`apply` 只落账，`runtime/status` 给 `active / env_id / relay / mqtt_connected`，`runtime/stop` 先停中继；多站必备的 `PLANT_WEB_RUNTIME_DIR` 与 `/assets/archives` 静态路由也是这一步补的。
+- **`plant-model-gen` 删了什么**（pmg 提交 `ac46e70`）：`src/version_management/relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关（`options.rs` / `bin/web_server.rs` / `remote_runtime.rs` 三处一并回退）。`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」，`runtime/status` 的 `relay` 恒为 `false`（字段保留，监控台按它区分两类站点）。**留着的**：`data_interface/sync_ledger.rs`、`mqtt_file_sync.rs` 的收包校验、`SyncE3dFileMsg.file_sesnos`——完整站点仍要收发 MQTT 源文件并记这本账，线格式必须与 `plant-web-server` 兼容；没有 e3d-io 的构建里收包端只比 hash、sesno 一项记 `skipped`。`cargo check --bin web_server --features web_server,mqtt` 通过。
+- **所以正文怎么读**：§2 非目标「不动 `plant-web-server`」已被推翻；P0 的依赖位置、P2 的开关位置与 `remote_runtime.rs` 改造、P3 的 `relay_sync.rs` 路径，都是 `plant-model-gen` 上的第一版落地。**设计本身（台账三张表、SQLite 水位 + 一拍去抖、`AtOrBefore` diff、逐文件广播、§7 九条默认）原样成立，现行代码以 `plant-web-server/src/relay/` 为准**——该模块 `mod.rs` 头部也回指本文。
+- **验证与仓状态**：双站点 smoke 换到 pws 后端后在**同一对进程里连跑三次 24/24**（monitor 提交 `cabebd6`，结果 `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`，报告 §3.5）；`scripts/local-remote-collab-setup.ps1` 默认起 `plant-web-server.exe`。两个后端 2026-09-16 起都是 git 仓：`plant-web-server` 已推 https://github.com/happyrust/plant-web-server（私有）；`plant-model-gen` 本地仓 6 条提交、**故意不建远端**（待废弃）。细节见 monitor `CHANGELOG.md` 2026-09-16 节与 `HANDOFF.md`。
+- **仍开着的口子**（既有问题，本方案与搬家都没处理）：P3 记录「顺带发现 2」——`activate` 只改写 toml、不重载进程内配置——在 pws 里依旧：`watch.rs` 每轮重读 `DB_OPTION_FILE`，但 MQTT 客户端的 `mqtt_host` / `mqtt_port`（`mqtt_msg.rs` `new_mqtt_inst_with` 取 `get_db_option()`）与消息里的 `location`（`mqtt_msg.rs` `SyncE3dFileMsg::new`、`file_sync.rs` 订阅循环）仍是进程启动时那份快照；先写好 toml 再起进程就不会碰到。另：`hash_mismatch` 只告警不回滚（§7 第 9 条）。
 
 ---
 
@@ -359,6 +369,9 @@ CREATE TABLE IF NOT EXISTS relay_sync_watermark (
   - **未验证**：消息真正到达对端（rumqttc 在 broker 不在时把 publish 排队、重连后再发，`publish_source_files` 返回 Ok——所以台账里 `outbound / ok` 的语义是「已交给 MQTT 客户端」，不是「对端已收到」，与今天完整站点一致）；两个中继站点的完整验收（P4）。
 - 顺带发现（都不阻塞，P4 时留意）：
   1. **首轮 `db_index` 全量扫描很慢**：整套 `E3D2.1` 样例（4 个工程、约 530 个 db 文件、约 2 GB，`ams7351_0001` 一个就 1.2 GB）跑了 10 分钟还没扫完 `AvevaMarineSample`；这是 `rebuild_from_config` 的既有成本（完整站点的 `watch_incremental` 首轮一样），而且它是 `async fn` 里的同步阶段，**会占住一个 tokio worker 线程**。P4 的双站点环境要么用小工程，要么 `included_projects` 收窄；长期看该把扫描挪进 `spawn_blocking`（既有设计，不在本期）。
+     **已做（2026-09-16 00:15，P4 之后的后续项）**：`db_index::rebuild_from_config` 整体改为 `spawn_blocking` 跑同步实现 `rebuild_from_config_blocking`；Phase 2 的 `collect_design_outbound*` 虽是 `async fn`，函数体是 std 文件读 + 纯 CPU 解析（`parse_pdms_db::parse_file` 没有真正的挂起点），在阻塞线程上用 `Handle::block_on` 驱动。调用方（`relay_sync` / `watch_incremental` / `increment_run` / `cata_closure` / CLI）签名不变、一行不动，完整站点同样受益。备份 `runtime/backup-2026-09-15/src/data_interface/db_index.rs`。
+     验证：临时探针（单 worker 运行时 + 10 ms 心跳任务 + `tokio::spawn(rebuild_from_config(true))`，验完已删）——改前 SCB（7 库，0.65 s）/ ZDJ（46 库，15.5 s）扫描期间心跳 **0 次**（worker 被占满整轮，不只 Phase 1）；改后 SCB 40–43 次、ZDJ 942–1088 次，最大间隔 19–29 ms（与空载一致）。`cargo build --features web_server,relay-sync`（126 s，exe 150 111 232 B）与 `cargo check --features web_server,mqtt`（189 s）通过，本仓新增警告 0；`relay_sync` / `sync_ledger` 单测 8/8。新 exe 起两站（无 SurrealDB，Mosquitto 服务）**连跑两次 smoke 24/24**（各 7 s）：LS-23 A `outbound/ok 32→33 (+10 -0 ~2) 12 条变更`，LS-24 B 同一 `msg_id` 的 `inbound/ok sesno_seen=33`，B 副本 SHA256 与 A 一致。结果 JSON 写在 %TEMP%，未覆盖仓内两份。
+     顺带：`db_index::tests::test_store_roundtrip` 在改动前后都失败（`UNIQUE constraint failed: ref0_owner.ref0`——schema 有 `unique_ref0_owner_ref0 ON ref0_owner(ref0)`，而 `replace_ref0_owners` 用裸 `INSERT`，用例却传了重复的 ref0 `[…, 100, 100]`），与本项无关、未动。
   2. `activate` 只改写 toml、不调 `aios_core::set_db_option_from_file()`：发布 / 订阅客户端的 `mqtt_host` 与消息里的 `location` 用的是进程启动时那份配置。P4 的生成器先写好 toml 再起进程就不会碰到；但 UI 里改了 env 再 activate 是不会生效的（既有问题）。
 
 ### P4 · 双站点环境改造 + smoke 跑通（≈ 0.5 天）
