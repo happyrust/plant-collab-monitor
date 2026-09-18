@@ -1,12 +1,23 @@
-// 异地部署操作教程 · 真浏览器 + 真后端自动生成（截图 + Markdown）
+// 异地部署操作教程 · 真浏览器 + 真后端自动生成（截图 + Markdown）—— plant-web-server 中继站点版
 //
 // 与 scripts/topology-deploy-tutorial.mjs 的区别只有一个，但很关键：那一份用 mock 喂页面，
 // 这一份**真的在浏览器里把操作做一遍**——登录、从 DbOption 导入、新建环境、测 MQTT / 测文件服务、
-// 激活（真写后端 DbOption.toml 并重启 watcher + MQTT）、应用、站点探测与编辑、停止运行时，
-// 每一步的截图都是真实后端的真实响应。跑完自动收尾：删掉本次新建的 env / 站点，用开跑前那份
-// 「从 DbOption 导入」的快照把配置 apply 回去，再 stop，env 集合与激活态恢复原样。
+// 激活（真把连接参数写进本站 DbOption.toml 并起中继运行态）、应用、站点探测与编辑、停止运行时，
+// 每一步的截图都是真实后端的真实响应。
 //
-// ⚠ 因此**只对隔离环境跑**（本机 runtime/local-collab 的 Site A），别指向生产后端。
+// 后端语义按 plant-web-server（2026-09-16 起的站点后端，中继在它的 src/relay/）写：
+//   · 环境（env）= 本站怎么接入协同：共用 broker（mqtt_host / mqtt_port）+ 本站身份（location / location_dbs /
+//     file_server_host——对端来这里下载本站广播的 CBA）。
+//   · 激活 = 把这五个键写进本站 DbOption.toml（env 上没有的键不动）→ 起 / 重建中继运行态（MQTT 订阅 + 源文件轮询）。
+//   · 应用 = 只落账（标为当前环境 + 记一条 apply 任务），不写文件、不动运行态。
+//   · 从 DbOption 导入 = 按本站 id 生成 / 覆盖一张「本站登记卡」（工程 / 端口 / 配置文件路径），**不带**连接参数。
+//   · 停止运行时 = 停中继（runtime.active → false），配置文件不回滚，账面上的「当前环境」标记也不动。
+//
+// 收尾（无论中途成败都做）：删掉本次新建的 env / 站点；若本轮的激活真改写了 DbOption.toml，就用开跑前
+// `GET /api/site/info` 记下的五个键建一张临时「恢复卡」激活写回，再激活一次确认 changed=false（文件已与原值一致）；
+// 运行态与账面「当前环境」标记恢复成开跑前的样子；临时卡删掉。
+//
+// ⚠ 因此**只对隔离环境跑**（本机 ../plant-web-server/runtime/local-collab 的 Site A），别指向生产后端。
 //
 // 产物：
 //   docs/tutorials/screenshots/topology-deploy-live/*.png    截图（入库）
@@ -19,8 +30,8 @@
 //   node scripts/topology-deploy-live-tutorial.mjs --build           # 强制先 vite build
 //
 // 参数 / 环境变量：
-//   --api   SMOKE_API_TARGET   目标后端（默认 http://127.0.0.1:4100）
-//   --peer                     演示环境里填的“对端”地址（默认 http://127.0.0.1:4101，即 Site B）
+//   --api   SMOKE_API_TARGET   目标后端（默认 http://127.0.0.1:4100，即 Site A）
+//   --peer                     教程里扮演「对端站点」的地址（默认 http://127.0.0.1:4101，即 Site B）
 //   --user  SMOKE_ADMIN_USER   默认 admin      --pass SMOKE_ADMIN_PASS 默认 admin
 //   --port  SMOKE_PREVIEW_PORT vite preview 端口（默认 4179，避开 live smoke 的 4178）
 //   SMOKE_BROWSER_EXECUTABLE   Chrome 路径
@@ -48,12 +59,13 @@ const executablePath =
   process.env.SMOKE_BROWSER_EXECUTABLE ??
   (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' : undefined);
 
-const DEMO_ENV = '演示环境-上海分部';
-const PEER_URL = new URL(PEER);
-/** 对端的 CBA / 文件服务根：test-http 会对它发 GET，本机 Site B 上这个路径有 index.html */
-const PEER_FILE_SERVER = `${PEER}/assets/archives`;
-/** 对端站点的 HTTP 服务地址：站点探测会对它拼 /metadata.json */
+const DEMO_ENV = '演示环境-总部中继';
+const RESTORE_ENV = '教程收尾-恢复本站配置（临时）';
+/** 教程里多标一个自有库，让「激活会真的改写 DbOption.toml」看得见；收尾写回原值 */
+const EXTRA_DBNUM = 6001;
+/** 对端站点的 HTTP 服务地址：站点探测会对它拼 /metadata.json，本机 Site B 的 output/ 下有这个 fixture */
 const PEER_SITE_HOST = `${PEER}/files/output`;
+const CONNECTION_KEYS = ['mqtt_host', 'mqtt_port', 'file_server_host', 'location', 'location_dbs'];
 
 function parseArgs(argv) {
   const out = {};
@@ -86,12 +98,27 @@ async function api(method, p, body) {
     return { status: r.status, body: null, text: text.slice(0, 200) };
   }
 }
-const isPmgRuntime = (rt) => Boolean(rt) && typeof rt.active === 'boolean';
-function activeEnvIdOf(rt, envs) {
-  if (isPmgRuntime(rt)) return rt.active && rt.env_id ? String(rt.env_id) : null;
+/** plant-web-server ≥ 2026-09-16：runtime/status 带中继运行态 active / env_id / relay / mqtt_connected */
+const hasRelayRuntime = (rt) => Boolean(rt) && typeof rt.active === 'boolean' && typeof rt.relay === 'boolean';
+/** 运行态上正在跑的 env（没跑 = null） */
+const runtimeEnvIdOf = (rt) => (hasRelayRuntime(rt) && rt.active && rt.env_id ? String(rt.env_id) : null);
+/** 账面上标为「当前环境」的 env（envs[].active，apply / activate 都会改它，stop 不改） */
+const ledgerEnvIdOf = (envs) => {
   const flagged = envs?.active?.id ?? (envs?.items ?? []).find((e) => e.active === true)?.id ?? null;
   return flagged ? String(flagged) : null;
-}
+};
+const dbList = (value) => {
+  if (Array.isArray(value)) return value.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  if (typeof value === 'string') return value.split(/[\s,，]+/).map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  return [];
+};
+const pickConnection = (obj) => ({
+  mqtt_host: obj?.mqtt_host ?? null,
+  mqtt_port: obj?.mqtt_port !== undefined && obj?.mqtt_port !== null ? Number(obj.mqtt_port) : null,
+  file_server_host: obj?.file_server_host ?? null,
+  location: obj?.location ?? null,
+  location_dbs: dbList(obj?.location_dbs),
+});
 
 // ---------------------------------------------------------------------------
 // 页面小工具
@@ -157,17 +184,23 @@ const facts = {
   api: API,
   peer: PEER,
   backend: null,
+  ownConfig: null,
+  demoConfig: null,
   steps: [],
   apiCalls: [],
   writes: [],
+  /** 页面发出的 activate 的响应里 runtime_config（path / keys / changed）——「激活真改了文件吗」的证据 */
+  activations: [],
   consoleErrors: [],
   pageErrors: [],
   demoEnvId: null,
   importedEnvId: null,
+  importedPreexisted: false,
   cleanup: null,
   ok: false,
 };
 const note = (name, data) => facts.steps.push({ name, at: new Date().toISOString(), ...data });
+const fmtDbs = (list) => (list.length ? list.join(', ') : '（空）');
 
 async function main() {
   await mkdir(shotDir, { recursive: true });
@@ -178,33 +211,55 @@ async function main() {
   const login = await api('POST', '/api/admin/auth/login', { username: USER, password: PASS });
   TOKEN = login.body?.data?.token ?? login.body?.token ?? null;
   if (!TOKEN) throw new Error(`后端 ${API} 登录失败：HTTP ${login.status} ${JSON.stringify(login.body)?.slice(0, 200)}`);
+  const identity = (await api('GET', '/api/site/identity')).body ?? {};
   const before = {
     envs: (await api('GET', '/api/remote-sync/envs')).body,
     runtime: (await api('GET', '/api/remote-sync/runtime/status')).body,
   };
-  before.activeEnvId = activeEnvIdOf(before.runtime, before.envs);
+  before.runtimeEnvId = runtimeEnvIdOf(before.runtime);
+  before.ledgerEnvId = ledgerEnvIdOf(before.envs);
   before.envIds = (before.envs?.items ?? []).map((e) => String(e.id));
-  const shape = isPmgRuntime(before.runtime) ? 'pmg' : 'pws';
-  if (shape !== 'pmg') throw new Error('本教程按 plant-model-gen（pmg）语义写，目标后端不是 pmg，先确认 --api 指向哪台');
+
+  // 只认 plant-web-server（detached 运行时 + 中继运行态）。旧 plant-model-gen 的 web_server 已经没有中继，
+  // 而且它的 apply 会写文件、import 会带连接参数——下面每一节的叙述和收尾复原都按 pws 的行为写，形状不对就别跑。
+  const isPws = identity?.mode === 'detached' || before.runtime?.mode === 'standalone-real';
+  if (!isPws || !hasRelayRuntime(before.runtime)) {
+    throw new Error(
+      `本教程按 plant-web-server（≥ 2026-09-16，runtime/status 带 active / relay）的语义写，${API} 不是：` +
+        `identity.mode=${identity?.mode ?? '?'} runtime=${JSON.stringify(before.runtime)?.slice(0, 160)}。确认 --api 指向哪台。`,
+    );
+  }
   const siteInfo = (await api('GET', '/api/site/info')).body ?? {};
+  facts.ownConfig = pickConnection(siteInfo?.data ?? siteInfo);
+  const missing = CONNECTION_KEYS.filter((k) => facts.ownConfig[k] === null || facts.ownConfig[k] === '' || (k === 'location_dbs' && !Array.isArray(facts.ownConfig[k])));
+  if (missing.length) {
+    throw new Error(`GET /api/site/info 缺 ${missing.join(' / ')}，收尾没法把 DbOption.toml 写回原值，不往下激活`);
+  }
   const siteConfig = (await api('GET', '/api/site-config')).body ?? {};
   facts.backend = {
-    shape,
+    shape: 'pws',
+    identity,
     health: health.body,
     envCountBefore: before.envIds.length,
-    activeEnvIdBefore: before.activeEnvId,
+    runtimeEnvIdBefore: before.runtimeEnvId,
+    ledgerEnvIdBefore: before.ledgerEnvId,
     runtimeBefore: before.runtime,
-    site: { info: siteInfo?.data ?? siteInfo, config: siteConfig?.data ?? siteConfig },
+    site: { info: siteInfo?.data ?? siteInfo, configFile: siteConfig?.config_file_location ?? null },
   };
+  // 演示环境 = 本站身份原样 + 多标一个自有库（让激活真的改写文件，收尾再写回去）
+  const demoDbs = [...facts.ownConfig.location_dbs];
+  if (!demoDbs.includes(EXTRA_DBNUM)) demoDbs.push(EXTRA_DBNUM);
+  facts.demoConfig = { ...facts.ownConfig, location_dbs: demoDbs };
 
   // 同名残留先清掉，免得卡片选择器撞上上一跑的遗留
   for (const e of before.envs?.items ?? []) {
-    if (e.name === DEMO_ENV) {
+    if (e.name === DEMO_ENV || e.name === RESTORE_ENV) {
       const sites = (await api('GET', `/api/remote-sync/envs/${e.id}/sites`)).body;
       for (const s of sites?.items ?? []) await api('DELETE', `/api/remote-sync/sites/${s.id}`);
       await api('DELETE', `/api/remote-sync/envs/${e.id}`);
-      note('cleanup-stale-demo-env', { id: String(e.id) });
+      note('cleanup-stale-demo-env', { id: String(e.id), name: e.name });
       before.envIds = before.envIds.filter((id) => id !== String(e.id));
+      if (before.ledgerEnvId === String(e.id)) before.ledgerEnvId = null;
     }
   }
 
@@ -237,11 +292,15 @@ async function main() {
     const u = new URL(r.url());
     if (u.pathname.startsWith('/api/')) facts.apiCalls.push(`${r.method()} ${u.pathname}`);
   });
-  page.on('response', (r) => {
+  page.on('response', async (r) => {
     const req = r.request();
     const u = new URL(req.url());
-    if (u.pathname.startsWith('/api/') && req.method() !== 'GET') {
-      facts.writes.push({ method: req.method(), path: u.pathname, status: r.status() });
+    if (!u.pathname.startsWith('/api/') || req.method() === 'GET') return;
+    facts.writes.push({ method: req.method(), path: u.pathname, status: r.status() });
+    const m = u.pathname.match(/^\/api\/remote-sync\/envs\/([^/]+)\/activate$/);
+    if (m) {
+      const body = await r.json().catch(() => null);
+      facts.activations.push({ envId: decodeURIComponent(m[1]), status: r.status(), relay: body?.relay ?? null, runtime_config: body?.runtime_config ?? null });
     }
   });
 
@@ -295,12 +354,15 @@ async function main() {
     const pillTitle = await pill.locator('span[title]').first().getAttribute('title');
     const envCards = await page.locator('.card', { has: page.getByRole('button', { name: '激活' }) }).count();
     note('first-screen', { pill: pillText, pillTitle, envCards });
+    const own = facts.ownConfig;
     const s2 = section({
       title: '读懂首屏：运行时 pill 与「已激活」徽标',
       intro:
-        '左边是**环境（Env）**列表，右边是选中环境下的**站点（Site）**。页头右侧那颗胶囊是**运行时 pill**，它每 30 秒读一次 `GET /api/remote-sync/runtime/status`，回答「后端此刻按哪个环境在跑」；鼠标停上去能看到 `env_id`、MQTT 连接状态这些细节。',
+        '左边是**环境（Env）**列表，右边是选中环境下的**站点（Site）**。页头右侧那颗胶囊是**运行时 pill**，它每 30 秒读一次 `GET /api/remote-sync/runtime/status`，回答「本站的中继运行态此刻按哪个环境在跑」；鼠标停上去能看到 `env_id`、MQTT 连接状态、`mode: standalone-real`（这就是 plant-web-server）。',
       after: [
-        `这一跑开始时后端的真实状态：pill 是「${pillText}」，环境卡片 ${envCards} 张，没有任何环境被激活——也就是 watcher 与 MQTT 订阅都没起。`,
+        `这一跑开始时后端的真实状态：pill 是「${pillText}」，环境卡片 ${envCards} 张，中继运行态${before.runtimeEnvId ? `正按 \`${before.runtimeEnvId}\` 在跑` : '**没有**在跑（`active: false`）——MQTT 订阅与源文件轮询都没起'}。`,
+        '',
+        `本站（Site A）自己的 \`DbOption.toml\` 里此刻是：broker \`${own.mqtt_host}:${own.mqtt_port}\`、location \`${own.location}\`、自有库 \`[${fmtDbs(own.location_dbs)}]\`、CBA 下载地址 \`${own.file_server_host}\`（\`GET /api/site/info\` 读到的）。记住这五个值——**激活写的就是这五个键**，本教程收尾也要拿它们把文件写回去。`,
         '',
         '- 每张卡片下方 4 个动作按钮：**测 MQTT / 测文件服务 / 应用 / 激活**，这就是「部署动作面」。',
         '- 有环境被激活时，它的卡片右上角会挂绿色「已激活」徽标，自己的「激活」按钮置灰（防重复激活），页头同时出现「停止运行时」。',
@@ -319,9 +381,9 @@ async function main() {
     // 3 从 DbOption 导入
     // =====================================================================
     const s3 = section({
-      title: '一键从 DbOption 导入环境（顺便给自己留一份退路）',
+      title: '「从 DbOption 导入」：给本站登记一张卡',
       intro:
-        '最省事的建环境方式：点环境列表右上角的「从 DbOption 导入」。后端会读**它自己进程**那份 `DbOption.toml`（`mqtt_host` / `mqtt_port` / `file_server_host` / `location` / `location_dbs`），反向生成一个环境。这一步**不改写配置、也不激活运行时**，只是把「当前配置」登记成一张卡片。',
+        '点环境列表右上角的「从 DbOption 导入」，后端会读**它自己进程**那份 `DbOption.toml`，按本站 id 生成一张「本站登记卡」（工程名 / 工程码 / 工程路径、绑定端口、配置文件路径），id 固定是 `dboption-<本站 site_id>`，**重复导入只是覆盖同一张**。这一步不改写配置、也不激活运行时。',
     });
     const importBtn = page.getByRole('button', { name: '从 DbOption 导入' });
     await importBtn.click();
@@ -338,24 +400,36 @@ async function main() {
     await importDlg.waitFor({ state: 'hidden', timeout: 10_000 });
     await page.waitForTimeout(1_500);
     const envsAfterImport = (await api('GET', '/api/remote-sync/envs')).body;
-    const imported = (envsAfterImport?.items ?? []).find((e) => !before.envIds.includes(String(e.id)));
-    if (!imported) throw new Error('「从 DbOption 导入」之后后端没有多出环境，停在这里——没有退路就不往下激活');
+    const imported =
+      (envsAfterImport?.items ?? []).find((e) => e.source === 'DbOption' || String(e.id).startsWith('dboption-')) ?? null;
+    if (!imported) throw new Error('「从 DbOption 导入」之后后端里找不到 source = DbOption / id = dboption-* 的环境');
     facts.importedEnvId = String(imported.id);
-    note('import-from-dboption', { id: facts.importedEnvId, envName: imported.name, mqtt: `${imported.mqtt_host ?? '?'}:${imported.mqtt_port ?? '?'}`, file_server_host: imported.file_server_host ?? null });
+    facts.importedPreexisted = before.envIds.includes(facts.importedEnvId);
+    const importedConn = pickConnection(imported);
+    const importedHasConn = CONNECTION_KEYS.some((k) => (k === 'location_dbs' ? importedConn[k].length > 0 : importedConn[k]));
+    note('import-from-dboption', {
+      id: facts.importedEnvId,
+      envName: imported.name,
+      preexisted: facts.importedPreexisted,
+      source: imported.source ?? null,
+      hasConnectionKeys: importedHasConn,
+      config: imported.config ?? null,
+    });
     const importedCard = card(imported.name);
     await importedCard.waitFor({ timeout: 10_000 });
+    const cfg = imported.config ?? {};
     s3.after = [
-      `这一跑导入出来的是「**${imported.name}**」：MQTT \`${imported.mqtt_host}:${imported.mqtt_port}\`、文件服务 \`${imported.file_server_host}\`——正是 Site A 自己 \`DbOption.toml\` 里的值。`,
+      `这一跑${facts.importedPreexisted ? '**覆盖**了已有的' : '生成了'}「**${imported.name}**」（id \`${facts.importedEnvId}\`）：工程 \`${cfg.project_name ?? '?'}\` / 工程码 \`${cfg.project_code ?? '?'}\`、绑定 \`${cfg.bind_host ?? '?'}:${cfg.web_port ?? '?'}\`、配置文件 \`${cfg.associated_project?.config_path ?? '?'}\`。`,
       '',
-      '> plant-model-gen **每点一次就新建一个**「导入环境 - 时间戳」，点两次就有两张；plant-web-server 则按本站 id 覆盖同一个。所以按钮前面有一道确认，别手滑连点。',
+      `卡片上写着「未配置文件服务 / 未配置 MQTT」——**不是坏了**：plant-web-server 的导入卡${importedHasConn ? '这一跑居然带了连接参数（后端版本可能变了，注意）' : '**不带** `mqtt_host / mqtt_port / file_server_host / location / location_dbs`'}，那五个键仍然只在 \`DbOption.toml\` 里。所以对着这张卡点「激活」= **按文件现状原样起中继、一个键都不改**（激活响应里 \`runtime_config.keys\` 会是空的）；它不是配置快照，退不回任何东西。`,
       '',
-      '**这一步还有一个实战价值**：它把「动手之前的配置」存成了一张卡片。后面激活别的环境把 `DbOption.toml` 改了，想退回来，对着这张卡点「应用」就行。本教程收尾用的就是它。',
+      '> 想给自己留退路，记的是第 2 节那五个值（或直接备份 `DbOption.toml`）——本教程收尾就是这么复原的，见附录 B。',
     ].join('\n');
     await shot(
       s3,
       '04-imported',
-      `导入完成：环境数变为 ${(envsAfterImport?.items ?? []).length}，新卡片「${imported.name}」出现并被选中`,
-      '导入成功：环境计数 +1，新卡片自动被选中（蓝色边框），右侧切到它的站点列表。',
+      `导入完成：卡片「${imported.name}」${facts.importedPreexisted ? '被覆盖更新' : '出现'}，显示未配置文件服务 / MQTT`,
+      `导入${facts.importedPreexisted ? '覆盖了同 id 的旧卡' : '成功：环境计数 +1'}，新卡自动被选中（蓝色边框），右侧切到它的站点列表。`,
       importedCard,
     );
     await hideToasts(page);
@@ -363,34 +437,35 @@ async function main() {
     // =====================================================================
     // 4 新建环境
     // =====================================================================
+    const demo = facts.demoConfig;
     const s4 = section({
-      title: '手填新建一个协同环境',
+      title: '手填新建一个协同环境（填的是本站身份 + 共用 broker）',
       intro:
-        '要接的是**别处**的站点（这里用本机的 Site B 扮演「上海分部」），就点「新建」手填。表单会用本站配置预填 MQTT / 文件服务地址，你把它改成对端的。保存后监控台会**自动把本站加为该环境的第一个站点**，右侧表格立刻能看到。',
+        '真正要跑中继，点「新建」手填。**填的是本站怎么接入协同**，不是对端长什么样：共用 broker 的地址、本站的 `location`、本站的自有库、以及**对端来本站下载 CBA 的地址**（本站的 `/assets/archives`）。表单会用本站配置预填，通常只改 broker 地址和名字。保存后监控台会**自动把本站加为该环境的第一个站点**，右侧表格立刻能看到。',
       after: [
         '| 字段 | 填什么 | 这一跑填的 |',
         '|---|---|---|',
         `| 环境名称 | 人能看懂的名字 | \`${DEMO_ENV}\` |`,
-        `| 文件服务地址 | 对端站点的文件服务根 URL，\`envs/{id}/test-http\` 会对它发 GET | \`${PEER_FILE_SERVER}\` |`,
-        `| MQTT 主机 / 端口 | 对端 broker，\`test-mqtt\` 会 TCP 探它 | \`${PEER_URL.hostname}\` / \`1883\` |`,
-        '| 位置标识（location） | 对端站点的 `location`，全网唯一，会写进 DbOption | `local-b` |',
-        '| 数据库编号（location_dbs） | 逗号分隔，决定同步范围 | `6000` |',
+        `| 文件服务地址（file_server_host） | **本站**的 CBA 目录地址：本站广播消息时带上它，**对端**从 \`<它>/<file>.cba\` 下载 | \`${demo.file_server_host}\` |`,
+        `| MQTT 主机 / 端口 | 两站共用的 broker，\`test-mqtt\` 会 TCP 探它 | \`${demo.mqtt_host}\` / \`${demo.mqtt_port}\` |`,
+        `| 位置标识（location） | **本站**的 location，全网唯一；对端消息里 location 与本站相同的会被忽略 | \`${demo.location}\` |`,
+        `| 数据库编号（location_dbs） | **本站自有库**：只广播这些库的变更 | \`${fmtDbs(demo.location_dbs)}\`（比文件里多标了 \`${EXTRA_DBNUM}\`，下一步好看出激活确实改了文件） |`,
       ].join('\n'),
     });
     await page.getByRole('button', { name: '新建' }).click();
     const envModal = page.locator('dialog.modal-open').filter({ hasText: '添加新环境' });
     await envModal.waitFor({ timeout: 10_000 });
     await envModal.locator('input[placeholder="例如: 北京总部、上海分部"]').fill(DEMO_ENV);
-    await envModal.locator('input[placeholder="http://192.168.1.10:3000"]').fill(PEER_FILE_SERVER);
-    await envModal.locator('input[placeholder="如: 上海园区"]').fill('local-b');
-    await envModal.locator('input[placeholder="7999,8001,8002"]').fill('6000');
-    await envModal.locator('input[placeholder="192.168.1.10"]').fill(PEER_URL.hostname);
-    await envModal.locator('input[placeholder="1883"]').fill('1883');
+    await envModal.locator('input[placeholder="http://192.168.1.10:3000"]').fill(demo.file_server_host);
+    await envModal.locator('input[placeholder="如: 上海园区"]').fill(demo.location);
+    await envModal.locator('input[placeholder="7999,8001,8002"]').fill(demo.location_dbs.join(','));
+    await envModal.locator('input[placeholder="192.168.1.10"]').fill(demo.mqtt_host);
+    await envModal.locator('input[placeholder="1883"]').fill(String(demo.mqtt_port));
     await shot(
       s4,
       '05-create-env-form',
-      `「添加新环境」表单，已填入 ${DEMO_ENV} 的名称、文件服务地址、位置标识、数据库编号与 MQTT 地址`,
-      '把地址改成对端的，然后点「保存环境」。',
+      `「添加新环境」表单，已填入 ${DEMO_ENV} 的名称、本站 CBA 地址、location、自有库与共用 broker 地址`,
+      '填好本站身份与 broker 地址，然后点「保存环境」。',
       envModal.getByRole('button', { name: '保存环境' }),
     );
     await envModal.getByRole('button', { name: '保存环境' }).click();
@@ -402,7 +477,11 @@ async function main() {
     if (!created) throw new Error('后端 GET envs 里没有新建的演示环境');
     facts.demoEnvId = String(created.id);
     const autoSites = (await api('GET', `/api/remote-sync/envs/${facts.demoEnvId}/sites`)).body;
-    note('create-env', { id: facts.demoEnvId, autoSites: (autoSites?.items ?? []).map((s) => ({ id: String(s.id), name: s.name, http_host: s.http_host })) });
+    note('create-env', {
+      id: facts.demoEnvId,
+      stored: pickConnection(created),
+      autoSites: (autoSites?.items ?? []).map((s) => ({ id: String(s.id), name: s.name, http_host: s.http_host })),
+    });
     await hideToasts(page);
     await shot(
       s4,
@@ -418,7 +497,7 @@ async function main() {
     const s5 = section({
       title: '先测连通，再动运行时',
       intro:
-        '激活之前先在卡片上点两下探测：**测 MQTT** 让后端 TCP 探 `mqtt_host:mqtt_port`，**测文件服务** 让后端对 `file_server_host` 发一次 GET。结果以横条留在卡片里（绿 = 通，红 = 不通），右上角同时弹 toast。注意探测**由后端发起**，探的是「后端到对端」的网络，不是你浏览器到对端的。',
+        '激活之前先在卡片上点两下探测：**测 MQTT** 让后端 TCP 探 `mqtt_host:mqtt_port`（broker 通不通），**测文件服务** 让后端对 `file_server_host` 发一次 GET（本站的 `/assets/archives` 能不能被访问到——对端将来就是从这里下载 CBA 的）。结果以横条留在卡片里（绿 = 通，红 = 不通），右上角同时弹 toast。注意探测**由后端发起**，探的是「后端到目标」的网络，不是你浏览器到目标的。',
     });
     await demoCard.scrollIntoViewIfNeeded();
     await demoCard.getByRole('button', { name: '测 MQTT' }).click();
@@ -449,7 +528,7 @@ async function main() {
       `- 测 MQTT：\`${mqttBanner}\``,
       `- 测文件服务：\`${httpBanner}\``,
       '',
-      '> 红条里会透出后端原话（`connection refused`、目标 URL、HTTP code、耗时），排网络问题直接照着看。红条只说明对端不通，不代表页面出错。',
+      '> 红条里会透出后端原话（`connection refused`、目标 URL、HTTP code、耗时），排网络问题直接照着看。红条只说明目标不通，不代表页面出错。本机两站共用一个 Mosquitto、CBA 目录里放了 `index.html`，所以这里两条都是绿的；真实部署里第一次点常常是红的——broker 端口没开、`/assets/archives` 没挂出来，都在这一步就能发现。',
     ].join('\n');
     await hideToasts(page);
 
@@ -457,9 +536,9 @@ async function main() {
     // 6 激活
     // =====================================================================
     const s6 = section({
-      title: '激活环境（这一步会真的改后端配置）',
+      title: '激活环境（这一步会真的改本站配置文件）',
       intro:
-        '**激活** = 让后端从此按这个环境跑：plant-model-gen 会把环境写进它的 `DbOption.toml`，并在进程内重启 watcher 与 MQTT 订阅，立即生效。这是整页最重的动作，所以有确认弹窗，弹窗还会点名当前已激活的环境「会先被停止」。',
+        '**激活** = 让本站从此按这个环境跑中继。plant-web-server 分两步：先把环境的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 写进本站 `DbOption.toml`（环境上没有的键不动，其余行与注释原样保留），再起 / 重建中继运行态——MQTT 订阅（收对端广播）+ 源文件轮询（发本站变更），**不用重启进程**。写不进文件或中继起不来，整条激活失败，不会留下「账面已激活、跑的还是旧配置」的中间态。这是整页最重的动作，所以有确认弹窗；当前已有运行态时弹窗还会点名它「会先被停止」。',
     });
     await demoCard.getByRole('button', { name: '激活' }).click();
     const actDlg = confirm('确认激活环境');
@@ -468,7 +547,7 @@ async function main() {
     await shot(
       s6,
       '09-activate-confirm',
-      '「确认激活环境」弹窗，说明激活会写入 DbOption 并重启 watcher 与 MQTT 订阅',
+      '「确认激活环境」弹窗，说明会把五个连接参数写进本站 DbOption.toml 并起 / 重建中继运行态',
       '确认弹窗把后果说清楚了再点「确定」。',
       actDlg.getByRole('button', { name: '确定' }),
     );
@@ -477,9 +556,20 @@ async function main() {
     await page.waitForTimeout(1_200);
     const rtAfterActivate = (await api('GET', '/api/remote-sync/runtime/status')).body;
     const envsAfterActivate = (await api('GET', '/api/remote-sync/envs')).body;
-    const backendActive = activeEnvIdOf(rtAfterActivate, envsAfterActivate);
+    const backendActive = runtimeEnvIdOf(rtAfterActivate);
+    const ledgerActive = ledgerEnvIdOf(envsAfterActivate);
     const activateBanner = await text(bannerOf(demoCard, '激活环境：'));
-    note('activate', { backendActive, matchesDemoEnv: backendActive === facts.demoEnvId, runtime: rtAfterActivate, banner: activateBanner });
+    const act = facts.activations.find((a) => a.envId === facts.demoEnvId) ?? null;
+    const rc = act?.runtime_config ?? null;
+    note('activate', {
+      runtimeEnvId: backendActive,
+      ledgerEnvId: ledgerActive,
+      matchesDemoEnv: backendActive === facts.demoEnvId && ledgerActive === facts.demoEnvId,
+      runtime: rtAfterActivate,
+      runtime_config: rc,
+      dialog: actDlgText,
+      banner: activateBanner,
+    });
     await hideToasts(page);
     await shot(
       s6,
@@ -491,11 +581,12 @@ async function main() {
     s6.after = [
       '这一跑激活后从后端直接查到的事实（不是只看页面）：',
       '',
-      `- \`GET /api/remote-sync/runtime/status\` → \`active: ${rtAfterActivate?.active}\`、\`relay: ${rtAfterActivate?.relay}\`、\`mqtt_connected: ${rtAfterActivate?.mqtt_connected}\``,
-      `- 后端记录的激活环境 id 与页面上被点的这张卡**一致**（\`${backendActive}\`）`,
+      `- 页面发出的 \`POST envs/${facts.demoEnvId}/activate\` 响应里 \`runtime_config\`：写了 \`${(rc?.keys ?? []).join(' / ') || '（无）'}\` 这几个键到 \`${rc?.path ?? '?'}\`，\`changed: ${rc?.changed ?? '?'}\`——${rc?.changed ? `文件**真的变了**（自有库从 \`[${fmtDbs(own.location_dbs)}]\` 变成 \`[${fmtDbs(demo.location_dbs)}]\`，另四个键与原值相同）` : '五个键都与文件原值相同，所以没落盘'}。`,
+      `- \`GET /api/remote-sync/runtime/status\` → \`active: ${rtAfterActivate?.active}\`、\`env_id: ${rtAfterActivate?.env_id}\`、\`relay: ${rtAfterActivate?.relay}\`、\`mqtt_connected: ${rtAfterActivate?.mqtt_connected}\`，这次激活实际用的连接参数 \`relay_location: ${rtAfterActivate?.relay_location}\`、\`relay_mqtt_host: ${rtAfterActivate?.relay_mqtt_host}\`、\`relay_mqtt_port: ${rtAfterActivate?.relay_mqtt_port}\`——对着它核对环境是否生效。`,
+      `- 运行态上跑的 env（\`${backendActive}\`）与账面「当前环境」标记（\`envs[].active\`，\`${ledgerActive}\`）都指向页面上被点的这张卡。`,
       `- 卡片里的结果条：\`${activateBanner}\``,
       '',
-      `> \`relay: ${rtAfterActivate?.relay}\` 是中继模式（\`sync_relay_mode = true\`）的标志：这台后端不连 SurrealDB，靠 SQLite 台账 + MQTT 广播与对端协同。`,
+      `> \`relay: ${rtAfterActivate?.relay}\` 是中继模式（\`sync_relay_mode = true\`）的标志：这台后端不连 SurrealDB，靠 SQLite 台账 + MQTT 广播与对端协同；激活成功时台账三张表也一并建好，\`/ledger\`「中继台账」视图从此有数据可看。`,
       '',
       '> 对着真实后端点「激活」是真的改它的配置文件。联调前先确认端口后面是哪台实例（见 `HANDOFF.md`「先看清楚后端是谁」）。',
     ].join('\n');
@@ -506,15 +597,17 @@ async function main() {
     const s7 = section({
       title: '「应用」和「激活」差在哪',
       intro:
-        '**应用（apply）** 只把环境写进配置文件，不碰当前跑着的 watcher / MQTT；**激活（activate）** 是写盘 + 重启运行态。日常改了环境参数想落盘、又不想打断正在跑的同步，用「应用」；要真正切换运行时，用「激活」。',
+        '**应用（apply）** 在 plant-web-server 上**只落账**：把这张卡标为「当前环境」、记一条 apply 任务，**不写 `DbOption.toml`、不碰运行态**。**激活（activate）** 才是写盘 + 起 / 重建中继。所以这里的「应用」更像「先选中、稍后再切」的书签；要让连接参数真正生效，只有「激活」一条路。（旧 plant-model-gen 后端的「应用」会写文件不重启，监控台的确认弹窗把两种都写明了。）',
     });
     await demoCard.getByRole('button', { name: '应用' }).click();
     const applyDlg = confirm('确认应用环境配置');
     await applyDlg.waitFor({ timeout: 8_000 });
+    const applyDlgText = await text(applyDlg);
     await applyDlg.getByRole('button', { name: '确定' }).click();
     await bannerOf(demoCard, '应用配置：').waitFor({ timeout: 20_000 });
     const applyBanner = await text(bannerOf(demoCard, '应用配置：'));
-    note('apply', { banner: applyBanner });
+    const rtAfterApply = (await api('GET', '/api/remote-sync/runtime/status')).body;
+    note('apply', { dialog: applyDlgText, banner: applyBanner, runtimeUnchanged: runtimeEnvIdOf(rtAfterApply) === backendActive, runtime: rtAfterApply });
     await hideToasts(page);
     await shot(
       s7,
@@ -523,14 +616,15 @@ async function main() {
       `「应用」的真实返回：${applyBanner}`,
       bannerOf(demoCard, '应用配置：'),
     );
+    s7.after = `「应用」之后 \`runtime/status\` 的 \`env_id\` 仍是 \`${runtimeEnvIdOf(rtAfterApply)}\`，\`relay_mqtt_host\` 等一个都没变——它没碰运行态，也没有第二条 activate 那样的 \`runtime_config\` 写盘记录。`;
 
     // =====================================================================
     // 8 站点：探测 + 编辑
     // =====================================================================
     const s8 = section({
-      title: '站点这一侧：探测不通 → 改地址 → 再探测',
+      title: '站点这一侧：登记对端 → 探测不通 → 改地址 → 再探测',
       intro:
-        '右侧表格是选中环境下的站点。每行末尾两个动作：**探测**（让后端对这个站点的 `http_host` 拼上 `/metadata.json` 发一次 GET）和**编辑站点**（改名称 / 位置 / 负责 dbnums / HTTP 服务地址 / 备注）。探测同样由后端发起。下面故意把这条链走完整：先探一次不通的，再把地址改对，再探一次。',
+        '右侧表格是选中环境下的**站点**——登记的是对端节点（`location` + `http_host`），给拓扑图、探测和「查看站点详情」用；中继本身靠 MQTT 发现对端，不靠这张表。每行末尾两个动作：**探测**（让后端对这个站点的 `http_host` 拼上 `/metadata.json` 发一次 GET）和**编辑站点**（改名称 / 位置 / 负责 dbnums / HTTP 服务地址 / 备注）。探测同样由后端发起。下面故意把这条链走完整：先探一次不通的，再把地址改成对端（Site B）的，再探一次。',
     });
     await demoCard.locator('h5').click();
     await page.waitForTimeout(2_000);
@@ -603,7 +697,7 @@ async function main() {
         '',
         `保存后回查后端 \`GET envs/{id}/sites\`，\`http_host\` 与 \`notes\` **${saved ? '都已更新' : '没有按预期更新'}**——页面上的成功提示不等于后端真写了，这一步是回查过的。`,
         '',
-        '> 记住这条：**自动加进来的那个站点指向的是你自己**，真要用起来必须手动改成对端地址。',
+        '> 记住这条：**自动加进来的那个站点指向的是你自己**，真要登记对端必须手动改成对端地址（对端 plant-web-server 的 `/files/output`，它下面有 `metadata.json`）。',
       ].join('\n');
     } else {
       note('site-actions', { rowCount, skipped: '该环境下没有站点' });
@@ -617,7 +711,7 @@ async function main() {
     const s9 = section({
       title: '停止运行时',
       intro:
-        '页头「停止运行时」会让后端停掉 watcher 与 MQTT 订阅。对 plant-model-gen 来说停完 `runtime.active` 变 `false`、pill 回到「未激活」；配置文件里的内容不会被回滚——停的是运行态，不是配置。',
+        '页头「停止运行时」让后端停掉中继运行态——MQTT 订阅与源文件轮询都停，`runtime.active` 变 `false`、pill 不再显示「已激活」。**停的是运行态，不是配置**：`DbOption.toml` 里刚写进去的五个键不会被回滚，账面上「当前环境」的标记（`envs[].active`）也还留着，再点一次「激活」就按同一份配置跑起来。',
     });
     await page.getByRole('button', { name: '停止运行时' }).click();
     const stopDlg = confirm('确认停止运行时');
@@ -626,23 +720,26 @@ async function main() {
       s9,
       '15-stop-confirm',
       '「确认停止运行时」弹窗',
-      '确认后后端停掉 watcher 与 MQTT 订阅。',
+      '确认后后端停掉 MQTT 订阅与源文件轮询。',
       stopDlg.getByRole('button', { name: '确定' }),
     );
     await stopDlg.getByRole('button', { name: '确定' }).click();
     await page.waitForTimeout(3_000);
     const rtAfterStop = (await api('GET', '/api/remote-sync/runtime/status')).body;
+    const envsAfterStop = (await api('GET', '/api/remote-sync/envs')).body;
     const pillAfterStop = await text(pill);
-    note('stop-runtime', { pill: pillAfterStop, runtime: rtAfterStop });
+    note('stop-runtime', { pill: pillAfterStop, runtime: rtAfterStop, ledgerEnvId: ledgerEnvIdOf(envsAfterStop) });
     await hideToasts(page);
     await shot(
       s9,
       '16-stopped',
-      `停止后：pill 回到「${pillAfterStop}」`,
+      `停止后：pill 变为「${pillAfterStop}」`,
       `停止后的真实状态：pill「${pillAfterStop}」，后端 \`runtime.active = ${rtAfterStop?.active}\`。`,
       pill,
     );
-    s9.after = `停完后端 \`runtime.active = ${rtAfterStop?.active}\`，页面 pill 同步回到「${pillAfterStop}」。要再跑起来，对着想用的环境卡再点一次「激活」。`;
+    s9.after = [
+      `停完后端 \`runtime.active = ${rtAfterStop?.active}\`、\`env_id = ${rtAfterStop?.env_id}\`，页面 pill 同步变成「${pillAfterStop}」（\`running: true\` 是进程活着，\`未激活环境\` 是中继没在跑）。账面上 \`envs[].active\` 仍指向 \`${ledgerEnvIdOf(envsAfterStop)}\`——这就是「停的是运行态不是配置」。要再跑起来，对着想用的环境卡再点一次「激活」。`,
+    ].join('\n');
   } catch (err) {
     runError = String(err?.message ?? err);
     console.error(`步骤失败：${runError}`);
@@ -657,7 +754,13 @@ async function main() {
   facts.cleanup = await cleanup(before);
   facts.ok =
     !runError &&
-    Boolean(facts.cleanup?.envIdsRestored && facts.cleanup?.activeRestored && !facts.cleanup?.error) &&
+    Boolean(
+      facts.cleanup?.envIdsRestored &&
+        facts.cleanup?.runtimeRestored &&
+        facts.cleanup?.ledgerRestored &&
+        facts.cleanup?.configRestored !== false &&
+        !facts.cleanup?.error,
+    ) &&
     facts.pageErrors.length === 0;
 
   // 半截的教程不要覆盖上一份好的
@@ -668,7 +771,9 @@ async function main() {
   console.log(`截图 ${total} 张 → ${SHOT_DIR_REL}/`);
   console.log(runError ? `教程      → 未重写（本轮有步骤失败：${runError}）` : `教程      → ${MD_REL}`);
   console.log(`事实记录  → ${RESULT_REL}`);
-  console.log(`收尾复原：envIdsRestored=${facts.cleanup?.envIdsRestored} activeRestored=${facts.cleanup?.activeRestored} pageErrors=${facts.pageErrors.length}`);
+  console.log(
+    `收尾复原：envIdsRestored=${facts.cleanup?.envIdsRestored} runtimeRestored=${facts.cleanup?.runtimeRestored} ledgerRestored=${facts.cleanup?.ledgerRestored} configRestored=${facts.cleanup?.configRestored} pageErrors=${facts.pageErrors.length}`,
+  );
   process.exitCode = facts.ok ? 0 : 1;
 }
 
@@ -676,30 +781,61 @@ async function cleanup(before) {
   const out = { steps: [] };
   const step = (name, data) => out.steps.push({ name, ...data });
   try {
+    // 1. 演示环境连同它的站点删掉
     if (facts.demoEnvId) {
       const sites = (await api('GET', `/api/remote-sync/envs/${facts.demoEnvId}/sites`)).body;
       for (const s of sites?.items ?? []) step('delete-site', { id: String(s.id), status: (await api('DELETE', `/api/remote-sync/sites/${s.id}`)).status });
       step('delete-demo-env', { id: facts.demoEnvId, status: (await api('DELETE', `/api/remote-sync/envs/${facts.demoEnvId}`)).status });
     }
-    if (before.activeEnvId) {
-      step('reactivate-original', { id: before.activeEnvId, status: (await api('POST', `/api/remote-sync/envs/${before.activeEnvId}/activate`)).status });
+
+    // 2. 本轮的激活若真改写了 DbOption.toml，用开跑前记下的五个键建一张临时卡激活写回；再激活一次拿 changed=false 当凭证
+    const tomlChanged = facts.activations.some((a) => a.runtime_config?.changed === true);
+    out.tomlChangedByRun = tomlChanged;
+    let restoreEnvId = null;
+    if (tomlChanged && facts.ownConfig) {
+      const created = await api('POST', '/api/remote-sync/envs', { name: RESTORE_ENV, ...facts.ownConfig });
+      restoreEnvId = created.body?.item?.id ? String(created.body.item.id) : null;
+      step('create-restore-env', { id: restoreEnvId, status: created.status, config: facts.ownConfig });
+      if (!restoreEnvId) throw new Error('建不出恢复卡，DbOption.toml 没法写回原值');
+      const first = await api('POST', `/api/remote-sync/envs/${restoreEnvId}/activate`);
+      step('activate-restore-env', { id: restoreEnvId, status: first.status, runtime_config: first.body?.runtime_config ?? null });
+      const second = await api('POST', `/api/remote-sync/envs/${restoreEnvId}/activate`);
+      step('activate-restore-env-verify', { id: restoreEnvId, status: second.status, runtime_config: second.body?.runtime_config ?? null });
+      const keys = second.body?.runtime_config?.keys ?? [];
+      out.configRestored =
+        first.status === 200 && second.status === 200 && second.body?.runtime_config?.changed === false && CONNECTION_KEYS.every((k) => keys.includes(k));
     } else {
-      // 开跑前本来就没有激活的环境：用「从 DbOption 导入」那张快照把配置 apply 回去，再 stop
-      if (facts.importedEnvId) step('apply-dboption-snapshot', { id: facts.importedEnvId, status: (await api('POST', `/api/remote-sync/envs/${facts.importedEnvId}/apply`)).status });
+      out.configRestored = tomlChanged ? false : null; // null = 本轮没改过文件，无需写回
+    }
+
+    // 3. 运行态：开跑前在跑就把那个 env 再激活，否则 stop
+    if (before.runtimeEnvId) {
+      step('reactivate-original', { id: before.runtimeEnvId, status: (await api('POST', `/api/remote-sync/envs/${before.runtimeEnvId}/activate`)).status });
+    } else {
       step('stop-runtime', { status: (await api('POST', '/api/remote-sync/runtime/stop')).status });
     }
-    if (facts.importedEnvId) {
+
+    // 4. 临时卡、以及本轮才生成的导入卡删掉
+    if (restoreEnvId) step('delete-restore-env', { id: restoreEnvId, status: (await api('DELETE', `/api/remote-sync/envs/${restoreEnvId}`)).status });
+    if (facts.importedEnvId && !facts.importedPreexisted) {
       const sites = (await api('GET', `/api/remote-sync/envs/${facts.importedEnvId}/sites`)).body;
-      for (const s of sites?.items ?? []) step('delete-snapshot-site', { id: String(s.id), status: (await api('DELETE', `/api/remote-sync/sites/${s.id}`)).status });
-      step('delete-snapshot-env', { id: facts.importedEnvId, status: (await api('DELETE', `/api/remote-sync/envs/${facts.importedEnvId}`)).status });
+      for (const s of sites?.items ?? []) step('delete-imported-site', { id: String(s.id), status: (await api('DELETE', `/api/remote-sync/sites/${s.id}`)).status });
+      step('delete-imported-env', { id: facts.importedEnvId, status: (await api('DELETE', `/api/remote-sync/envs/${facts.importedEnvId}`)).status });
     }
+
+    // 5. 账面「当前环境」标记：apply / activate 会把别的卡全标 false，开跑前有标记的就用 apply（只落账）标回去
+    if (before.ledgerEnvId && before.ledgerEnvId !== before.runtimeEnvId) {
+      step('reapply-ledger-flag', { id: before.ledgerEnvId, status: (await api('POST', `/api/remote-sync/envs/${before.ledgerEnvId}/apply`)).status });
+    }
+
     const after = {
       envs: (await api('GET', '/api/remote-sync/envs')).body,
       runtime: (await api('GET', '/api/remote-sync/runtime/status')).body,
     };
     const afterIds = (after.envs?.items ?? []).map((e) => String(e.id)).sort();
     out.envIdsRestored = JSON.stringify(afterIds) === JSON.stringify([...before.envIds].sort());
-    out.activeRestored = activeEnvIdOf(after.runtime, after.envs) === before.activeEnvId;
+    out.runtimeRestored = runtimeEnvIdOf(after.runtime) === before.runtimeEnvId;
+    out.ledgerRestored = ledgerEnvIdOf(after.envs) === before.ledgerEnvId;
     out.leftoverEnvIds = afterIds.filter((id) => !before.envIds.includes(id));
     out.runtimeAfter = after.runtime;
   } catch (err) {
@@ -715,45 +851,49 @@ function renderMarkdown() {
   const d = new Date(facts.generatedAt);
   const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const rt = facts.backend?.runtimeBefore ?? {};
+  const own = facts.ownConfig ?? {};
   const out = [];
-  out.push('# 异地部署操作教程 · 真实后端实操版');
+  out.push('# 异地部署操作教程 · 真实后端实操版（plant-web-server 中继站点）');
   out.push('');
-  out.push('> 适用对象：要把一个协同环境推上后端运行时、或排查站点连通性的实施 / 运维人员。');
+  out.push('> 适用对象：要把一个协同环境推上站点后端运行时、或排查站点连通性的实施 / 运维人员。');
   out.push('> 预计用时：10–15 分钟。');
   out.push(
-    `> 生成方式：本文由 \`scripts/topology-deploy-live-tutorial.mjs\` 于 ${day} 自动生成——Playwright 开真实 Chrome，把下面每一步**真的在页面上做了一遍**，后端是真后端（\`${facts.api}\`，plant-model-gen 中继模式），截图里的每一条提示都是它当时的真实响应。`,
+    `> 生成方式：本文由 \`scripts/topology-deploy-live-tutorial.mjs\` 于 ${day} 自动生成——Playwright 开真实 Chrome，把下面每一步**真的在页面上做了一遍**，后端是真后端（\`${facts.api}\`，plant-web-server 中继模式），截图里的每一条提示都是它当时的真实响应。`,
   );
   out.push('> 与 `docs/tutorials/topology-deploy-tutorial.md` 的分工：那一份用 mock 喂页面、胜在数据整齐可重复；这一份胜在真实，包括真实的失败提示。');
-  out.push('> 收尾：本次新建的环境与站点跑完即删，配置用开跑前的快照 apply 回去，后端恢复原状（核对结果见文末附录）。');
+  out.push('> 收尾：本次新建的环境与站点跑完即删；激活改写过的 `DbOption.toml` 用开跑前记下的五个键写回原值，并再激活一次确认无差；运行态恢复原状（核对结果见文末附录 B）。');
   out.push('');
   out.push('## 你将学会');
   out.push('');
-  out.push('- 从 DbOption 一键导入、或手填新建一个协同环境。');
-  out.push('- 用「测 MQTT / 测文件服务 / 站点探测」在动运行时之前确认对端可达。');
-  out.push('- 分清「应用」（只写盘）与「激活」（写盘 + 重启运行态），并看懂运行时 pill 与「已激活」徽标。');
-  out.push('- 停止运行时、编辑站点，以及动手之前怎么给自己留一条退路。');
+  out.push('- 给本站登记一张「从 DbOption 导入」的卡，以及手填新建一个协同环境——填的是**本站身份 + 共用 broker**。');
+  out.push('- 用「测 MQTT / 测文件服务 / 站点探测」在动运行时之前确认 broker、本站 CBA 目录、对端站点可达。');
+  out.push('- 分清「应用」（只落账）与「激活」（写 `DbOption.toml` 五个键 + 起 / 重建中继运行态），并看懂运行时 pill、「已激活」徽标与 `runtime/status` 的字段。');
+  out.push('- 停止运行时、登记 / 编辑对端站点，以及动手之前怎么给自己留一条退路。');
   out.push('');
   out.push('## 0. 三个词与一条主线');
   out.push('');
   out.push('| 词 | 是什么 | 在页面上 |');
   out.push('|---|---|---|');
-  out.push('| **环境（Env）** | 一组参与同一次异地协同的站点 + 它们共用的 MQTT / 文件服务地址 | 左侧卡片 |');
-  out.push('| **站点（Site）** | 环境下的一个对端节点（`location` + `http_host`） | 右侧表格的一行 |');
-  out.push('| **运行时（Runtime）** | 后端此刻按哪个环境在跑 watcher + MQTT 订阅 | 页头 pill + 卡片「已激活」徽标 |');
+  out.push('| **环境（Env）** | 本站怎么接入协同：共用 broker（`mqtt_host` / `mqtt_port`）+ 本站身份（`location` / 自有库 `location_dbs` / 对端来下载 CBA 的 `file_server_host`）。激活写进本站 `DbOption.toml` 的就是这五个键 | 左侧卡片 |');
+  out.push('| **站点（Site）** | 环境下登记的一个对端节点（`location` + `http_host`），给拓扑、探测、详情用；中继靠 MQTT 发现对端，不靠它 | 右侧表格的一行 |');
+  out.push('| **运行时（Runtime）** | 本站的中继运行态：MQTT 订阅（收对端广播）+ 源文件轮询（发本站变更）此刻按哪个环境在跑 | 页头 pill + 卡片「已激活」徽标 |');
   out.push('');
-  out.push('一次完整的部署就是：**建环境 → 测连通 → 激活 → 看 pill 确认 →（需要时）停止**。下面按这个顺序走。');
+  out.push('一次完整的部署就是：**建环境 → 测连通 → 激活 → 看 pill 与 `runtime/status` 确认 →（需要时）停止**。下面按这个顺序走。');
   out.push('');
   out.push('## 0.1 这一跑的现场');
   out.push('');
   out.push('| 项 | 值 |');
   out.push('|---|---|');
-  out.push(`| 后端 | \`${facts.api}\`（plant-model-gen，形状 \`${facts.backend?.shape}\`） |`);
-  out.push(`| 对端（教程里扮演「上海分部」） | \`${facts.peer}\` |`);
-  out.push(`| 开跑前环境数 / 激活环境 | ${facts.backend?.envCountBefore} 张 / ${facts.backend?.activeEnvIdBefore ?? '无'} |`);
-  out.push(`| 开跑前运行时 | \`active: ${rt.active}\`、\`relay: ${rt.relay}\` |`);
+  out.push(`| 后端 | \`${facts.api}\`（plant-web-server，\`identity.mode = ${facts.backend?.identity?.mode ?? '?'}\`，site_id \`${facts.backend?.identity?.site_id ?? '?'}\`） |`);
+  out.push(`| 对端（教程里扮演另一个站点 Site B） | \`${facts.peer}\` |`);
+  out.push(`| 本站 DbOption.toml 的五个连接键（开跑前） | broker \`${own.mqtt_host}:${own.mqtt_port}\` · location \`${own.location}\` · 自有库 \`[${fmtDbs(own.location_dbs ?? [])}]\` · CBA \`${own.file_server_host}\` |`);
+  out.push(`| 开跑前环境数 / 运行态 env / 账面当前环境 | ${facts.backend?.envCountBefore} 张 / ${facts.backend?.runtimeEnvIdBefore ?? '无'} / ${facts.backend?.ledgerEnvIdBefore ?? '无'} |`);
+  out.push(`| 开跑前运行时 | \`active: ${rt.active}\`、\`relay: ${rt.relay}\`、\`mode: ${rt.mode}\` |`);
   out.push(`| 生成时间 | ${d.toLocaleString('zh-CN', { hour12: false })}（本机时区） |`);
   out.push('');
-  out.push('> 本机这套两站环境由 `scripts/local-remote-collab-setup.ps1` 生成在 `../plant-web-server/runtime/local-collab/`（2026-09-18 前在 `../plant-model-gen/runtime/local-collab/`），起法见那里的 `COMMANDS.md`。**别把本教程的脚本指向生产后端**——它会真的建环境、真的改配置。');
+  out.push(
+    '> 本机这套两站环境由 `scripts/local-remote-collab-setup.ps1` 生成在 `../plant-web-server/runtime/local-collab/`（模板 `../plant-web-server/db_options/DbOption.toml`，两站 `--repo-root` 也是 plant-web-server；2026-09-18 前在 `../plant-model-gen` 下），起法见那里的 `COMMANDS.md`。**别把本教程的脚本指向生产后端**——它会真的建环境、真的改配置。',
+  );
   out.push('');
 
   sections.forEach((s, i) => {
@@ -792,21 +932,31 @@ function renderMarkdown() {
   out.push('');
   out.push('## 附录 B · 收尾把后端恢复成什么样');
   out.push('');
-  out.push('教程会真的改后端，所以脚本跑完必须能还原，否则这份教程就是在给环境留垃圾。核对方式是拿收尾后的 env 集合与激活态跟开跑前逐一对比：');
+  out.push(
+    '教程会真的改后端——包括 `DbOption.toml`——所以脚本跑完必须能还原，否则这份教程就是在给环境留垃圾。核对方式：env 集合、运行态 env、账面「当前环境」标记三样跟开跑前逐一对比；文件那一项靠「用开跑前的五个键建一张临时卡激活写回，再激活一次看 `changed = false`」——第二次一个字节都没改，说明文件已经与原值一致。',
+  );
   out.push('');
   out.push('| 核对项 | 结果 |');
   out.push('|---|---|');
+  out.push(`| 本轮的激活是否改写过 DbOption.toml | ${c.tomlChangedByRun ? '是（自有库多标了一个）' : '否'} |`);
+  out.push(`| DbOption.toml 已写回原值（第二次激活 \`changed = false\`） | ${c.configRestored === null ? '不需要（没改过）' : c.configRestored ? '是' : '**否**'} |`);
   out.push(`| env 集合与开跑前一致 | ${c.envIdsRestored ? '是' : '否'} |`);
-  out.push(`| 激活态与开跑前一致 | ${c.activeRestored ? '是' : '否'} |`);
+  out.push(`| 运行态 env 与开跑前一致 | ${c.runtimeRestored ? '是' : '否'} |`);
+  out.push(`| 账面「当前环境」标记与开跑前一致 | ${c.ledgerRestored ? '是' : '否'} |`);
   out.push(`| 残留的 env | ${(c.leftoverEnvIds ?? []).length === 0 ? '无' : (c.leftoverEnvIds ?? []).join(', ')} |`);
   out.push(`| 收尾后 \`runtime.active\` | \`${c.runtimeAfter?.active}\` |`);
   out.push(`| 页面 JS 报错（pageerror） | ${facts.pageErrors.length} 条 |`);
   out.push('');
   out.push('收尾动作依次是：');
   out.push('');
-  for (const st of c.steps ?? []) out.push(`- \`${st.name}\`${st.id ? ` · id \`${st.id}\`` : ''} → HTTP ${st.status}`);
+  for (const st of c.steps ?? []) {
+    const extra = st.runtime_config ? `，runtime_config \`${JSON.stringify(st.runtime_config)}\`` : '';
+    out.push(`- \`${st.name}\`${st.id ? ` · id \`${st.id}\`` : ''} → HTTP ${st.status}${extra}`);
+  }
   out.push('');
-  out.push('> 「用快照 apply 回去」靠的就是第 3 节那张「从 DbOption 导入」的卡片。自己手动操作真实环境时，这一招同样管用：**动配置之前先导入一张，出事就对着它点「应用」**。');
+  out.push(
+    '> 自己手动操作真实环境时同一招管用：**动配置之前先把 `GET /api/site/info` 的五个键（或整份 `DbOption.toml`）记下来**，出事就建一张填着原值的环境点「激活」写回去；「从 DbOption 导入」那张卡不带连接参数，退不回任何东西。',
+  );
   out.push('');
   return `${out.join('\n')}\n`;
 }
@@ -830,7 +980,7 @@ function summarizeStep(st) {
 function dedupeWrites(writes) {
   const seen = new Map();
   for (const w of writes) {
-    const key = `${w.method} ${w.path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}')} → ${w.status}`;
+    const key = `${w.method} ${w.path.replace(/[0-9a-f]{8}-[0-9a-f-]{27}/gi, '{id}').replace(/(env|site)-\d{6,}(-\d+)?/g, '{id}')} → ${w.status}`;
     seen.set(key, (seen.get(key) ?? 0) + 1);
   }
   return [...seen.entries()].map(([k, n]) => (n > 1 ? `${k} ×${n}` : k));

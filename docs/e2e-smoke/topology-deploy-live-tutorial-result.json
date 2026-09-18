@@ -1,159 +1,237 @@
 {
-  "generatedAt": "2026-09-15T17:10:56.183Z",
+  "generatedAt": "2026-09-18T01:22:30.935Z",
   "api": "http://127.0.0.1:4100",
   "peer": "http://127.0.0.1:4101",
   "backend": {
-    "shape": "pmg",
-    "health": {
-      "database": "healthy",
-      "is_primary": true,
-      "litefs": {
-        "enabled": false,
-        "message": "LiteFS health check disabled",
-        "status": "disabled"
-      },
-      "status": "ok",
-      "timestamp": "2026-09-15T17:10:56.202851900+00:00"
+    "shape": "pws",
+    "identity": {
+      "backend_url": "http://127.0.0.1:4100",
+      "bind_host": "127.0.0.1",
+      "bind_port": 4100,
+      "config": "runtime/local-collab/site-a/DbOption.toml",
+      "mode": "detached",
+      "repo_root": "D:\\work\\plant-code\\plant-web-server",
+      "site_id": "local-a",
+      "site_name": "Local Site A"
     },
-    "envCountBefore": 3,
-    "activeEnvIdBefore": null,
+    "health": {
+      "mode": "detached",
+      "service": "plant-web-server",
+      "status": "ok"
+    },
+    "envCountBefore": 0,
+    "runtimeEnvIdBefore": null,
+    "ledgerEnvIdBefore": null,
     "runtimeBefore": {
       "active": false,
+      "active_task_count": 8,
+      "env_count": 0,
       "env_id": null,
-      "mqtt_connected": true,
+      "mode": "standalone-real",
+      "mqtt_connected": null,
       "relay": false,
-      "status": "success"
+      "relay_location": null,
+      "relay_mqtt_host": null,
+      "relay_mqtt_port": null,
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+      "running": true,
+      "site_count": 0,
+      "success": true
     },
     "site": {
       "info": {
+        "config_file_location": "runtime/local-collab/site-a/DbOption.toml",
         "file_server_host": "http://127.0.0.1:4100/assets/archives",
         "location": "local-a",
         "location_dbs": [
           6000
         ],
+        "mode": "standalone-real",
         "mqtt_host": "127.0.0.1",
         "mqtt_port": 1883,
         "project_code": "1516",
-        "project_name": "AvevaMarineSample"
+        "project_name": "SCB",
+        "success": true
       },
-      "config": {
-        "config": {
-          "apply_boolean_operation": true,
-          "file_server_host": "http://127.0.0.1:4100/assets/archives",
-          "gen_mesh": false,
-          "gen_model": false,
-          "gen_spatial_tree": false,
-          "included_projects": [
-            "SCB"
-          ],
-          "incr_sync": false,
-          "ip": "127.0.0.1",
-          "location": "local-a",
-          "location_dbs": [
-            6000
-          ],
-          "mesh_tol_ratio": 3,
-          "module": "DESI",
-          "mqtt_host": "127.0.0.1",
-          "mqtt_port": 1883,
-          "password": "",
-          "port": "3306",
-          "project_code": "1516",
-          "project_name": "AvevaMarineSample",
-          "project_path": "runtime/local-collab/site-a/project",
-          "server_release_ip": "",
-          "sync_live": false,
-          "sync_push_db_types": [
-            "DESI"
-          ],
-          "total_sync": false,
-          "user": "root"
-        },
-        "config_file_location": "local-a",
-        "status": "success"
-      }
+      "configFile": "runtime/local-collab/site-a/DbOption.toml"
     }
+  },
+  "ownConfig": {
+    "mqtt_host": "127.0.0.1",
+    "mqtt_port": 1883,
+    "file_server_host": "http://127.0.0.1:4100/assets/archives",
+    "location": "local-a",
+    "location_dbs": [
+      6000
+    ]
+  },
+  "demoConfig": {
+    "mqtt_host": "127.0.0.1",
+    "mqtt_port": 1883,
+    "file_server_host": "http://127.0.0.1:4100/assets/archives",
+    "location": "local-a",
+    "location_dbs": [
+      6000,
+      6001
+    ]
   },
   "steps": [
     {
       "name": "first-screen",
-      "at": "2026-09-15T17:10:59.326Z",
-      "pill": "运行时 · 未激活",
-      "pillTitle": "后端 watcher + MQTT 订阅未启动；在环境卡片上点「激活」可启动",
-      "envCards": 3
+      "at": "2026-09-18T01:22:34.206Z",
+      "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
+      "pillTitle": "后端运行时在跑，但没有已激活的环境；在环境卡片上点「激活」",
+      "envCards": 0
     },
     {
       "name": "import-from-dboption",
-      "at": "2026-09-15T17:11:02.279Z",
-      "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
-      "envName": "导入环境 - 20260916_011100",
-      "mqtt": "127.0.0.1:1883",
-      "file_server_host": "http://127.0.0.1:4100/assets/archives"
+      "at": "2026-09-18T01:22:37.293Z",
+      "id": "dboption-local-a",
+      "envName": "Local Site A",
+      "preexisted": false,
+      "source": "DbOption",
+      "hasConnectionKeys": false,
+      "config": {
+        "associated_project": {
+          "config_path": "runtime/local-collab/site-a/DbOption.toml",
+          "repo_root": "D:\\work\\plant-code\\plant-web-server"
+        },
+        "bind_host": "127.0.0.1",
+        "db_password": "root",
+        "db_port": 8021,
+        "db_user": "root",
+        "manual_db_nums": [],
+        "project_code": "1516",
+        "project_name": "SCB",
+        "project_path": "runtime/local-collab/site-a/project",
+        "status": "Imported",
+        "web_port": 4100
+      }
     },
     {
       "name": "create-env",
-      "at": "2026-09-15T17:11:05.044Z",
-      "id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+      "at": "2026-09-18T01:22:40.125Z",
+      "id": "env-1789694558",
+      "stored": {
+        "mqtt_host": "127.0.0.1",
+        "mqtt_port": 1883,
+        "file_server_host": "http://127.0.0.1:4100/assets/archives",
+        "location": "local-a",
+        "location_dbs": [
+          6000,
+          6001
+        ]
+      },
       "autoSites": [
         {
-          "id": "0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
-          "name": "AvevaMarineSample",
+          "id": "site-1789694558",
+          "name": "SCB",
           "http_host": "http://localhost:4179"
         }
       ]
     },
     {
       "name": "probe",
-      "at": "2026-09-15T17:11:06.142Z",
-      "mqtt": "测 MQTT：MQTT 连接可达 · 127.0.0.1:1883 · 0 ms 01:11:05",
-      "http": "测文件服务：文件服务可达 · http://127.0.0.1:4101/assets/archives · HTTP 200 · 4 ms 01:11:06"
+      "at": "2026-09-18T01:22:41.227Z",
+      "mqtt": "测 MQTT：目标可达 · 127.0.0.1:1883 · 0 ms 09:22:40",
+      "http": "测文件服务：目标可达 · http://127.0.0.1:4100/assets/archives · HTTP 200 · 3 ms 09:22:41"
     },
     {
       "name": "activate",
-      "at": "2026-09-15T17:11:08.873Z",
-      "backendActive": "363418e6-8c07-4048-84bf-051f21d04ff6",
+      "at": "2026-09-18T01:22:43.870Z",
+      "runtimeEnvId": "env-1789694558",
+      "ledgerEnvId": "env-1789694558",
       "matchesDemoEnv": true,
       "runtime": {
         "active": true,
-        "env_id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+        "active_task_count": 9,
+        "env_count": 2,
+        "env_id": "env-1789694558",
+        "mode": "standalone-real",
         "mqtt_connected": true,
         "relay": true,
-        "status": "success"
+        "relay_location": "local-a",
+        "relay_mqtt_host": "127.0.0.1",
+        "relay_mqtt_port": 1883,
+        "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+        "running": true,
+        "site_count": 1,
+        "success": true
       },
-      "banner": "激活环境：已写入配置文件并启动 watcher + MQTT 订阅。 01:11:07"
+      "runtime_config": {
+        "changed": true,
+        "keys": [
+          "mqtt_host",
+          "mqtt_port",
+          "file_server_host",
+          "location",
+          "location_dbs"
+        ],
+        "path": "runtime/local-collab/site-a/DbOption.toml"
+      },
+      "dialog": "确认激活环境 将把环境「演示环境-总部中继」设为后端当前运行环境：plant-web-server 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写进本站 DbOption.toml（环境上没有的键不动），再起 / 重建中继运行态（MQTT 订阅 + 源文件轮询），立即生效；旧 plant-model-gen 后端会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅。 取消 确定",
+      "banner": "激活环境：成功 09:22:42"
     },
     {
       "name": "apply",
-      "at": "2026-09-15T17:11:09.877Z",
-      "banner": "应用配置：已写入配置文件。部分运行期组件需重启或重新加载配置后生效。 01:11:09"
+      "at": "2026-09-18T01:22:44.742Z",
+      "dialog": "确认应用环境配置 将把环境「演示环境-总部中继」应用为后端当前配置：plant-web-server 只把它标记为当前环境并记一条 apply 任务，不写 DbOption.toml、不动运行态——要让连接参数落盘生效请用「激活」；旧 plant-model-gen 后端会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入 DbOption.toml，但不重启运行态。 取消 确定",
+      "banner": "应用配置：成功 09:22:44",
+      "runtimeUnchanged": true,
+      "runtime": {
+        "active": true,
+        "active_task_count": 10,
+        "env_count": 2,
+        "env_id": "env-1789694558",
+        "mode": "standalone-real",
+        "mqtt_connected": true,
+        "relay": true,
+        "relay_location": "local-a",
+        "relay_mqtt_host": "127.0.0.1",
+        "relay_mqtt_port": 1883,
+        "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+        "running": true,
+        "site_count": 1,
+        "success": true
+      }
     },
     {
       "name": "site-actions",
-      "at": "2026-09-15T17:11:16.907Z",
+      "at": "2026-09-18T01:22:51.903Z",
       "rowCount": 1,
       "autoHost": "http://localhost:4179",
       "probeBefore": {
         "summary": "不可达",
-        "title": "后端探测：metadata.json 返回异常状态: 404 Not Found · http://localhost:4179/metadata.json · HTTP 404 · 2 ms"
+        "title": "后端探测：目标不可达：HTTP 404 · http://localhost:4179/metadata.json · HTTP 404 · 5 ms"
       },
       "newHost": "http://127.0.0.1:4101/files/output",
       "savedToBackend": true,
       "probeAfter": {
-        "summary": "可达 · 4 ms",
-        "title": "后端探测：metadata.json 可达 · http://127.0.0.1:4101/files/output/metadata.json · HTTP 200 · 4 ms"
+        "summary": "可达 · 3 ms",
+        "title": "后端探测：目标可达 · http://127.0.0.1:4101/files/output/metadata.json · HTTP 200 · 3 ms"
       }
     },
     {
       "name": "stop-runtime",
-      "at": "2026-09-15T17:11:20.775Z",
-      "pill": "运行时 · 未激活",
+      "at": "2026-09-18T01:22:55.725Z",
+      "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
       "runtime": {
         "active": false,
+        "active_task_count": 10,
+        "env_count": 2,
         "env_id": null,
+        "mode": "standalone-real",
         "mqtt_connected": true,
         "relay": false,
-        "status": "success"
-      }
+        "relay_location": null,
+        "relay_mqtt_host": null,
+        "relay_mqtt_port": null,
+        "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+        "running": true,
+        "site_count": 1,
+        "success": true
+      },
+      "ledgerEnvId": "env-1789694558"
     }
   ],
   "apiCalls": [
@@ -173,33 +251,33 @@
     "GET /api/site/info",
     "POST /api/remote-sync/envs/import-from-dboption",
     "GET /api/remote-sync/envs",
-    "GET /api/remote-sync/envs/27c6e433-23d9-45b9-acd2-dc53d4238e67/sites",
+    "GET /api/remote-sync/envs/dboption-local-a/sites",
     "GET /api/site-config/server-ip",
     "GET /api/site-config/server-ip",
     "POST /api/remote-sync/envs",
     "GET /api/remote-sync/envs",
-    "GET /api/remote-sync/envs/27c6e433-23d9-45b9-acd2-dc53d4238e67/sites",
-    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
-    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/remote-sync/envs/dboption-local-a/sites",
+    "POST /api/remote-sync/envs/env-1789694558/sites",
+    "GET /api/remote-sync/envs/env-1789694558/sites",
     "GET /api/health",
-    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-mqtt",
-    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-http",
-    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/activate",
+    "POST /api/remote-sync/envs/env-1789694558/test-mqtt",
+    "POST /api/remote-sync/envs/env-1789694558/test-http",
+    "POST /api/remote-sync/envs/env-1789694558/activate",
     "GET /api/remote-sync/runtime/status",
     "GET /api/remote-sync/envs",
-    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "GET /api/remote-sync/envs/env-1789694558/sites",
     "GET /api/health",
-    "POST /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/apply",
-    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+    "POST /api/remote-sync/envs/env-1789694558/apply",
+    "GET /api/remote-sync/envs/env-1789694558/sites",
     "GET /api/health",
-    "POST /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
-    "PUT /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
-    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
-    "POST /api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+    "POST /api/remote-sync/sites/site-1789694558/test-http",
+    "PUT /api/remote-sync/sites/site-1789694558",
+    "GET /api/remote-sync/envs/env-1789694558/sites",
+    "POST /api/remote-sync/sites/site-1789694558/test-http",
     "POST /api/remote-sync/runtime/stop",
     "GET /api/remote-sync/runtime/status",
     "GET /api/remote-sync/envs",
-    "GET /api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites"
+    "GET /api/remote-sync/envs/env-1789694558/sites"
   ],
   "writes": [
     {
@@ -219,42 +297,42 @@
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/sites",
+      "path": "/api/remote-sync/envs/env-1789694558/sites",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-mqtt",
+      "path": "/api/remote-sync/envs/env-1789694558/test-mqtt",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/test-http",
+      "path": "/api/remote-sync/envs/env-1789694558/test-http",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/activate",
+      "path": "/api/remote-sync/envs/env-1789694558/activate",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/363418e6-8c07-4048-84bf-051f21d04ff6/apply",
+      "path": "/api/remote-sync/envs/env-1789694558/apply",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+      "path": "/api/remote-sync/sites/site-1789694558/test-http",
       "status": 200
     },
     {
       "method": "PUT",
-      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+      "path": "/api/remote-sync/sites/site-1789694558",
       "status": 200
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/sites/0b494ed5-4ba5-4f49-8f97-a120bc5b6e54/test-http",
+      "path": "/api/remote-sync/sites/site-1789694558/test-http",
       "status": 200
     },
     {
@@ -263,49 +341,126 @@
       "status": 200
     }
   ],
+  "activations": [
+    {
+      "envId": "env-1789694558",
+      "status": 200,
+      "relay": true,
+      "runtime_config": {
+        "changed": true,
+        "keys": [
+          "mqtt_host",
+          "mqtt_port",
+          "file_server_host",
+          "location",
+          "location_dbs"
+        ],
+        "path": "runtime/local-collab/site-a/DbOption.toml"
+      }
+    }
+  ],
   "consoleErrors": [
     "Failed to load resource: the server responded with a status of 404 (Not Found)",
     "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "pageErrors": [],
-  "demoEnvId": "363418e6-8c07-4048-84bf-051f21d04ff6",
-  "importedEnvId": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+  "demoEnvId": "env-1789694558",
+  "importedEnvId": "dboption-local-a",
+  "importedPreexisted": false,
   "cleanup": {
     "steps": [
       {
         "name": "delete-site",
-        "id": "0b494ed5-4ba5-4f49-8f97-a120bc5b6e54",
+        "id": "site-1789694558",
         "status": 200
       },
       {
         "name": "delete-demo-env",
-        "id": "363418e6-8c07-4048-84bf-051f21d04ff6",
+        "id": "env-1789694558",
         "status": 200
       },
       {
-        "name": "apply-dboption-snapshot",
-        "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
-        "status": 200
+        "name": "create-restore-env",
+        "id": "env-1789694576",
+        "status": 200,
+        "config": {
+          "mqtt_host": "127.0.0.1",
+          "mqtt_port": 1883,
+          "file_server_host": "http://127.0.0.1:4100/assets/archives",
+          "location": "local-a",
+          "location_dbs": [
+            6000
+          ]
+        }
+      },
+      {
+        "name": "activate-restore-env",
+        "id": "env-1789694576",
+        "status": 200,
+        "runtime_config": {
+          "changed": true,
+          "keys": [
+            "mqtt_host",
+            "mqtt_port",
+            "file_server_host",
+            "location",
+            "location_dbs"
+          ],
+          "path": "runtime/local-collab/site-a/DbOption.toml"
+        }
+      },
+      {
+        "name": "activate-restore-env-verify",
+        "id": "env-1789694576",
+        "status": 200,
+        "runtime_config": {
+          "changed": false,
+          "keys": [
+            "mqtt_host",
+            "mqtt_port",
+            "file_server_host",
+            "location",
+            "location_dbs"
+          ],
+          "path": "runtime/local-collab/site-a/DbOption.toml"
+        }
       },
       {
         "name": "stop-runtime",
         "status": 200
       },
       {
-        "name": "delete-snapshot-env",
-        "id": "27c6e433-23d9-45b9-acd2-dc53d4238e67",
+        "name": "delete-restore-env",
+        "id": "env-1789694576",
+        "status": 200
+      },
+      {
+        "name": "delete-imported-env",
+        "id": "dboption-local-a",
         "status": 200
       }
     ],
+    "tomlChangedByRun": true,
+    "configRestored": true,
     "envIdsRestored": true,
-    "activeRestored": true,
+    "runtimeRestored": true,
+    "ledgerRestored": true,
     "leftoverEnvIds": [],
     "runtimeAfter": {
       "active": false,
+      "active_task_count": 11,
+      "env_count": 0,
       "env_id": null,
+      "mode": "standalone-real",
       "mqtt_connected": true,
       "relay": false,
-      "status": "success"
+      "relay_location": null,
+      "relay_mqtt_host": null,
+      "relay_mqtt_port": null,
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+      "running": true,
+      "site_count": 0,
+      "success": true
     }
   },
   "ok": true,
