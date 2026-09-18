@@ -31,7 +31,8 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-18 早 · 把 09-17 落地但一直没提交的 P1 / P2 分三个提交推完：0f594bf feat /ledger 视图 + relayLedgerApi · 24c8617 test RL-01–08 / RL-L0–L3 + LS-25（25/25） · a892b6e docs 方案执行记录 / CHANGELOG / 报告 §3.6
+上一次推送: 2026-09-18 早 · c1c6424 双站点环境不再依赖 plant-model-gen（setup / smoke 脚本 + 文档，配 pws d7da7b3）
+                 ↑ 同日更早已推：0f594bf feat /ledger 视图 + relayLedgerApi · 24c8617 test RL-01–08 / RL-L0–L3 + LS-25（25/25） · a892b6e docs 方案执行记录 / CHANGELOG / 报告 §3.6 · 182cce5 仓状态
                  ↑ 2026-09-17 早已推：f1475de 台账读侧方案 P0 执行记录（pws b61b7ca）+ CHANGELOG
                  ↑ 2026-09-16 晚已推：1a9eb39 方案「后记」 · 0b2a1ee activate 应用 env（pws 581052a） · 0560f58 relay 单测 19/19（pws d8a9ca4） · dd0cd5d 台账读侧方案草案
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
