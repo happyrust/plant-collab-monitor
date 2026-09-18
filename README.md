@@ -83,15 +83,16 @@ VITE_API_TARGET=http://staging.example.com:3100
 ```
 src/
 ├── main.ts                    # pinia + vue-router 注入（naive-ui 改为按需引入，详见 vite.config.ts）
-├── App.vue                    # 侧栏 + 11 route 布局
+├── App.vue                    # 侧栏 + 12 route 布局
 ├── env.d.ts                   # Vite + import.meta.env 类型
 ├── styles/main.css            # tailwind + 全局样式
-├── router/index.ts            # 11 条路由 + afterEach 标题
+├── router/index.ts            # 12 条路由 + afterEach 标题
 ├── api/                       # axios 层（全类型化）
 │   ├── http.ts                # 基础 axios + admin token interceptor
 │   ├── adminAuthApi.ts        # /api/admin/auth/* (login/logout/me)
 │   ├── syncApi.ts             # /api/sync/*
 │   ├── remoteSyncApi.ts       # /api/remote-sync/* (admin-gated · env/site CRUD + apply/activate/test-mqtt/test-http/runtime + tasks/logs/stats)
+│   ├── relayLedgerApi.ts      # /api/remote-sync/ledger/*（只读 5 端点：list/get/changes/summary/watermarks · 仅 plant-web-server ≥ b61b7ca · 2026-09-17）
 │   ├── mqttApi.ts             # /api/mqtt/*
 │   ├── siteConfigApi.ts       # /api/site-config/*
 │   ├── deploymentSitesApi.ts  # /api/deployment-sites（公开只读 list/get · 2 endpoint）
@@ -118,9 +119,10 @@ src/
 │   └── charts/                # 全 ts + 空状态 echarts graphic
 │       ├── SiteStatusChart.vue
 │       └── SyncTrendChart.vue
-└── views/                     # 11 个一级视图（全部接入真 API，无 placeholder 壳）
+└── views/                     # 12 个一级视图（全部接入真 API，无 placeholder 壳）
     ├── DashboardView.vue          # 6 卡片 + 2 chart + 最近事件 · useDashboardSummary
     ├── TopologyView.vue           # 异地拓扑 CRUD + 部署动作（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http + 编辑）· meta.requiresAdmin
+    ├── RelayLedgerView.vue        # 中继台账：广播 / 接收记录 + 服务端分页筛选 + 抽屉 RefNo 级变更清单 + 水位 · meta.requiresAdmin（2026-09-17）
     ├── TopologyVisualizationView.vue  # SVG 节点拓扑可视化 · meta.requiresAdmin
     ├── TasksView.vue              # 任务队列 · syncApi.queue
     ├── SyncHistoryView.vue        # 同步历史时间线 · ts
@@ -227,6 +229,7 @@ location /ws/ {
 | Phase 25 | 键盘快捷键（Alt+D 主题, Alt+B 侧栏）| ✅ |
 | Phase 26 | Desktop 通知（Notification API）| ✅ |
 | 2026-09-14 · 部署动作面 | `remoteSyncApi` 补齐 apply / activate / test-mqtt / test-http / sites test-http / updateSite / import-from-dboption / tasks / env config；`TopologyView` 新增运行时状态 pill + 停止运行时、环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」、站点「test-http / 编辑」、环境列表「从 DbOption 导入」；`deploymentSitesApi` 收敛为后端实际存在的 list / get | ✅（计划：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`）|
+| 2026-09-17 · 中继台账 | 新视图 `/ledger`（admin）：汇总 chips + 30 s 自动刷新、方向 / 校验状态多选 / 文件名前缀 / 时间范围 / msg_id 筛选、服务端分页 50/页、点行开抽屉看全字段与 **RefNo 级变更清单**（200/页、种类 / 前缀筛选、复制本页、截断提示）、inbound 行指回广播方、水位面板；两种后端都不炸（pmg / 旧 pws 404 → 「该后端不提供台账 API」，库没建表 → 「台账表尚未建立」）。`relayLedgerApi` 对应 pws `b61b7ca` 的 5 个只读端点。用例：mock `RL-01–08`、live `RL-L0–L3`、双站点 `LS-25` | ✅（方案：`docs/plans/2026-09-17-relay-ledger-read-api-plan.md`）|
 
 ## 相关文档
 

@@ -6,6 +6,7 @@
 > 同一天早一点的无 broker 一跑是 20/24（§3.1），装上 Mosquitto 后 §3.2 全绿。结果 JSON：`local-remote-collab-smoke-result.json` / `local-remote-collab-fixture-result.json`（覆盖了 2026-05-17 的旧结果）。
 > **23:33 由接手会话独立复验：连跑两次 24/24（§3.3），且两站的 SurrealDB 端口都指向无人监听处。复验过程中发现并修掉了 smoke 自己的两个缺陷（与产品无关），LS-24 因此比 22:23 那一跑更严格——现在要求 B 收到的就是 A 本轮那条消息。结果 JSON 是复验这一跑写的。**
 > **2026-09-16 00:54 补跑只读控制面 live smoke（`topology-deploy-live-smoke.mjs`）打到中继模式的 Site A：LR-00–LR-06 三跑各 7/7（§3.4）。同时记下一点：中继站点仍会尝试连 SurrealDB 并失败，「不需要 SurrealDB」指的是中继链路，校审等接口在这套环境里不可用。**
+> **2026-09-16 站点后端换成 `plant-web-server`，同一对进程连跑三次 24/24（§3.5）。2026-09-17 台账读侧 API（pws `b61b7ca`）上线后用例扩到 25 项（LS-25）：07:11 首跑 25/25，23:20 重编 exe 后复跑 25/25（§3.6）；结果 JSON `local-remote-collab-smoke-result-pws-ledger.json` 是复跑这一份。**
 
 ## 1. 这次改了什么
 
@@ -125,6 +126,30 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -
 | B clone 全部 `clone_failed: Failed to read archive at .../assets/archives/...` | `plant-web-server` 根本没有 `/assets/archives` 路由，对端下载 CBA 必然 404；`/files/output` 也固定指 `<repo_root>/output`，两站会指到同一个目录 | 补 `/assets/archives` 静态路由；`/files/output` 改为按配置的 `output_root` |
 
 顺带一提，`plant-web-server` 启动时也会碰一下 SurrealDB（`MbdService`），但它**失败即返回、不重试**，只打一行 `MBD V2 data source unavailable at startup`——不是 §3.4 里那 15 s。
+
+### 3.6 台账读侧 API 上线后的 25 项（2026-09-17 · 07:11 首跑 25/25 · 23:20 重编后复跑 25/25 · 各 32 s）
+
+`plant-web-server` `b61b7ca` 加了 `/api/remote-sync/ledger/*` 五个只读端点（方案 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md`），smoke 随之加 **LS-25 `relay-ledger-api`**：拿 LS-23 那条广播的 `msg_id`，核 A 的 `GET ledger?direction=outbound&msg_id=…` 恰 1 行 `ok` 且 `changes_count` / `rows/{id}/changes.total` 与 `sqlite3` 数出的 `e3d_sync_changes` 行数一致，再核 B 的 `GET ledger?direction=inbound&msg_id=…` 恰 1 行 `ok`、`sesno_seen == sesno_to`（后端没这组端点 → skipped）。通过线 ≥ 23/25。
+
+两跑都是 **25 / 0 / 0**，两站都是 `b61b7ca` 的 `plant-web-server.exe`，broker 是 Mosquitto 服务：
+
+| 跑 | 时间 | 说明 |
+|---|---|---|
+| 首跑 | 2026-09-17 07:10:56–07:11:28 | P1 / P2 落地那一轮；同一会话里 mock RL-01–08 8/8、live RL-L0–L3 4/4（`relay-ledger-smoke-result.json` / `relay-ledger-live-result.json`） |
+| 复跑 | 2026-09-17 23:20:09–23:20:41 | 接手会话核查进度时发现 `D:\Rust\target\debug\plant-web-server.exe` 已不在（debug 目录 19:43 有过改动），`cargo build --bin plant-web-server` 重编（161 s，无 error、本仓无新增 warning）后用有尽头脚本起两站 → 跑 smoke → 停两站；`npm run type-check` 同轮重跑 0 errors |
+
+复跑的 LS-23 / 24 / 25 证据（报告 `details`）：
+
+| 项 | 值 |
+|---|---|
+| A 广播 | 日志 `relay-sync 已广播 dbnum=6000 scb6000_0001: sesno 32 -> 33 diff=ok (+10 -0 ~2) changes=12`；台账 `outbound / ok / msg_id b3bf6063…`，`e3d_sync_changes` 12 行（首条 `22384/33238`） |
+| B 收包 | `MQTT 收包校验通过 scb6000_0001: sesno=33`；台账 `inbound / ok / sesno_to 33 = sesno_seen 33 / 同一 msg_id`（A 发出后 1 s 内）；B 副本从 2 398 720 B 还原到 2 398 208 B，SHA256 与 A 的源一致 |
+| LS-25 | A `GET ledger` total 1 · `verify_status ok` · `changes_count 12` == sqlite3 12；`rows/{id}/changes` total 12；B `GET ledger` total 1 · ok · `sesno_seen 33 == sesno_to 33` |
+| 收尾 | 两 env stop + delete ok；两站进程已停、4100 / 4101 空闲；两站 `DbOption.toml` 跑前跑后 SHA256 一致 |
+
+结果 JSON：`docs/e2e-smoke/local-remote-collab-smoke-result-pws-ledger.json`（**复跑这一份**，覆盖了 07:11 首跑写的同名文件；`-pws.json` 与 `-result.json` 两份没动）。
+
+顺带：B 一订阅就先把 broker 的 retained 消息收了一遍（`f5855c17…`，07:11 那一跑的广播），再收本轮那条——§5 记过的既有行为，LS-24 / LS-25 都按 `msg_id` 判，不受影响。B 台账里 2 行 `clone_failed` 是 2026-09-16 01:09 `plant-model-gen` 时期的旧行（那时 pws 还没有 `/assets/archives` 路由，见 §3.5 那张表），与这两跑无关。
 
 ### 3.1 无 broker（21:48 · 20/24，仅作对照）
 

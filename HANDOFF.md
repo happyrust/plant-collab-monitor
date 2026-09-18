@@ -6,7 +6,7 @@
 
 ## 一句话
 
-前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）** · **四层自动化用例全覆盖，并有一份真浏览器 + 真后端跑出来的操作教程（2026-09-16）**。
+前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）** · **四层自动化用例全覆盖，并有一份真浏览器 + 真后端跑出来的操作教程（2026-09-16）** · **中继台账 `/ledger` 视图：点任意一次广播看 RefNo 级变更清单，双站点 smoke 扩到 25/25（2026-09-17）**。
 
 ---
 
@@ -15,11 +15,11 @@
 | 想做什么？ | 起手命令 / 文档 |
 |---|---|
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
-| **接着做中继台账「变更清单」视图（P1 前端 → P2 用例）** | `docs/plans/2026-09-17-relay-ledger-read-api-plan.md`：P0 后端读侧已在 pws `b61b7ca` 落地（5 个 `GET /api/remote-sync/ledger/*`，实际形状看 §8 那张表）；P1 = `src/api/relayLedgerApi.ts` + `src/views/RelayLedgerView.vue`（`/ledger`，admin）+ 路由 / 侧栏 / README / AGENTS §4.3；P2 = `scripts/relay-ledger-smoke.mjs`（mock RL-01–06 + live RL-L1–L3）+ 双站点 LS-25。对着 site-a（`:4100`，真台账 16 行 / 324 变更）就能开发 |
+| **看 / 跑中继台账「变更清单」视图（`/ledger`，2026-09-17 已落地）** | 方案与执行记录 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §8；mock 用例 `npm run smoke:relay-ledger`（RL-01–08，缺 dist 自动 build，改了视图加 `-- --build`）；真后端只读 `npm run smoke:relay-ledger:live -- --api http://127.0.0.1:4100`（RL-L0–L3，先按 `COMMANDS.md` 起 Site A）；双站点 smoke 现在 **25 项**（LS-25 核读侧 API 与 sqlite3 一致）。后端要 pws ≥ `b61b7ca`，否则视图显示「该后端不提供台账 API」 |
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
 | **看 / 重出异地部署操作教程（19 张图，每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md`；改了 `/topology` 先 `npm run smoke:topology-deploy`，再 `npm run tutorial:topology-deploy` 重出图 + 文；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
 | **要一份「真后端实操」的教程 / Word（16 张图，截图里都是真响应）** | 先起本机两站（`COMMANDS.md`），再 `npm run tutorial:topology-deploy:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` → `docs/tutorials/topology-deploy-live-tutorial.md`，Word 版 `npm run docx:topology-deploy:live`。它**会真的改后端**（建 env、激活、写 `DbOption.toml`），跑完自动复原，**只对隔离环境跑** |
-| **跑本机双站点 smoke（中继模式 · 24 项 · 已 24/24）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查；**默认 `-Backend pws`**，要回旧后端加 `-Backend pmg`）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**。站点后端是 `../plant-web-server`（`cargo build --bin plant-web-server`）。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4 / §3.5，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
+| **跑本机双站点 smoke（中继模式 · 25 项 · 已 25/25）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查；**默认 `-Backend pws`**，要回旧后端加 `-Backend pmg`）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**。站点后端是 `../plant-web-server`（`cargo build --bin plant-web-server`）。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4 / §3.5–3.6，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
 | **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md) |
@@ -36,7 +36,7 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
 本地与 origin/main: 一致，工作树无本仓待提交改动
-type-check: 0 errors（2026-09-16 `npm run type-check` 实跑，5 s）
+type-check: 0 errors（2026-09-17 `npm run type-check` 实跑，5 s）
 
 站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = b61b7ca（2026-09-17 台账读侧 API）
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓（6 条提交），**故意不建远端**——这个仓待废弃
@@ -93,7 +93,7 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 6. ~~**中继模式下站点仍会去连 SurrealDB 并失败**~~ → 2026-09-16 换了根治路径：**中继实现已搬进 `plant-web-server`**（`src/relay/`，约 2800 行），站点后端改用它，不再拖着模型库 / 校审那半个产品，那 15 s 重试与「review 专用数据库初始化失败」随之消失。
 7. ~~**本机双站点 24 项 smoke 还没换到新后端**~~ → 2026-09-16 已换：`local-remote-collab-setup.ps1` 默认 `-Backend pws`，两站都用 `plant-web-server.exe`，**同一对进程里连跑三次 24/24**（见报告 §3.5，结果 JSON `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`）。换的过程括出并修掉三个缺陷，其中「重新激活会把 MQTT 订阅弄死（`Unsolicited pubrel`）」那条 **`plant-model-gen` 里那份同样有**。
 8. ~~**`plant-model-gen` 里那份中继实现还留着**~~ → 2026-09-16 已删：`relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关全部移除，`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」。`sync_ledger` / `mqtt_file_sync` / `SyncE3dFileMsg`（含 `file_sesnos`）留着——完整站点仍要收发 MQTT 源文件并记这本账，线格式也要跟 `plant-web-server` 保持兼容。`cargo check --bin web_server --features web_server,mqtt` 通过（2 m 45 s）。
-9. **中继台账读侧只做了后端（P0，pws `b61b7ca`）**：监控台还没有「中继台账」视图，`/api/remote-sync/ledger/*` 五个端点目前只能 curl。P1 前端 + P2 用例见 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §4 / §8（实际响应形状以 §8 那张表为准）。
+9. ~~**中继台账读侧只做了后端（P0，pws `b61b7ca`）**~~ → 2026-09-17 同日 P1 / P2 也落地：`/ledger`「中继台账」视图 + `relayLedgerApi` + mock RL-01–08 / live RL-L0–L3 / 双站点 LS-25（25/25）。方案 §6 的后续建议（台账保留策略、导出、Dashboard 卡、元素级查询、服务端鉴权）仍未立项。
 
 ---
 

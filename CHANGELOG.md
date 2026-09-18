@@ -8,11 +8,22 @@
 
 ## 2026-09-17
 
+### Added · 新视图 `/ledger`「中继台账」+ `relayLedgerApi` + 三层用例（方案 P1 / P2）
+
+> 方案 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` 的前端那一半与用例；后端 P0 见下一节。到这一步，「站点能回答变更清单级别的查询」在监控台里闭环：
+> 点任意一次广播就能看它改了哪些 RefNo。
+
+- `src/api/relayLedgerApi.ts`：`list / get / changes / summary / watermarks` 5 方法 + 全部响应类型；`isLedgerUnavailable()`（404 或 `status:'not_implemented'` → 「该后端不提供台账 API」）、`isLedgerNotInitialized()`（`note: 'ledger_not_initialized'`）、`parseChangesTruncated()`（`verify_detail` 里的 `changes_truncated:<n>`）。数组参数拼逗号（后端认 `verify_status=ok,skipped`，不认 axios 默认的 `k[]=`）。
+- `src/views/RelayLedgerView.vue`（admin，侧栏「同步历史」之后）：汇总 chips（广播 ok / 接收 ok / 问题行 / 变更总数 / 最近广播 · 接收 / 水位）+ 30 s 自动刷新；筛选栏（方向 · 校验状态多选 · 文件名前缀 · 时间范围 · msg_id）变化即回第 1 页；`NDataTable remote` 服务端分页 50/页；点行开抽屉——上半全字段（msg_id 可复制 / 按 msg_id 过滤列表 / `verify_detail` 原文），下半 outbound 的 **RefNo 级变更清单**（200/页、种类筛选带计数、RefNo 前缀、复制本页；清单被截断时显示 `已落库 20000 / n（截断）`），inbound 行改成「接收方不记清单，见广播方同一 msg_id」；水位面板默认收起、展开才请求；三种空态（没数据 / 表没建 / 后端没这 API / 请求失败）两种后端都不炸。
+- 用例：`scripts/relay-ledger-smoke.mjs`（`npm run smoke:relay-ledger` mock 三变体 **RL-01–08**：pws 真形状 6 例 · pws 库没建表 1 例 · pmg 404 1 例；`smoke:relay-ledger:live` 真后端只读 **RL-L0–L3**，安全闸拦一切非 GET）；`local-remote-collab-smoke.ps1` 加 **LS-25 `relay-ledger-api`**（对着 LS-23 的 msg_id 核读侧 API 与 sqlite3 一致，后端 404 → skipped）。用例表 `docs/e2e-smoke/remote-deploy-auto-test-cases.md` §8、选择器契约 §7、`local-remote-collab-test-plan.md` §6 第 25 行。
+- 验证：`type-check` 0 errors；mock **8/8**；live 对 Site A **4/4**；双站点 **25/25（07:11，32 s）**——LS-25 里 A 的列表行 / 清单 total（12）与 sqlite3 一致、B 的 inbound 行 `sesno_seen 33 == sesno_to 33`。**23:20 复跑再 25/25（32 s）**：接手会话核查进度时发现 `D:\Rust\target\debug\plant-web-server.exe` 已不在，按 `b61b7ca` 重编（161 s，无 error、本仓无新增 warning）后起两站复跑，`type-check` 同轮重跑 0 errors；仓内 `local-remote-collab-smoke-result-pws-ledger.json` 现在是复跑这一份（报告 `2026-09-15-sqlite-only-collab-smoke-report.md` §3.6）。
+- README「项目结构」/「状态」表、AGENTS §4.1 守卫视图（`/ledger`）/ §4.3 API 表 / §6 入口对齐。
+
 ### Added · `plant-web-server` 台账读侧 API：`/api/remote-sync/ledger/*` 五个只读端点（跨仓，方案 P0）
 
 > 方案 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md`（00:17 批准，§7 八条默认全接受）的后端那一半。
 > 台账三张表此前只写不读，只能 `sqlite3` 看；现在监控台能对着 pws 直接查广播 / 接收记录与 RefNo 级变更清单。
-> pws 提交 `b61b7ca`。P1（视图 `/ledger`「中继台账」+ `relayLedgerApi.ts`）与 P2（mock / live / LS-25 用例）待做。
+> pws 提交 `b61b7ca`。P1（视图 `/ledger`「中继台账」+ `relayLedgerApi.ts`）与 P2（mock / live / LS-25 用例）见上一节。
 
 - 新模块 `src/relay/ledger_query.rs`：只读连接、**读侧不建表**（库不存在 / 表不全 → 空结果 + `note: "ledger_not_initialized"`）、参数白名单（枚举与 `ledger.rs` 一一对应，单测盯着）、SQL 全绑定、`LIKE` 前缀转义、`limit / offset` 夹取。端点：`GET ledger`（分页 + `direction / verify_status`（逗号多选）`/ diff_status / file_name` 前缀 `/ location / msg_id / since / until`，每行带 `changes_count`）、`ledger/rows/{id}`（+ `kinds` 四计数）、`ledger/rows/{id}/changes`（`kind / refno` 前缀 / 分页 ≤ 2000）、`ledger/summary`（方向 × 状态计数、总量、`problems_total` + 最近 5 条问题行、水位数、最近一次广播 / 接收）、`ledger/watermarks`。
 - 错误形状 `{success:false, status:"invalid_param" | "not_found" | "query_failed", message}`——**不会**是 `not_implemented`，前端 `isLedgerUnavailable` 照旧只认那个值。`remote_sync_route` 把 **GET** 的 query string 合进 payload（POST / PUT 不合，免得混进落盘的 env）。§7 第 7 条已做：`relay::start` 成功后预建三张表。

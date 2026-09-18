@@ -1,7 +1,7 @@
 # 中继台账读侧 API + 监控台「变更清单」开发方案（2026-09-17）
 
-> 状态：**已批准（2026-09-17 00:17，§7 八条默认全部接受）· P0 后端读侧已实施（pws `b61b7ca`，见 §8）· P1 前端 / P2 用例待做**
-> （草案由 fable-5-1-28 于 2026-09-17 00:20 写出；P0 由 fable-5-1-36 于同日 06:46 落地）
+> 状态：**已批准（2026-09-17 00:17，§7 八条默认全部接受）· P0 后端读侧已实施（pws `b61b7ca`）· P1 前端 + P2 用例已实施（本仓，见 §8）**
+> （草案由 fable-5-1-28 于 2026-09-17 00:20 写出；P0 由 fable-5-1-36 于同日 06:46 落地，P1 / P2 同一会话 07:15 前后落地）
 > 范围：`plant-web-server`（站点后端，读侧 API）+ `plant-collab-monitor`（新视图 + API 模块 + 用例）；`plant-model-gen` **不做**（待废弃）
 > 目标读者：接手这项改造的工程师
 > 上游：`docs/plans/2026-09-15-sqlite-only-remote-collab-plan.md` §2 目标 3 与 §7 第 4 条——「P1 只建表不给 API，读侧 API 与 L3 一起下一期」；本方案就是那个「下一期」里不需要 licensed schema 的那一半
@@ -227,3 +227,40 @@ pws `README.md` 加「台账读侧」小节。
 
 **P1 起手**：按上表的实际形状写 `src/api/relayLedgerApi.ts`；`isLedgerUnavailable` 只认 404（pmg）与 `status === 'not_implemented'`
 （pws 老版本）；空态判 `res.note === 'ledger_not_initialized'`。
+
+### P1 前端 + P2 用例 · 已完成（2026-09-17 07:15 前后，本仓）
+
+**P1**（按 §3.2 落地，出入见下）：
+
+- `src/api/relayLedgerApi.ts`：5 方法 `list / get / changes / summary / watermarks` + 类型（`LedgerRowView / LedgerRowDetail / LedgerChange / LedgerWatermark / …Response`）+
+  `isLedgerUnavailable()`（404 的 `ApiError`，或 `success:false && status:'not_implemented'`）、`isLedgerNotInitialized()`、`parseChangesTruncated()`、`isLedgerProblem()`；
+  数组参数拼逗号（axios 默认 `k[]=a&k[]=b` 后端不认）。`api/index.ts` re-export。
+- `src/views/RelayLedgerView.vue`（`/ledger`「中继台账」，`requiresAdmin`；侧栏「任务与日志」组「同步历史」之后）：头部汇总 chips（广播 ok / 接收 ok / 问题行 / 变更总数 /
+  最近广播 / 最近接收 / 水位）+ 「刷新」+ 30 s 自动刷新开关；筛选栏（方向 · 校验状态多选 · 文件名前缀 · 时间范围 全部/1h/24h/7d · **msg_id**）——变化即回第 1 页重查；
+  `NDataTable remote` 服务端分页 50/页（可选 20/50/100/200）：时间 · 方向 tag · 文件 / 来源 · sesno（`sesno_seen ≠ sesno_to` 红标）· diff `+n −n ~n` · 校验 tag（ok 绿 / skipped 灰 /
+  其余红，title 是 `verify_detail`）· 变更数按钮（截断时 `20000 / n（截断）`）· msg_id 前 8 位；点行 / 点变更数开抽屉：上半全字段（msg_id 可复制 + 「按 msg_id 过滤列表」、
+  `verify_detail` 原文），下半 outbound 的**变更清单**（200/页可选 50–500、种类筛选带计数、RefNo 前缀、「复制本页 RefNo」），inbound 行改成说明 + 「按 msg_id 过滤本站列表」；
+  水位面板默认收起、展开才请求；三种空态：`ledger-empty`（没数据 / 表没建，文案不同）、`ledger-unavailable`（404 / not_implemented）、`ledger-error`（rose banner）。
+- 与 §3.2 的出入：筛选栏多了 `msg_id`（抽屉「按 msg_id 过滤」要落到它上）；时间范围不做「自定义」（三档够用，后端 `since/until` 都在，要加只是前端事）；Dashboard 不动（§7.8）。
+- README「项目结构」/「状态」表、AGENTS §4.1 守卫视图 / §4.3 API 表 / §6 入口各加一行。
+
+**P2**：
+
+- `scripts/relay-ledger-smoke.mjs` + `scripts/lib/relay-ledger-mock.mjs`（`npm run smoke:relay-ledger` / `smoke:relay-ledger:live`）：mock 三变体 **RL-01–RL-08**
+  （pws 真形状 6 例 · pws-empty 1 例 · pmg 404 1 例），live 只读 **RL-L0–RL-L3**（安全闸拦一切非 GET）；用例表在 `docs/e2e-smoke/remote-deploy-auto-test-cases.md` §8，
+  选择器契约在同文 §7。
+- `scripts/local-remote-collab-smoke.ps1` 加 **LS-25 `relay-ledger-api`**（`local-remote-collab-test-plan.md` §6 第 25 行）：对着 LS-23 的 `msg_id` 核 A 的列表行 / 清单 total
+  与 sqlite3 一致、B 的 inbound 行恰 1 条 ok；后端 404 → skipped。
+
+**验证**（都是本轮实跑）：
+
+| 项 | 结果 |
+|---|---|
+| `npm run type-check` | 0 errors |
+| `vite build` | 通过（smoke 脚本 `--build` 跑的） |
+| mock `RL-01–RL-08` | **8/8**，pageErrors 0（`docs/e2e-smoke/relay-ledger-smoke-result.json`） |
+| live `RL-L0–RL-L3`（Site A `:4100`，真台账 16 行 / 336 变更 / 1 水位） | **4/4**，安全闸 0 拦截（`relay-ledger-live-result.json`） |
+| 双站点 smoke（两站都是 pws `b61b7ca`，Mosquitto 服务） | **25/25，32 s**（`local-remote-collab-smoke-result-pws-ledger.json`）；LS-25：A `total 1 / ok / changes_count 12 == sqlite3 12`，`rows/{id}/changes.total 12`，B `total 1 / ok / sesno_seen 33 == sesno_to 33` |
+| 无服务 dry-run | 25 项全部落到 failed / skipped、不抛异常（LS-25 skipped：「LS-23 did not reach a broadcast」） |
+
+站点进程都是有尽头脚本起停的，跑完 4100 / 4101 空闲；两站 `DbOption.toml` 由 smoke 自己复原（与 24 项时相同）。

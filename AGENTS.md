@@ -70,7 +70,7 @@ npm run build        # 产物 dist/ · base 默认 /monitor/
   → SSE 流的 useSse 也通过 getToken() 注入 token
 ```
 
-**5 个守卫视图**：`/topology` `/topology-viz` `/mqtt/nodes` `/archives` `/site-config` `/settings`（详见 `router/index.ts` `meta.requiresAdmin`）。
+**守卫视图**：`/topology` `/ledger` `/mqtt/nodes` `/archives` `/site-config` `/settings`（详见 `router/index.ts` `meta.requiresAdmin`；`/topology-viz` 不设门）。
 
 ### 4.2 SSE 双路径
 
@@ -102,8 +102,9 @@ API 模块清单：
 | `incrementalApi` | `/api/incremental/*`（11 endpoint） | 否 |
 | `remoteSyncApi` | `/api/remote-sync/*`（31 方法 · 对应后端 `remote_sync_handlers.rs::create_remote_sync_routes()` 35 路由；含部署动作 `apply / activate / test-mqtt / test-http / runtime/stop`） | **是** |
 | `deploymentSitesApi` | `/api/deployment-sites`（公开只读 `list / get` · 2 endpoint；2026-09-14 收敛，其余 7 个后端不存在） | 否 |
+| `relayLedgerApi` | `/api/remote-sync/ledger/*`（只读 5 方法 `list / get / changes / summary / watermarks`；**只有 `plant-web-server` ≥ 2026-09-17 `b61b7ca` 有**，pmg / 旧版 pws 回 404 → 视图用 `isLedgerUnavailable()` 显示「该后端不提供台账 API」；库没建表回 `note: 'ledger_not_initialized'`；形状见 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §8） | 前端路由门（`/ledger` `requiresAdmin`），后端不校验 |
 
-**API 层与后端路由必须一一对应**：新增方法前先在 `plant-model-gen/src/web_server/*_handlers.rs` 里确认路由真实注册；删掉悬空方法时同步本表与 README「项目结构」。
+**API 层与后端路由必须一一对应**：新增方法前先在后端里确认路由真实注册（pws：`plant-web-server/src/standalone_runtime.rs` 的 `.route(...)` + `standalone_services.rs::RemoteSyncService::handle`；pmg：`plant-model-gen/src/web_server/*_handlers.rs`）；删掉悬空方法时同步本表与 README「项目结构」。
 
 ### 4.3.1 部署动作面（`/topology`，2026-09-14）
 
@@ -203,6 +204,7 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 | SSE 双路径实现 | `src/composables/useSse.ts` |
 | Dashboard 6 卡片 | `src/views/DashboardView.vue` + `src/composables/useDashboardSummary.ts` |
 | 拓扑 CRUD | `src/views/TopologyView.vue` |
+| 中继台账（列表 / 抽屉变更清单 / 水位） | `src/views/RelayLedgerView.vue` + `src/api/relayLedgerApi.ts`；用例 `scripts/relay-ledger-smoke.mjs`（mock + `--live`） |
 | MQTT 节点 + SSE 自动 reload | `src/views/MqttNodesView.vue` |
 | 站点配置编辑器 | `src/views/SiteConfigView.vue` |
 | 全局参数 | `src/views/SettingsView.vue` |
