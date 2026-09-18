@@ -41,7 +41,7 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
 type-check: 0 errors（2026-09-17 `npm run type-check` 实跑，5 s）
 
 站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = d7da7b3（2026-09-18 自带 db_options/DbOption.toml、--repo-root 缺省为自身；上一条 b61b7ca 台账读侧 API）
-旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓（6 条提交），**故意不建远端**——这个仓待废弃
+旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓，HEAD 76b39f6（2026-09-18 删掉本机双站点环境），**故意不建远端**——这个仓待废弃；工作树里只剩 sqlite_spatial_api.rs 那份与本线无关的 WIP
 ```
 
 ---
@@ -96,7 +96,7 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 7. ~~**本机双站点 24 项 smoke 还没换到新后端**~~ → 2026-09-16 已换：`local-remote-collab-setup.ps1` 默认 `-Backend pws`，两站都用 `plant-web-server.exe`，**同一对进程里连跑三次 24/24**（见报告 §3.5，结果 JSON `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`）。换的过程括出并修掉三个缺陷，其中「重新激活会把 MQTT 订阅弄死（`Unsolicited pubrel`）」那条 **`plant-model-gen` 里那份同样有**。
 8. ~~**`plant-model-gen` 里那份中继实现还留着**~~ → 2026-09-16 已删：`relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关全部移除，`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」。`sync_ledger` / `mqtt_file_sync` / `SyncE3dFileMsg`（含 `file_sesnos`）留着——完整站点仍要收发 MQTT 源文件并记这本账，线格式也要跟 `plant-web-server` 保持兼容。`cargo check --bin web_server --features web_server,mqtt` 通过（2 m 45 s）。
 9. ~~**中继台账读侧只做了后端（P0，pws `b61b7ca`）**~~ → 2026-09-17 同日 P1 / P2 也落地：`/ledger`「中继台账」视图 + `relayLedgerApi` + mock RL-01–08 / live RL-L0–L3 / 双站点 LS-25（25/25）。方案 §6 的后续建议（台账保留策略、导出、Dashboard 卡、元素级查询、服务端鉴权）仍未立项。
-10. ~~**双站点环境仍借着 `plant-model-gen`**（模板、`runtime/local-collab/`、两站 `--repo-root`、CBA 目录）~~ → 2026-09-18 全搬到 `../plant-web-server`：它自带模板 `db_options/DbOption.toml`、`--repo-root` 缺省为自身；setup / smoke 脚本与文档对齐，重生成后 25/25。老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）原样留着，可删。监控台对 pmg 响应形状的兼容代码、mock 的 pmg 变体没动——那是兼容，不是依赖。
+10. ~~**双站点环境仍借着 `plant-model-gen`**（模板、`runtime/local-collab/`、两站 `--repo-root`、CBA 目录）~~ → 2026-09-18 全搬到 `../plant-web-server`：它自带模板 `db_options/DbOption.toml`、`--repo-root` 缺省为自身；setup / smoke 脚本与文档对齐，重生成后 25/25。老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）**同日已删**（pmg 本地提交 `76b39f6`：连 `.gitignore` 里为它开的例外、`assets/archives` 里的 fixture 与 `scb6000_0001.cba` 一起清掉；`runtime/backup-2026-09-15/` 与 06-09 的真实 CBA 不动）。监控台对 pmg 响应形状的兼容代码、mock 的 pmg 变体没动——那是兼容，不是依赖。
 
 ---
 

@@ -11,7 +11,7 @@
 ### Changed · 本机双站点环境不再依赖 `plant-model-gen`（跨仓，pws + 本仓脚本）
 
 > `plant-model-gen` 待废弃，但双站点环境一直还借着它：`local-remote-collab-setup.ps1` 以它的 `db_options/DbOption.toml` 为模板、把 site-a/site-b 生成在它的 `runtime/local-collab/`、两站进程 `--repo-root` 指到它、CBA 目录也是它的 `assets/archives`。
-> 现在这四处全部落到 `../plant-web-server` 自己身上，`plant-model-gen` 不再参与；老环境在 `plant-model-gen/runtime/local-collab/` 原样留着（含 09-15 起的台账），可以删。
+> 现在这四处全部落到 `../plant-web-server` 自己身上，`plant-model-gen` 不再参与；老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）同日已删（pmg 本地提交 `76b39f6`，连 `.gitignore` 例外与 `assets/archives` 里的 fixture / `scb6000_0001.cba` 一起清掉）。
 
 - `plant-web-server`（pws `d7da7b3`）：自带站点后端模板 `db_options/DbOption.toml`（中继模式；含 rs-core `DbOption` 全部必填键——它没有 serde 默认值，缺键即起不了中继；新增单测 `relay::tests::bundled_dboption_template_is_a_complete_relay_config` 守住）；`--repo-root` 缺省改为本仓目录（原先是上一级 `plant-code/`，是还长在 plant-model-gen 里时的遗留）；`.gitignore` 加 `assets/archives/`、`assets/temp/`、`output/`；README「Run」/「Runtime Asset Coupling」、AGENTS 对齐。
 - `scripts/local-remote-collab-setup.ps1`：`-BackendRoot` 缺省 `../plant-web-server`（模板、`runtime/local-collab/`、CBA fixture 都在它下面），启动器 `--repo-root` 指它，构建提示同一目录；COMMANDS 第 5 步标 LS-01–25。
