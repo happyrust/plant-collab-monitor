@@ -34,11 +34,11 @@ plant-collab-monitor :4000
 ```
 
 前端只连接 Site A。Site B 作为 Site A 的远端站点加入协同环境；smoke 的 LS-23/24 也会在 Site B 上激活一个 env，让 B 的 MQTT 订阅起来收 A 的广播。
-两个 `web_server` 进程 cwd 都是 `plant-model-gen`，共用其下的 `assets/archives/`（CBA 目录）——这就是为什么 A 的 `file_server_host` 指向 A 自己的 `/assets/archives` 时 B 也能下到。
+两个 `plant-web-server` 进程 cwd（`--repo-root`）都是 `../plant-web-server` 检出目录，共用其下的 `assets/archives/`（CBA 目录）——这就是为什么 A 的 `file_server_host` 指向 A 自己的 `/assets/archives` 时 B 也能下到。**2026-09-18 起整套环境不再碰 `../plant-model-gen`**：模板、运行目录、CBA 目录都在 `plant-web-server` 下（那之前 cwd 与模板都借的是 plant-model-gen）。
 
 ## 3. 配置隔离要求（由生成器落地）
 
-两份配置由 **`scripts/local-remote-collab-setup.ps1`** 从 `../plant-model-gen/db_options/DbOption.toml` 生成（2026-09-14 起，不再手写）：
+两份配置由 **`scripts/local-remote-collab-setup.ps1`** 从 `../plant-web-server/db_options/DbOption.toml`（站点后端自带的模板，含 rs-core `DbOption` 全部必填键）生成（2026-09-14 起不再手写；2026-09-18 起模板换到 plant-web-server）：
 
 ```powershell
 cd D:\work\plant-code\plant-collab-monitor
@@ -46,15 +46,15 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1  
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force   # 覆盖重生成
 ```
 
-产物（全部在 `../plant-model-gen/runtime/local-collab/`，后端不是 git 仓，运行期文件放这里不污染源码）：
+产物（全部在 `../plant-web-server/runtime/local-collab/`；`runtime/` 与 `assets/archives/` 都在 plant-web-server 的 `.gitignore` 里，运行期文件不污染源码）：
 
 | 文件 | 用途 |
 |---|---|
 | `site-a/DbOption.toml` · `site-b/DbOption.toml` | 隔离配置（python `tomllib` 校验通过），**两站都是 `sync_relay_mode = true`** |
 | `site-x/project/<工程>/` | 工程副本：模板 `project_path` 下的 `-IncludedProjects`（默认 `["SCB"]`，19 个文件 · 3 MB）各复制一份，跳过 `cbas/`；两站各读各的，B 收到广播后 clone 写的是自己那份。`-Force` 重新复制；`-ShareProjectPath` 改为两站直接读真实工程（B 的 clone 就会写到真实工程里，慎用） |
-| `site-a/start.ps1` · `site-b/start.ps1` | 站点启动器：设 `ADMIN_USER/ADMIN_PASS/WEB_SERVER_PORT`，cwd 切到 plant-model-gen，跑 `D:\Rust\target\debug\plant-web-server.exe --repo-root <plant-model-gen> --config runtime/local-collab/site-x/DbOption`，并设每站一个的 `PLANT_WEB_RUNTIME_DIR`（缺 exe 回落 `cargo run --bin plant-web-server`） |
+| `site-a/start.ps1` · `site-b/start.ps1` | 站点启动器：设 `ADMIN_USER/ADMIN_PASS/WEB_SERVER_PORT`，cwd 切到 plant-web-server，跑 `D:\Rust\target\debug\plant-web-server.exe --repo-root <plant-web-server> --config runtime/local-collab/site-x/DbOption`，并设每站一个的 `PLANT_WEB_RUNTIME_DIR`（缺 exe 回落 `cargo run --bin plant-web-server`） |
 | `site-x/output/index.html` · `site-x/output/metadata.json` | 文件服务 fixture：`/files/output` 映射到 `output_root`，让 `sites/{id}/test-http`（取 `<http_host>/metadata.json`）探得到 |
-| `../plant-model-gen/assets/archives/index.html` | CBA 目录 fixture：`env.file_server_host` 指向 `<site>/assets/archives`，`envs/{id}/test-http` 对它 GET 要 2xx；ServeDir 对目录请求回这个 index.html |
+| `../plant-web-server/assets/archives/index.html` | CBA 目录 fixture：`env.file_server_host` 指向 `<site>/assets/archives`，`envs/{id}/test-http` 对它 GET 要 2xx；ServeDir 对目录请求回这个 index.html |
 | `mosquitto.conf` · `start-mosquitto.ps1` | `listener 1883 127.0.0.1` + `allow_anonymous true` |
 | `COMMANDS.md` | 下面 §4 的命令清单（含绝对路径，smoke 的 `-SiteASqlite/-SiteBSqlite/-RelayFileA/-RelayFileB` 已填好） |
 
@@ -97,19 +97,19 @@ cd D:\work\plant-code\plant-web-server; cargo build --bin plant-web-server   # �
 `winget` 装的 Mosquitto（2.1.2）会注册服务 `mosquitto`（自动启动）常驻 `127.0.0.1:1883`——默认配置零指令即 local-only 模式，允许匿名，本机 smoke 直接用它就行（`Get-Service mosquitto`）。要用生成的配置自己起一个（stdout 出日志）得先 `Stop-Service mosquitto`，否则 1883 绑不上：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-model-gen\runtime\local-collab\start-mosquitto.ps1
+powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-web-server\runtime\local-collab\start-mosquitto.ps1
 ```
 
 ### 4.2 启动 Site A（:4100 · local-a · 中继 · 自有库 [6000]）
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-model-gen\runtime\local-collab\site-a\start.ps1
+powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-web-server\runtime\local-collab\site-a\start.ps1
 ```
 
 ### 4.3 启动 Site B（:4101 · local-b · 中继 · 自有库 []）
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\start.ps1
+powershell -ExecutionPolicy Bypass -File D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\start.ps1
 ```
 
 验证：`curl http://127.0.0.1:4100/api/site/identity`、`curl http://127.0.0.1:4101/api/site/identity`（`region` 分别是 `local-a` / `local-b`）、`curl http://127.0.0.1:4101/files/output/metadata.json`、`curl http://127.0.0.1:4100/assets/archives/`（200，CBA 目录）。启动日志应有 `⏭️ 跳过 SurrealDB 自启动（auto_start_surreal = false）` 与 `[collab-migrate] e3d_sync_ledger / e3d_sync_changes / relay_sync_watermark 就绪`；activate 后 `runtime/status` 是 `{"active":true,"relay":true}`。
@@ -135,12 +135,12 @@ scripts/local-remote-collab-smoke.ps1
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 `
   -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101 `
-  -FixtureDir D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\output `
+  -FixtureDir D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\output `
   -MosquittoDir "C:\Program Files\mosquitto" `
-  -SiteASqlite D:\work\plant-code\plant-model-gen\runtime\local-collab\site-a\deployment_sites.sqlite `
-  -SiteBSqlite D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\deployment_sites.sqlite `
-  -RelayFileA D:\work\plant-code\plant-model-gen\runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001 `
-  -RelayFileB D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\project\SCB\scb000\scb6000_0001
+  -SiteASqlite D:\work\plant-code\plant-web-server\runtime\local-collab\site-a\deployment_sites.sqlite `
+  -SiteBSqlite D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\deployment_sites.sqlite `
+  -RelayFileA D:\work\plant-code\plant-web-server\runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001 `
+  -RelayFileB D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\project\SCB\scb000\scb6000_0001
 ```
 
 2026-09-15 新增 / 变更参数（中继链路 LS-23/24）：
@@ -149,7 +149,7 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 `
 |---|---|---|
 | `-SiteAArchivesHost` | `<SiteABase>/assets/archives` | 写进 Site A env 的 `file_server_host`。**它的真实语义是「别的站点来我这下载 CBA 的地址」**（A 广播的 `SyncE3dFileMsg.file_server_host` 就是它，B 从 `<它>/<file>.cba` 下载），不是 Site B 的文件服务；`test-http` 对它 GET 要 2xx（生成器放了 `assets/archives/index.html`）。旧参数 `-SiteBFileServerHost` 仍接受，视为它的别名 |
 | `-SiteBArchivesHost` | `<SiteBBase>/assets/archives` | 同上，写进 Site B env |
-| `-SiteASqlite` / `-SiteBSqlite` | `../plant-model-gen/runtime/local-collab/site-x/deployment_sites.sqlite` | 两站的 SQLite；LS-23 在 A 的 `relay_sync_watermark` 回退水位、查 A 的 `e3d_sync_ledger`；LS-24 查 B 的台账 |
+| `-SiteASqlite` / `-SiteBSqlite` | `../plant-web-server/runtime/local-collab/site-x/deployment_sites.sqlite` | 两站的 SQLite；LS-23 在 A 的 `relay_sync_watermark` 回退水位、查 A 的 `e3d_sync_ledger`；LS-24 查 B 的台账 |
 | `-RelayFileA` / `-RelayFileB` | `<site-x>/project/SCB/scb000/scb6000_0001` | 演练文件：A 的源与 B 的副本。文件名（stem）决定回退哪个库；B 的副本会先被追加垃圾字节、clone 后应与 A 的源 SHA256 一致 |
 | `-RelayRewindSessions` | `1` | A 水位回退几个会话（回到会话链上不存在的会话时，e3d-io 用 `AtOrBefore` 取更早的保留会话、全量重报，仍算 ok） |
 | `-RelayDetectIntervalSec` | `5` | 通过 `PUT envs/{id}/config` 把两个 smoke env 的 `detect_interval` 调成这个值（中继轮询周期），免得等 30 s 一轮 |

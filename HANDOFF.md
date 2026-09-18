@@ -19,7 +19,7 @@
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
 | **看 / 重出异地部署操作教程（19 张图，每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md`；改了 `/topology` 先 `npm run smoke:topology-deploy`，再 `npm run tutorial:topology-deploy` 重出图 + 文；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
 | **要一份「真后端实操」的教程 / Word（16 张图，截图里都是真响应）** | 先起本机两站（`COMMANDS.md`），再 `npm run tutorial:topology-deploy:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` → `docs/tutorials/topology-deploy-live-tutorial.md`，Word 版 `npm run docx:topology-deploy:live`。它**会真的改后端**（建 env、激活、写 `DbOption.toml`），跑完自动复原，**只对隔离环境跑** |
-| **跑本机双站点 smoke（中继模式 · 25 项 · 已 25/25）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查；**默认 `-Backend pws`**，要回旧后端加 `-Backend pmg`）→ 按 `../plant-model-gen/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**。站点后端是 `../plant-web-server`（`cargo build --bin plant-web-server`）。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4 / §3.5–3.6，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
+| **跑本机双站点 smoke（中继模式 · 25 项 · 已 25/25）** | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force`（生成 site-a/site-b 配置 + 工程副本 + 启动器 + 前置检查；模板与产物**都在 `../plant-web-server`**：模板 `db_options/DbOption.toml`，产物 `runtime/local-collab/`，2026-09-18 起不再碰 `plant-model-gen`）→ 按 `../plant-web-server/runtime/local-collab/COMMANDS.md` 起 Mosquitto / Site A / Site B → `scripts/local-remote-collab-smoke.ps1`；**不需要 `surreal`**。站点后端是 `../plant-web-server`（`cargo build --bin plant-web-server`）。复跑命令与结果见 `docs/e2e-smoke/2026-09-15-sqlite-only-collab-smoke-report.md` §4 / §3.5–3.6，细节 `docs/e2e-smoke/local-remote-collab-test-plan.md` |
 | 跑一次浏览器 e2e 联调 | 起后端 → `npm run smoke:phase7-plus`（`docs/plans/2026-04-26-phase7-plus-preparation.md`） |
 | 看 mini API smoke 实证 | `docs/e2e-smoke/2026-04-26-mini-api-smoke-report.md`（17/17 PASS） |
 | **看完整变更日志** | [`CHANGELOG.md`](./CHANGELOG.md) |
@@ -39,7 +39,7 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
 本地与 origin/main: 一致，工作树无本仓待提交改动
 type-check: 0 errors（2026-09-17 `npm run type-check` 实跑，5 s）
 
-站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = b61b7ca（2026-09-17 台账读侧 API）
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = d7da7b3（2026-09-18 自带 db_options/DbOption.toml、--repo-root 缺省为自身；上一条 b61b7ca 台账读侧 API）
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓（6 条提交），**故意不建远端**——这个仓待废弃
 ```
 
@@ -49,7 +49,7 @@ type-check: 0 errors（2026-09-17 `npm run type-check` 实跑，5 s）
 
 > **2026-09-16 起，异地协同的站点后端是 `../plant-web-server`**（中继实现在它的 `src/relay/`）。`plant-model-gen` 待废弃：它已经没有中继，只剩完整站点那条路径。下面这一段讲的是 `:3100` 上那个历史实例，仍然有效。
 
-- 本机 `:3100` 现在跑的是 **`../plant-web-server`**（`D:\Rust\target\release\plant-web-server.exe`，2026-09-09 起，`--repo-root ../plant-model-gen --config db_options/DbOption-cursor`，`mode: standalone-real`）。它的 remote-sync 数据在 `plant-web-server/runtime/remote_sync/`，已有 4 个 env（2026-05-23/24 smoke 留下的 `Smoke Env` / `Persistence Env`）。
+- 本机 `:3100` 现在跑的是 **`../plant-web-server`**（`D:\Rust\target\release\plant-web-server.exe`，2026-09-09 起，`--repo-root ../plant-model-gen --config db_options/DbOption-cursor`，`mode: standalone-real`）。它的 remote-sync 数据在 `plant-web-server/runtime/remote_sync/`，已有 4 个 env（2026-05-23/24 smoke 留下的 `Smoke Env` / `Persistence Env`）。**2026-09-18 起 `--repo-root` 缺省就是 `plant-web-server` 自己**、配置模板随仓自带（`db_options/DbOption.toml`），下次重起这个实例不必再指向 `plant-model-gen`（它那份 `DbOption-cursor` 是模型库全量配置，不是站点后端要的）。
 - `plant-model-gen/web_server` 与它路由相同、**响应形状不同**，见 `AGENTS.md` §4.3.2；监控台已两边兼容。
 - 对着 `:3100` 点「激活 / 应用 / 停止运行时」会改真后端的状态，联调前先确认这是不是你要的实例。
 
@@ -95,11 +95,12 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 7. ~~**本机双站点 24 项 smoke 还没换到新后端**~~ → 2026-09-16 已换：`local-remote-collab-setup.ps1` 默认 `-Backend pws`，两站都用 `plant-web-server.exe`，**同一对进程里连跑三次 24/24**（见报告 §3.5，结果 JSON `docs/e2e-smoke/local-remote-collab-smoke-result-pws.json`）。换的过程括出并修掉三个缺陷，其中「重新激活会把 MQTT 订阅弄死（`Unsolicited pubrel`）」那条 **`plant-model-gen` 里那份同样有**。
 8. ~~**`plant-model-gen` 里那份中继实现还留着**~~ → 2026-09-16 已删：`relay_sync.rs`、`relay-sync` feature、`e3d-io` 依赖、`sync_relay_mode` 开关全部移除，`activate` 回到「永远 `ensure_surreal_init` + `watch_incremental`」。`sync_ledger` / `mqtt_file_sync` / `SyncE3dFileMsg`（含 `file_sesnos`）留着——完整站点仍要收发 MQTT 源文件并记这本账，线格式也要跟 `plant-web-server` 保持兼容。`cargo check --bin web_server --features web_server,mqtt` 通过（2 m 45 s）。
 9. ~~**中继台账读侧只做了后端（P0，pws `b61b7ca`）**~~ → 2026-09-17 同日 P1 / P2 也落地：`/ledger`「中继台账」视图 + `relayLedgerApi` + mock RL-01–08 / live RL-L0–L3 / 双站点 LS-25（25/25）。方案 §6 的后续建议（台账保留策略、导出、Dashboard 卡、元素级查询、服务端鉴权）仍未立项。
+10. ~~**双站点环境仍借着 `plant-model-gen`**（模板、`runtime/local-collab/`、两站 `--repo-root`、CBA 目录）~~ → 2026-09-18 全搬到 `../plant-web-server`：它自带模板 `db_options/DbOption.toml`、`--repo-root` 缺省为自身；setup / smoke 脚本与文档对齐，重生成后 25/25。老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）原样留着，可删。监控台对 pmg 响应形状的兼容代码、mock 的 pmg 变体没动——那是兼容，不是依赖。
 
 ---
 
 ## 联系入口
 
 - 异地部署计划与决策记录：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md` §0
-- 后端路由源码（端点以此为准）：`../plant-model-gen/src/web_server/remote_sync_handlers.rs::create_remote_sync_routes()`、`mod.rs`
+- 后端路由源码（端点以此为准）：`../plant-web-server/src/standalone_runtime.rs` 的 `.route(...)` + `standalone_services.rs::RemoteSyncService::handle`（旧 `plant-model-gen/src/web_server/remote_sync_handlers.rs` 仅作形状参考）
 - 历史后端文档（`../plant-model-gen/docs/**`）在当前 checkout 不存在，README「跨仓」表仅作历史记录

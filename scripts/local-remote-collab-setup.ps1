@@ -24,9 +24,11 @@ param(
 
 # 本机双站点异地协同环境生成器（SQLite-only 中继模式 · 方案 P4）
 #
-# 以 ../plant-model-gen/db_options/DbOption.toml 为模板，生成两份彼此隔离的**中继站点**配置：
+# 以 ../plant-web-server/db_options/DbOption.toml（站点后端自带的模板）为模板，生成两份彼此隔离的**中继站点**配置：
 #   <BackendRoot>/runtime/local-collab/site-a/DbOption.toml   (:4100 · location local-a · 自有库 [6000])
 #   <BackendRoot>/runtime/local-collab/site-b/DbOption.toml   (:4101 · location local-b · 自有库 [])
+# BackendRoot 就是 ../plant-web-server 检出目录：既是源码，也是两站进程的 --repo-root（运行资产根）。
+# 2026-09-18 起不再碰 ../plant-model-gen（那个仓待废弃）：模板、运行目录、CBA 目录都在 plant-web-server 下。
 # 两站都是 sync_relay_mode = true：只分发源 db 文件（e3d-io 判变更 → MQTT 广播 → 对端 clone + 校验），
 # 不解析入库、不生成几何，**不需要任何 SurrealDB 进程**（auto_start_surreal = false，[surrealdb] 段保留但不再要求可连）。
 # 并写出每个站点的 start.ps1、Mosquitto 配置 + start-mosquitto.ps1、文件服务 fixture
@@ -52,25 +54,25 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ($Help) {
-  Get-Content $PSCommandPath | Select-Object -Skip 24 -First 26 | ForEach-Object { $_ -replace '^# ?', '' }
+  Get-Content $PSCommandPath | Select-Object -Skip 24 -First 28 | ForEach-Object { $_ -replace '^# ?', '' }
   exit 0
 }
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+# 站点后端 = 运行资产根 = ../plant-web-server（中继实现 2026-09-16 从 plant-model-gen 搬到那儿，
+# 模板与运行目录 2026-09-18 也跟着搬过来，plant-model-gen 不再参与）。
 if ([string]::IsNullOrWhiteSpace($BackendRoot)) {
-  $BackendRoot = Join-Path (Split-Path -Parent $repoRoot) "plant-model-gen"
+  $BackendRoot = Join-Path (Split-Path -Parent $repoRoot) "plant-web-server"
 }
 $BackendRoot = [System.IO.Path]::GetFullPath($BackendRoot)
 if (-not (Test-Path (Join-Path $BackendRoot $Template))) {
-  Write-Error "找不到模板 $(Join-Path $BackendRoot $Template)；用 -BackendRoot / -Template 指定。"
+  Write-Error "找不到模板 $(Join-Path $BackendRoot $Template)；用 -BackendRoot / -Template 指定（模板随 plant-web-server 仓自带）。"
   exit 2
 }
 $runtimeAbs = Join-Path $BackendRoot $RuntimeDir
 $runtimeRel = $RuntimeDir.TrimEnd('/', '\').Replace('\', '/')
 
-# 站点后端是 ../plant-web-server（中继实现 2026-09-16 从 plant-model-gen 搬到那儿，
-# 这边已经没有中继了）。
-$pwsRoot = Join-Path (Split-Path -Parent $BackendRoot) "plant-web-server"
+$pwsRoot = $BackendRoot
 if ([string]::IsNullOrWhiteSpace($ExePath)) {
   $targetDir = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { "D:\Rust\target" }
   $ExePath = Join-Path $targetDir "debug\plant-web-server.exe"
@@ -237,7 +239,7 @@ function New-SiteConfigText($Site) {
   Set-TomlValue $lines "web_server" "region" (ConvertTo-TomlString $Site.location) | Out-Null
   Set-TomlValue $lines "web_server" "backend_url" (ConvertTo-TomlString $base) | Out-Null
   Set-TomlValue $lines "web_server" "public_base_url" (ConvertTo-TomlString $base) | Out-Null
-  # 中继模式不需要 SurrealDB；bin/web_server.rs 在 sync_relay_mode = true 时也会跳过自启动，这里一并置 false
+  # 中继模式不需要 SurrealDB；plant-web-server 本来就不自启动它，这里显式置 false 以防模板被改
   Set-TomlValue $lines "web_server" "auto_start_surreal" "false" | Out-Null
   Set-TomlValue $lines "web_server" "surreal_data_path" (ConvertTo-TomlString $surrealData) | Out-Null
   Set-TomlValue $lines "web_server" "surreal_bind" (ConvertTo-TomlString "127.0.0.1:$($Site.surrealPort)") | Out-Null
@@ -326,8 +328,8 @@ foreach ($site in $sites) {
   $start = @"
 # $($site.label) · plant-web-server 启动器（由 plant-collab-monitor/scripts/local-remote-collab-setup.ps1 生成）
 # 中继模式（sync_relay_mode = true）：不需要 SurrealDB。长驻进程：在你自己的终端里运行，Ctrl+C 结束。
-# --repo-root 让进程 chdir 到 plant-model-gen：配置里全是相对路径，两站也共用它下面的
-# assets/archives 作 CBA 目录（对端按 file_server_host 到 /assets/archives 下载）。
+# --repo-root 让进程 chdir 到 plant-web-server 检出目录（运行资产根）：配置里全是相对路径，两站也共用它
+# 下面的 assets/archives 作 CBA 目录（对端按 file_server_host 到 /assets/archives 下载）。不再涉及 plant-model-gen。
 # PLANT_WEB_RUNTIME_DIR 必须每站一个：不给的话两站共用 plant-web-server 源码树下那一份
 # envs.json，谁后写谁赢，而且两边都不报错。
 `$ErrorActionPreference = 'Stop'
@@ -364,8 +366,9 @@ if (Test-Path `$exe) {
 }
 
 # CBA 目录 fixture：env.file_server_host 指向 <site>/assets/archives，test-http 对它 GET 要 2xx；
-# 两站共用 cwd（plant-model-gen）下的这一个目录，放一个 index.html 让目录请求有 200。
-Write-GeneratedFile (Join-Path $BackendRoot "assets\archives\index.html") "<!doctype html><title>CBA archives</title><p>plant-model-gen assets/archives · Sync/E3d 广播的 .cba 从这里下载</p>`n" "fixture"
+# 两站共用 cwd（plant-web-server 检出目录）下的这一个目录，放一个 index.html 让目录请求有 200。
+# 该目录已在 plant-web-server/.gitignore 里（assets/archives/）。
+Write-GeneratedFile (Join-Path $BackendRoot "assets\archives\index.html") "<!doctype html><title>CBA archives</title><p>plant-web-server assets/archives · Sync/E3d 广播的 .cba 从这里下载</p>`n" "fixture"
 
 # Mosquitto
 $mosqConf = @"
@@ -451,7 +454,7 @@ curl http://127.0.0.1:$SiteBPort/api/site/identity
 curl http://127.0.0.1:$SiteBPort/files/output/metadata.json
 curl http://127.0.0.1:$SiteAPort/assets/archives/
 
-# 5. API 级双站点 smoke（LS-01–LS-24；LS-23/24 = A 回退水位重广播 $RelayDbFile → B clone + 校验）
+# 5. API 级双站点 smoke（LS-01–LS-25；LS-23/24 = A 回退水位重广播 $RelayDbFile → B clone + 校验，LS-25 = 台账读侧 API 与 sqlite3 一致）
 cd $repoRoot
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 ``
   -SiteABase http://127.0.0.1:$SiteAPort -SiteBBase http://127.0.0.1:$SiteBPort ``

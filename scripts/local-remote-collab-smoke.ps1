@@ -65,7 +65,7 @@ function Show-Help {
   Write-Output "  -SiteBArchivesHost     same for the env created on Site B (default <SiteBBase>/assets/archives)"
   Write-Output "  -SiteBHttpHost         site.http_host (default <SiteBBase>/files/output; backend probes <http_host>/metadata.json)"
   Write-Output "  -SiteBFileServerHost   deprecated alias of -SiteAArchivesHost (kept for old command lines)"
-  Write-Output "  -SiteASqlite/-SiteBSqlite  deployment_sites.sqlite of each site (default ../plant-model-gen/runtime/local-collab/site-x/deployment_sites.sqlite)"
+  Write-Output "  -SiteASqlite/-SiteBSqlite  deployment_sites.sqlite of each site (default ../plant-web-server/runtime/local-collab/site-x/deployment_sites.sqlite)"
   Write-Output "  -RelayFileA/-RelayFileB    the db file used for LS-23/24: A's source and B's copy (default <site-x>/project/SCB/scb000/scb6000_0001)"
   Write-Output "  -RelayRewindSessions   how many sessions to rewind A's watermark (default 1)"
   Write-Output "  -RelayDetectIntervalSec relay poll interval set on both smoke envs via envs/{id}/config (default 5)"
@@ -292,8 +292,8 @@ $ReportPath = Get-ValueOrDefault $ReportPath "SMOKE_JSON_REPORT" "docs/e2e-smoke
 $FixtureDir = Get-ValueOrDefault $FixtureDir "SMOKE_FIXTURE_DIR" "runtime/local-remote-collab/site-b-files"
 $FixtureFileName = Get-ValueOrDefault $FixtureFileName "SMOKE_FIXTURE_FILE" "local-smoke-increment.e3d"
 $AppendBytes = Get-IntOrDefault $AppendBytes "SMOKE_APPEND_BYTES" 512
-# env.file_server_host 的真实语义（plant-model-gen）：本站广播 SyncE3dFileMsg 时带上它，**对端**从 <file_server_host>/<file>.cba
-# 下载本站的 CBA；web_server 把 assets/archives 挂在 /assets/archives。test-http 对它 GET 要 2xx（setup 放了 index.html）。
+# env.file_server_host 的真实语义（中继，plant-web-server src/relay）：本站广播 SyncE3dFileMsg 时带上它，**对端**从 <file_server_host>/<file>.cba
+# 下载本站的 CBA；站点后端把 <repo-root>/assets/archives 挂在 /assets/archives。test-http 对它 GET 要 2xx（setup 放了 index.html）。
 # sites/{id}/test-http 取 <http_host>/metadata.json，所以站点的 http_host 仍指 Site B 的 /files/output。
 $SiteAArchivesHost = Get-ValueOrDefault $SiteAArchivesHost "SITE_A_ARCHIVES_HOST" ""
 if ([string]::IsNullOrWhiteSpace($SiteAArchivesHost)) {
@@ -305,8 +305,9 @@ $SiteBHttpHost = Get-ValueOrDefault $SiteBHttpHost "SITE_B_HTTP_HOST" ($SiteBBas
 $MosquittoDir = Get-ValueOrDefault $MosquittoDir "MOSQUITTO_DIR" ""
 $MqttReceiveTimeoutSec = Get-IntOrDefault $MqttReceiveTimeoutSec "SMOKE_MQTT_RECEIVE_TIMEOUT_SEC" 20
 
-# LS-23/24（中继链路）：两站的 SQLite 与演练用 db 文件。默认按 setup 脚本的落盘约定（后端与本仓同级）。
-$backendRootGuess = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "plant-model-gen"
+# LS-23/24（中继链路）：两站的 SQLite 与演练用 db 文件。默认按 setup 脚本的落盘约定
+# （../plant-web-server/runtime/local-collab/，与本仓同级；2026-09-18 前在 ../plant-model-gen 下）。
+$backendRootGuess = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "plant-web-server"
 $SiteASqlite = Get-ValueOrDefault $SiteASqlite "SITE_A_SQLITE" (Join-Path $backendRootGuess "runtime\local-collab\site-a\deployment_sites.sqlite")
 $SiteBSqlite = Get-ValueOrDefault $SiteBSqlite "SITE_B_SQLITE" (Join-Path $backendRootGuess "runtime\local-collab\site-b\deployment_sites.sqlite")
 $RelayFileA = Get-ValueOrDefault $RelayFileA "RELAY_FILE_A" (Join-Path $backendRootGuess "runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001")
@@ -556,7 +557,8 @@ if (-not [string]::IsNullOrWhiteSpace($envId)) {
 $runtime = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/runtime/status") $null $headers
 Add-Check $checks "remote-runtime-status" ($(if ($runtime.ok) { "passed" } else { "failed" })) @{ error = $runtime.error; response = $runtime.response }
 
-# LS-20 · 激活确实生效：plant-model-gen 看 runtime/status.active + env_id；plant-web-server 看 envs[].active
+# LS-20 · 激活确实生效：带中继运行态的后端（plant-web-server ≥ 2026-09-16，旧 plant-model-gen 同形）看
+# runtime/status.active + env_id；没有 active 字段的旧版 plant-web-server 看 envs[].active
 $runtimeHasActiveField = $runtime.ok -and ($null -ne (Get-ObjectValue $runtime.response @("active")))
 if ([string]::IsNullOrWhiteSpace($envId)) {
   Add-Check $checks "remote-runtime-active-env" "skipped" @{ reason = "env creation failed" }
@@ -566,7 +568,7 @@ if ([string]::IsNullOrWhiteSpace($envId)) {
   $rtActive = Get-ObjectValue $runtime.response @("active")
   $rtEnvId = [string](Get-ObjectValue $runtime.response @("env_id"))
   Add-Check $checks "remote-runtime-active-env" ($(if ($rtActive -eq $true -and $rtEnvId -eq $envId) { "passed" } else { "failed" })) @{
-    backend = "plant-model-gen"
+    backend = "relay runtime (runtime/status.active; plant-web-server, same shape as legacy plant-model-gen)"
     active = $rtActive
     env_id = $rtEnvId
     expected_env_id = $envId
@@ -610,7 +612,7 @@ if ($SkipMqttPublish) {
     if ([string]::IsNullOrWhiteSpace($topic)) {
       $topic = "Sync/E3d"
     }
-    # 字段与 plant-model-gen mqtt_service::SyncE3dFileMsg 一致；location 必须 != Site A 的 location 才会被处理。
+    # 字段与 plant-web-server src/relay/mqtt_msg.rs::SyncE3dFileMsg 一致（线格式沿用旧 plant-model-gen）；location 必须 != Site A 的 location 才会被处理。
     # 坏包（字段缺失 / 类型不对）自 2026-09-15 起只记 warn 跳过，不再 panic 掉订阅任务；这条 fixture 不是
     # Site A 索引里的 db 文件，A 会在 e3d_sync_ledger 落一行 inbound/skipped（unknown_local_file），不 clone。
     $message = @{
@@ -631,8 +633,8 @@ if ($SkipMqttPublish) {
   }
 }
 
-# LS-21 · Site A 的 MQTT 订阅确实收到了这条消息：plant-model-gen 收到 Publish 后把 MQTT_CONNECT_STATUS 置 true，
-# 通过 runtime/status.mqtt_connected 可观察（订阅在 activate 时随 watcher 一起启动，需 web_server,mqtt feature）。
+# LS-21 · Site A 的 MQTT 订阅确实收到了这条消息：中继（plant-web-server src/relay/file_sync.rs）收到 Publish 后把
+# MQTT_CONNECT_STATUS 置 true，通过 runtime/status.mqtt_connected 可观察（订阅在 activate 时随中继轮询一起启动）。
 if (-not $publishOk) {
   Add-Check $checks "mqtt-received-after-publish" "skipped" @{ reason = "mqtt publish not performed" }
 } elseif ([string]::IsNullOrWhiteSpace($envId)) {
@@ -707,7 +709,7 @@ if ($SkipRelay) {
   $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = "SkipRelay was set" } }) | Out-Null
   $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "SkipRelay was set" } }) | Out-Null
 } elseif ([string]::IsNullOrWhiteSpace($envId) -or -not $runtimeHasActiveField) {
-  $reason = $(if ([string]::IsNullOrWhiteSpace($envId)) { "env creation failed (Site A not activated)" } else { "runtime/status has no active field (plant-web-server semantics; relay needs plant-model-gen)" })
+  $reason = $(if ([string]::IsNullOrWhiteSpace($envId)) { "env creation failed (Site A not activated)" } else { "runtime/status has no active field (plant-web-server without relay runtime, i.e. < 2026-09-16; nothing to relay)" })
   $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
   $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = $reason } }) | Out-Null
 } elseif ($null -eq $sqliteTool) {

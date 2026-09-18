@@ -110,8 +110,8 @@ node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --build 
 中继实现搬进 `plant-web-server` 之后，两站都改用 `D:\Rust\target\debug\plant-web-server.exe` 起，**同一套 24 项用例原样跑**（`scripts/local-remote-collab-smoke.ps1` 只改了一处判定，见下）。**三跑都是 24 / 0 / 0**，而且**三跑在同一对进程里**——这点是故意的，因为重新激活正是下面那个订阅缺陷的触发条件。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force   # 默认 -Backend pws
-# 按 ../plant-model-gen/runtime/local-collab/COMMANDS.md 起 Mosquitto / Site A / Site B
+powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force   # 站点后端只有 plant-web-server 一种
+# 按 ../plant-web-server/runtime/local-collab/COMMANDS.md 起 Mosquitto / Site A / Site B（2026-09-18 前这套环境在 ../plant-model-gen/runtime/local-collab/）
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101 ...
 ```
 
@@ -200,14 +200,15 @@ LS-23 的证据（报告 `details`）：
 winget install --id EclipseFoundation.Mosquitto -e          # 一次性；装到 C:\Program Files\mosquitto，服务 mosquitto 常驻 127.0.0.1:1883
 cd D:\work\plant-code\plant-collab-monitor
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1 -Force   # 重生成（前置检查应全 OK；-Force 也把工程副本复位）
+# 2026-09-18 起产物在 ../plant-web-server/runtime/local-collab/（模板 ../plant-web-server/db_options/DbOption.toml，两站 --repo-root 也是 plant-web-server；不再碰 plant-model-gen）
 # 服务在跑就不用再起 start-mosquitto.ps1（1883 会绑不上）；两个终端分别跑 COMMANDS.md 第 2/3 步（Site A、Site B），然后：
 powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 `
   -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101 `
-  -FixtureDir D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\output -MosquittoDir "C:\Program Files\mosquitto" `
-  -SiteASqlite D:\work\plant-code\plant-model-gen\runtime\local-collab\site-a\deployment_sites.sqlite `
-  -SiteBSqlite D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\deployment_sites.sqlite `
-  -RelayFileA D:\work\plant-code\plant-model-gen\runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001 `
-  -RelayFileB D:\work\plant-code\plant-model-gen\runtime\local-collab\site-b\project\SCB\scb000\scb6000_0001
+  -FixtureDir D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\output -MosquittoDir "C:\Program Files\mosquitto" `
+  -SiteASqlite D:\work\plant-code\plant-web-server\runtime\local-collab\site-a\deployment_sites.sqlite `
+  -SiteBSqlite D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\deployment_sites.sqlite `
+  -RelayFileA D:\work\plant-code\plant-web-server\runtime\local-collab\site-a\project\SCB\scb000\scb6000_0001 `
+  -RelayFileB D:\work\plant-code\plant-web-server\runtime\local-collab\site-b\project\SCB\scb000\scb6000_0001
 ```
 
 预期 **24/24，`passed: true`**（通过线是 ≥ 22/24：LS-19/20 允许因缺 `mosquitto_pub` skipped）。报告默认写到 `docs/e2e-smoke/local-remote-collab-smoke-result.json`；`-FixtureOnly -FixtureDir $env:TEMP\remote-collab-fixture -ReportPath docs/e2e-smoke/local-remote-collab-fixture-result.json` 刷新另一份。两份 2026-05-17 的旧结果（1/19 失败）已被本次覆盖。

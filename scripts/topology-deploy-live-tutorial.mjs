@@ -753,7 +753,7 @@ function renderMarkdown() {
   out.push(`| 开跑前运行时 | \`active: ${rt.active}\`、\`relay: ${rt.relay}\` |`);
   out.push(`| 生成时间 | ${d.toLocaleString('zh-CN', { hour12: false })}（本机时区） |`);
   out.push('');
-  out.push('> 本机这套两站环境由 `scripts/local-remote-collab-setup.ps1` 生成在 `../plant-model-gen/runtime/local-collab/`，起法见那里的 `COMMANDS.md`。**别把本教程的脚本指向生产后端**——它会真的建环境、真的改配置。');
+  out.push('> 本机这套两站环境由 `scripts/local-remote-collab-setup.ps1` 生成在 `../plant-web-server/runtime/local-collab/`（2026-09-18 前在 `../plant-model-gen/runtime/local-collab/`），起法见那里的 `COMMANDS.md`。**别把本教程的脚本指向生产后端**——它会真的建环境、真的改配置。');
   out.push('');
 
   sections.forEach((s, i) => {

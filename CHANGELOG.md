@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-09-18
+
+### Changed · 本机双站点环境不再依赖 `plant-model-gen`（跨仓，pws + 本仓脚本）
+
+> `plant-model-gen` 待废弃，但双站点环境一直还借着它：`local-remote-collab-setup.ps1` 以它的 `db_options/DbOption.toml` 为模板、把 site-a/site-b 生成在它的 `runtime/local-collab/`、两站进程 `--repo-root` 指到它、CBA 目录也是它的 `assets/archives`。
+> 现在这四处全部落到 `../plant-web-server` 自己身上，`plant-model-gen` 不再参与；老环境在 `plant-model-gen/runtime/local-collab/` 原样留着（含 09-15 起的台账），可以删。
+
+- `plant-web-server`（pws `d7da7b3`）：自带站点后端模板 `db_options/DbOption.toml`（中继模式；含 rs-core `DbOption` 全部必填键——它没有 serde 默认值，缺键即起不了中继；新增单测 `relay::tests::bundled_dboption_template_is_a_complete_relay_config` 守住）；`--repo-root` 缺省改为本仓目录（原先是上一级 `plant-code/`，是还长在 plant-model-gen 里时的遗留）；`.gitignore` 加 `assets/archives/`、`assets/temp/`、`output/`；README「Run」/「Runtime Asset Coupling」、AGENTS 对齐。
+- `scripts/local-remote-collab-setup.ps1`：`-BackendRoot` 缺省 `../plant-web-server`（模板、`runtime/local-collab/`、CBA fixture 都在它下面），启动器 `--repo-root` 指它，构建提示同一目录；COMMANDS 第 5 步标 LS-01–25。
+- `scripts/local-remote-collab-smoke.ps1`：`-SiteASqlite/-SiteBSqlite/-RelayFileA/-RelayFileB` 缺省猜测路径改到 `../plant-web-server/runtime/local-collab/`；几处「plant-model-gen 语义」注释改成中继现在的位置（`plant-web-server/src/relay`），LS-15 details 的 `backend` 标签不再写死 `plant-model-gen`。
+- 文档：HANDOFF 起手表（去掉早已删除的 `-Backend pws/pmg` 说法）与 `:3100` 实例说明、README、`local-remote-collab-test-plan.md` §2–§5、smoke 报告 §3.5 / §4 复跑命令、`topology-deploy-live-tutorial.mjs` 里的环境路径。
+- 验证：`cargo test --lib relay::` **29/29**（含新单测）；`cargo build --bin plant-web-server` 通过；`-Force` 重生成两站到 `plant-web-server/runtime/local-collab/`（生成物里只剩「不再涉及 plant-model-gen」的注释）；以 `--repo-root D:\work\plant-code\plant-web-server` 起两站跑 **25/25（33 s）**，全新台账：A outbound/ok 1 行 · 12 条变更 · 水位 6000 = 33，B inbound/ok `sesno_seen 33 == sesno_to 33`。B 台账另有 1 行 `clone_failed`：broker 上 09-17 那条 retained 消息指向的 `.cba` 在新 CBA 目录里没有（老目录在 plant-model-gen 下），一次性、LS-24 按 msg_id 判不受影响。未改前端代码，`type-check` 不涉及。
+- 没做（不是「依赖」，是兼容）：监控台 `remoteSyncApi` / `TopologyView` 对 pmg 响应形状的兼容、`topology-deploy-mock.mjs` 的 pmg 变体与 `relay-ledger-smoke` 的 pmg（404）变体、`topology-deploy-live-tutorial.mjs` 只认 pmg 形状的闸（它自 09-16 起对 pws 后端本来就跑不了）。
+
 ## 2026-09-17
 
 ### Added · 新视图 `/ledger`「中继台账」+ `relayLedgerApi` + 三层用例（方案 P1 / P2）
