@@ -40,7 +40,7 @@
 
 ## 3. 发现（plant-web-server 侧契约 / 语义）
 
-1. **探测不看 env 字段**：`connection_probe_response` 只读 `host` / `port`（或 `ip` / `db_port` / `web_port`），不读监控台写入的 `mqtt_host` / `mqtt_port` / `file_server_host`，所以监控台建的 env 永远探 `127.0.0.1:null` → 不可达；`test-http` 与 `test-mqtt` 也只是同一个 TCP 探测。要让探测有意义，后端应按 kind 取 `mqtt_host:mqtt_port` / `file_server_host`。
+1. ~~**探测不看 env 字段**~~：`connection_probe_response` 只读 `host` / `port`（或 `ip` / `db_port` / `web_port`），不读监控台写入的 `mqtt_host` / `mqtt_port` / `file_server_host`，所以监控台建的 env 永远探 `127.0.0.1:null` → 不可达；`test-http` 与 `test-mqtt` 也只是同一个 TCP 探测。要让探测有意义，后端应按 kind 取 `mqtt_host:mqtt_port` / `file_server_host`。→ **2026-09-18 已修**（pws）：`test-mqtt` TCP 连 `mqtt_host:mqtt_port`，env `test-http` GET `file_server_host`，site `test-http` GET `<http_host>/metadata.json`，响应带 `message / url / code / latency_ms`；本机两站直连验证 9/9（可达 / 404 / 连接被拒 / 无地址 / 旧 `host/port` 字段仍认），实操教程 `topology-deploy-live-tutorial.md` §5 / §8 用的就是它。
 2. **`apply` = `activate` + 一条 `apply` 任务**，不写 DbOption.toml；`activate` 只切 `envs[].active` 标记。监控台的确认文案已改为同时描述两种后端的行为。
 3. **`runtime/stop` 不改 `running` 也不清 `active`**，只把活动任务标 `Stopped`，因此停止后 pill 仍显示已激活；`runtime/status` 恒 `running:true`。
 4. **`DELETE envs/{id}` 不级联删站点**（sites.json 里留下孤儿），监控台「删除环境」的确认文案「同时删除其下所有站点」对它不成立。

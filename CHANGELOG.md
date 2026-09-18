@@ -8,6 +8,18 @@
 
 ## 2026-09-18
 
+### Changed · 真后端实操教程改按 plant-web-server 中继语义写并实跑重出；pws 探测端点真探（跨仓）
+
+> `scripts/topology-deploy-live-tutorial.mjs` 原先全篇按 plant-model-gen 语义叙述、并在开头拒绝非 pmg 后端——而站点后端 09-16 起只有 plant-web-server，这份教程从那天起就跑不了。现在按 pws 的真实行为重写，对本机 Site A（`:4100`）实跑，16 张图全换。
+
+- 语义改写（都对着 pws 源码核过）：**环境** = 本站怎么接入协同（共用 broker + 本站 `location / location_dbs / file_server_host`），不再把对端的 location 填进去；**导入卡**按本站 id 覆盖、不带连接参数，激活它 = 按文件现状起中继；**激活** = 写五个键进本站 `DbOption.toml` + 起 / 重建中继运行态，教程把页面发出的 activate 响应里的 `runtime_config:{keys, changed}` 抓下来当证据（这一跑故意多标一个自有库 `6001`，`changed: true`）；**应用**只落账；**停止**不回滚配置、不清账面 `envs[].active`；`runtime/status` 的 `relay_location / relay_mqtt_host / relay_mqtt_port` 用来核对环境是否生效。
+- 闸从「只认 pmg」改为「只认 pws」：`identity.mode = detached` + `runtime/status` 带 `active / relay`，否则拒跑——收尾复原的每一步都依赖 pws 的行为，形状不对不能动真后端。
+- 收尾真能复原文件了：pws 的「应用」不写文件、导入卡不带连接参数，旧脚本「用导入快照 apply 回去」在 pws 上等于什么都没做。现在开跑前记 `GET /api/site/info` 的五个键，激活改写过文件就建一张临时「恢复卡」激活写回，再激活一次拿 `changed = false` 当凭证；env 集合 / 运行态 env / 账面标记三样逐一比对。本轮实跑：site-a `DbOption.toml` 跑前跑后 **逐字节一致**，四项复原全「是」，pageerror 0。
+- `TopologyView` 三处确认弹窗（导入 / 应用 / 激活）与「激活」按钮 title 改成两种后端的现行语义（原文案把 pws 的激活写成「只切 active 标记」，09-16 起已不是）；mock 用例 DA-16 依赖的「不会改写配置」字样保留，`npm run smoke:topology-deploy` pmg 16/16 · pws 16/16。
+- 顺手修 pws（`7997ddd`）：**探测端点真探**——`test-mqtt` TCP 连 `mqtt_host:mqtt_port`，env `test-http` GET `file_server_host`，站点 `test-http` GET `<http_host>/metadata.json`，响应带 `message / url / code / latency_ms`（此前只读 `host/port`，监控台建的 env 恒「目标不可达 · 127.0.0.1」，09-14 报告第 1 条待修项）；**`generated_id` 同秒撞号**——同一秒建两个站点第二个会悄悄替换第一个，现在同秒追加 `-2 / -3`。直连验证 9/9（可达 / 404 / 连接被拒 / 无地址 / 旧 `host/port` 字段仍认）。
+- 文档：AGENTS §4.3.2 形状表与语义段重写；mock 教程 `topology-deploy-tutorial.md` 附录 A 的 pws 差异表更新（生成器同步）；09-14 live smoke 报告第 1 条标已修；HANDOFF 起手表 / 仍欠第 11 条。
+- 验证：教程实跑 26 s、exit 0；同一对进程随后 25 项双站点 smoke **25/25**（LS-10 / 11 / 12 现在是真可达：`127.0.0.1:1883` / `GET /assets/archives 200` / `GET .../metadata.json 200`）；`type-check` 0 errors。Word 版（`npm run docx:topology-deploy:live`）不入库，没重出。
+
 ### Changed · 本机双站点环境不再依赖 `plant-model-gen`（跨仓，pws + 本仓脚本）
 
 > `plant-model-gen` 待废弃，但双站点环境一直还借着它：`local-remote-collab-setup.ps1` 以它的 `db_options/DbOption.toml` 为模板、把 site-a/site-b 生成在它的 `runtime/local-collab/`、两站进程 `--repo-root` 指到它、CBA 目录也是它的 `assets/archives`。

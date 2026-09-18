@@ -128,14 +128,19 @@ API 模块清单：
 | 端点 | plant-model-gen `web_server` | plant-web-server（standalone-real） |
 |---|---|---|
 | `POST admin/auth/login` | `data.{token, expires_at, user}` | `data.{token, user}`（**无 `expires_at`**） |
-| `GET runtime/status` | `{status, active, env_id, mqtt_connected}` | `{success, running, env_count, site_count, active_task_count, mode}`（激活的 env 在 `GET envs` 的 `items[].active`） |
-| `apply / activate / runtime/stop` | `{status:'success'│'failed', message, env_id}` | `{success, item, task}` / `{success, stopped}` |
-| `test-mqtt / test-http` | `{status, message, checked_at, addr│url, code, latency_ms}` | `{success, kind, host, port, reachable}` |
+| `GET runtime/status` | `{status, active, env_id, mqtt_connected}` | `{success, running, env_count, site_count, active_task_count, mode}` + 2026-09-16 起的中继运行态 `active / env_id / relay / mqtt_connected / relay_location / relay_mqtt_host / relay_mqtt_port`（账面「当前环境」另在 `GET envs` 的 `items[].active`） |
+| `apply / activate / runtime/stop` | `{status:'success'│'failed', message, env_id}` | `{success, item, task}`（activate 另带 `relay` 与 `runtime_config:{path, keys, changed}` = 这次写了哪几个键进 toml、文件有没有变）/ `{success, stopped, relay_stopped}` |
+| `test-mqtt / test-http` | `{status, message, checked_at, addr│url, code, latency_ms}` | `{success, kind, reachable, message, latency_ms}` + TCP 探测的 `host, port` 或 HTTP 探测的 `url, code`（2026-09-18 起真探，见下） |
 | 出错 | `status:'failed'` + `message` | `success:false` + `message` |
 
 前端约定：判成功一律走 `isRemoteSyncActionOk()`（`remoteSyncApi.ts`），**别直接比 `status === 'success'`**；运行时激活态用 `TopologyView` 的 `activeEnvId / runtimeActive` computed（兼容两种来源）；`adminAuthApi.normalizeAdminSession` 只强制 `token / username / role`，`expires_at` 可为 null。新增任何写后端形状假设的代码，两种后端都要过一遍。
 
-plant-web-server 的语义差异（2026-09-14 真后端联调实测，详见 `docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md` §3）：探测只读 `host/port` 不读 `mqtt_host/file_server_host`（监控台建的 env 恒「不可达」）；`apply` = `activate` + 任务记录、不写 DbOption；`runtime/stop` 只标任务 `Stopped`、`running` 恒 true、`active` 不清；`DELETE envs/{id}` 不级联删站点。这些是后端待修项，前端不要用 hack 绕。
+plant-web-server 的语义（2026-09-14 真后端联调实测，详见 `docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md` §3；此后两轮后端修正）：
+- **激活**（2026-09-16 起）：把 env 的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 写进本站 `DbOption.toml`（env 上没有的键不动），再起 / 重建中继运行态；`apply` 仍只落账（标当前环境 + 一条 apply 任务，不写文件、不动运行态）。
+- **探测**（2026-09-18 起真探，pws `standalone_services::connection_probe_response`）：`test-mqtt` TCP 连 `mqtt_host:mqtt_port`；env `test-http` GET `file_server_host`；site `test-http` GET `<http_host>/metadata.json`；2xx / 3xx 算可达，`message` 带原因（`HTTP 404` / 连接被拒 / 超时）。此前只读 `host/port`，监控台建的 env 恒「不可达」。
+- `runtime/stop`：停中继（`active` → false），`running` 恒 true，账面 `envs[].active` 不清；`DELETE envs/{id}` 不级联删站点（仍是待修项）。
+- 「从 DbOption 导入」按本站 id 覆盖 `dboption-<site_id>`，只带工程 / 端口 / 配置文件路径，**不带连接参数**——激活它 = 按文件现状起中继。
+前端不要用 hack 绕后端语义；真后端实操教程 `docs/tutorials/topology-deploy-live-tutorial.md` 按上述语义写并实跑。
 
 ### 4.4 UI 风格规范
 
