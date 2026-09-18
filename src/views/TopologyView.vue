@@ -165,7 +165,7 @@
                   @click.stop="handleActivateEnv(env)"
                   class="btn btn-xs btn-primary gap-1"
                   :disabled="isEnvBusy(env.id) || isActiveEnv(env)"
-                  :title="isActiveEnv(env) ? '该环境已是当前运行态' : '写入 DbOption.toml 并重启 watcher + MQTT 订阅'"
+                  :title="isActiveEnv(env) ? '该环境已是当前运行态' : '把连接参数写入 DbOption.toml 并起 / 重建中继运行态（MQTT 订阅 + 源文件轮询）'"
                 >
                   <i class="fas fa-play"></i>
                   {{ envBusy[String(env.id)] === 'activate' ? '激活中...' : '激活' }}
@@ -1176,7 +1176,7 @@ const handleTestHttp = (env: RemoteEnv) =>
 const handleApplyEnv = async (env: RemoteEnv) => {
   const ok = await confirmDialog(
     '确认应用环境配置',
-    `将把环境「${env.name || env.id}」应用为后端当前配置：plant-model-gen 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入 DbOption.toml（不重启运行态，部分组件需重载后生效）；plant-web-server 会直接把它标记为当前环境。`,
+    `将把环境「${env.name || env.id}」应用为后端当前配置：plant-web-server 只把它标记为当前环境并记一条 apply 任务，不写 DbOption.toml、不动运行态——要让连接参数落盘生效请用「激活」；旧 plant-model-gen 后端会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写入 DbOption.toml，但不重启运行态。`,
     'warning',
   );
   if (!ok) return;
@@ -1188,7 +1188,7 @@ const handleActivateEnv = async (env: RemoteEnv) => {
   const current = runtimeActive.value ? `当前已激活的运行态（${activeEnvName.value}）会先被停止。` : '';
   const ok = await confirmDialog(
     '确认激活环境',
-    `将把环境「${env.name || env.id}」设为后端当前运行环境：plant-model-gen 会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅，立即生效；plant-web-server 会切换 active 标记并记一条 activate 任务。${current}`,
+    `将把环境「${env.name || env.id}」设为后端当前运行环境：plant-web-server 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写进本站 DbOption.toml（环境上没有的键不动），再起 / 重建中继运行态（MQTT 订阅 + 源文件轮询），立即生效；旧 plant-model-gen 后端会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅。${current}`,
     'warning',
   );
   if (!ok) return;
@@ -1613,7 +1613,7 @@ function importedEnvId(res: RemoteSyncActionResponse & { id?: string }): string 
 const handleImportEnvFromDbOption = async () => {
   const ok = await confirmDialog(
     '确认从 DbOption 导入环境',
-    '将读取后端当前进程的 DbOption.toml（mqtt_host / mqtt_port / file_server_host / location / location_dbs），在列表里生成一个环境；不会改写配置，也不会激活运行时。plant-model-gen 每次导入都新建一个「导入环境 - 时间戳」；plant-web-server 按本站 id 覆盖同一个 env。',
+    '将读取后端当前进程的 DbOption.toml，在列表里生成一个环境；不会改写配置，也不会激活运行时。plant-web-server 按本站 id 生成 / 覆盖同一张「本站登记卡」（工程、端口、配置文件路径，不带 mqtt / 文件服务 / location 连接参数）；旧 plant-model-gen 后端每次导入都新建一个带连接参数的「导入环境 - 时间戳」。',
     'info',
   );
   if (!ok) return;
