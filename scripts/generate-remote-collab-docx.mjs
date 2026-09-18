@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 // 用法：node scripts/generate-remote-collab-docx.mjs [源 md] [输出 docx]
@@ -138,8 +138,15 @@ function textRuns(text) {
 }
 
 function paragraph(text, style = 'Normal') {
-  const styleXml = style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : '';
+  // 「……依次是：」这种引出下面列表 / 表格的段落，跟它带的内容待在同一页
+  const keepNext = /[：:]$/.test(text.trim()) ? '<w:keepNext/>' : '';
+  const styleXml = style || keepNext ? `<w:pPr>${style ? `<w:pStyle w:val="${style}"/>` : ''}${keepNext}</w:pPr>` : '';
   return `<w:p>${styleXml}${textRuns(text)}</w:p>`;
+}
+
+/** 教程里图下面那行 `*说明*`：斜体小字、居中，跟在图注（alt）后面 */
+function captionNoteParagraph(text) {
+  return `<w:p><w:pPr><w:pStyle w:val="CaptionNote"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p>`;
 }
 
 function codeParagraph(text) {
@@ -156,8 +163,13 @@ function pngSize(buffer) {
   };
 }
 
+/** 正文可用宽度：A4 11906 twips 减左右各 1134 = 9638 twips，1 twip = 635 EMU */
+const TEXT_WIDTH_TWIPS = 9638;
+const TEXT_WIDTH_EMU = TEXT_WIDTH_TWIPS * 635;
+
 function imageParagraph(relId, alt, widthPx, heightPx) {
-  const maxWidthEmu = 6_200_000;
+  // 以前写死 6_200_000 EMU（488 pt），比 482 pt 的正文宽 6 pt，每张截图都探进右边距
+  const maxWidthEmu = TEXT_WIDTH_EMU;
   const ratio = heightPx / widthPx;
   const widthEmu = maxWidthEmu;
   const heightEmu = Math.round(widthEmu * ratio);
@@ -196,6 +208,7 @@ function normalizeInline(text) {
   return text
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 }
 
@@ -219,29 +232,49 @@ function tableCell(text, { header = false, width } = {}) {
   return `<w:tc><w:tcPr>${widthXml}${shading}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:before="40" w:after="40"/></w:pPr><w:r>${runProps}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p></w:tc>`;
 }
 
-/** rows[0] 当表头；列宽按整页 9638 dxa 均分 */
+/** 中英混排下一列内容大概要多宽：汉字算 2、其余算 1，取该列各行的最大值再开方压缩（长文本列别把短列挤没） */
+function columnWeight(cells) {
+  const longest = Math.max(
+    1,
+    ...cells.map((cell) => [...cell].reduce((n, ch) => n + (/[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 2 : 1), 0)),
+  );
+  return Math.sqrt(longest);
+}
+
+/**
+ * rows[0] 当表头；列宽按各列内容长度加权分配整页 9638 dxa，单列夹在 14%–64% 之间。
+ * 以前是均分：「步骤 / 结果」「项 / 值」这种一短一长的两列表，短列白占一半、长列挤成竖条。
+ */
 function tableXml(rows) {
   const columns = Math.max(...rows.map((r) => r.length));
-  const width = Math.floor(9638 / columns);
+  const weights = Array.from({ length: columns }, (_, i) => columnWeight(rows.map((r) => r[i] ?? '')));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let shares = weights.map((w) => Math.min(0.64, Math.max(0.14, w / total)));
+  const shareSum = shares.reduce((a, b) => a + b, 0);
+  shares = shares.map((s) => s / shareSum);
+  const widths = shares.map((s) => Math.floor(TEXT_WIDTH_TWIPS * s));
+  widths[widths.length - 1] += TEXT_WIDTH_TWIPS - widths.reduce((a, b) => a + b, 0);
   const borders = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']
     .map((side) => `<w:${side} w:val="single" w:sz="4" w:space="0" w:color="C9D2DC"/>`)
     .join('');
-  const grid = Array.from({ length: columns }, () => `<w:gridCol w:w="${width}"/>`).join('');
+  const grid = widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('');
   const body = rows
     .map((cells, rowIndex) => {
       const padded = [...cells, ...Array.from({ length: columns - cells.length }, () => '')];
       const header = rowIndex === 0;
       const rowProps = header ? '<w:trPr><w:tblHeader/></w:trPr>' : '';
-      return `<w:tr>${rowProps}${padded.map((c) => tableCell(c, { header, width })).join('')}</w:tr>`;
+      return `<w:tr>${rowProps}${padded.map((c, i) => tableCell(c, { header, width: widths[i] })).join('')}</w:tr>`;
     })
     .join('');
-  return `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblBorders>${borders}</w:tblBorders></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${body}</w:tbl>`;
+  return `<w:tbl><w:tblPr><w:tblW w:w="${TEXT_WIDTH_TWIPS}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${borders}</w:tblBorders></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${body}</w:tbl>`;
 }
 
 const media = [];
 const bodyParts = [];
 let inCode = false;
 let pendingTable = [];
+/** 文档属性里的标题：取第一个一级标题，没有就用旧的固定值 */
+let docTitle = '';
 
 function flushTable() {
   if (!pendingTable.length) return;
@@ -271,6 +304,10 @@ for (const rawLine of markdown.split(/\r?\n/)) {
   flushTable();
 
   if (!line.trim()) {
+    // 标题 / 「……：」引出段后面 md 里那个空行不落成空段：空段会把 keepNext 吃掉（标题只跟空段待一页，
+    // 表格照样翻到下一页），标题样式自带 after 间距也不需要它
+    const prev = bodyParts[bodyParts.length - 1] ?? '';
+    if (/<w:keepNext\/>/.test(prev) || /w:pStyle w:val="(Title|Heading1|Heading2)"/.test(prev)) continue;
     bodyParts.push('<w:p/>');
     continue;
   }
@@ -278,7 +315,12 @@ for (const rawLine of markdown.split(/\r?\n/)) {
   const image = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
   if (image) {
     const [, alt, relativePath] = image;
-    const imagePath = path.resolve(MEDIA_DIR, relativePath);
+    let imagePath = path.resolve(MEDIA_DIR, relativePath);
+    // .svg 直接塞进 docx Word 打不开（「文件可能已经损坏」——usage-guide 那份一直如此）；
+    // 图旁边有同名 .png 就用它，没有再原样嵌入并登记内容类型。
+    if (imagePath.toLowerCase().endsWith('.svg') && existsSync(imagePath.replace(/\.svg$/i, '.png'))) {
+      imagePath = imagePath.replace(/\.svg$/i, '.png');
+    }
     const data = readFileSync(imagePath);
     const { width, height } = pngSize(data);
     const index = media.length + 1;
@@ -291,7 +333,17 @@ for (const rawLine of markdown.split(/\r?\n/)) {
     continue;
   }
 
+  const captionNote = line.match(/^\*([^*].*[^*])\*$/);
+  if (captionNote) {
+    // 教程生成器在每张图下面放一行 `*说明*`；以前当普通段落输出，星号原样留在正文里。
+    // md 里图与说明之间隔一个空行，这里把那一空段吃掉，说明紧贴图注。
+    if (bodyParts[bodyParts.length - 1] === '<w:p/>') bodyParts.pop();
+    bodyParts.push(captionNoteParagraph(normalizeInline(captionNote[1])));
+    continue;
+  }
+
   if (line.startsWith('# ')) {
+    if (!docTitle) docTitle = normalizeInline(line.slice(2));
     bodyParts.push(paragraph(normalizeInline(line.slice(2)), 'Title'));
   } else if (line.startsWith('## ')) {
     bodyParts.push(paragraph(normalizeInline(line.slice(3)), 'Heading1'));
@@ -334,6 +386,10 @@ const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Default Extension="png" ContentType="image/png"/>
+  <Default Extension="jpg" ContentType="image/jpeg"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Default Extension="gif" ContentType="image/gif"/>
+  <Default Extension="svg" ContentType="image/svg+xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
   <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
@@ -350,19 +406,20 @@ const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/><w:sz w:val="22"/></w:rPr></w:style>
-  <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:rPr><w:b/><w:sz w:val="40"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:spacing w:after="240"/></w:pPr></w:style>
-  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:rPr><w:b/><w:sz w:val="32"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:spacing w:before="360" w:after="160"/></w:pPr></w:style>
-  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:rPr><w:b/><w:sz w:val="26"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:spacing w:before="260" w:after="120"/></w:pPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:rPr><w:b/><w:sz w:val="40"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:keepNext/><w:spacing w:after="240"/></w:pPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:rPr><w:b/><w:sz w:val="32"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:keepNext/><w:spacing w:before="360" w:after="160"/></w:pPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:rPr><w:b/><w:sz w:val="26"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr><w:pPr><w:keepNext/><w:spacing w:before="260" w:after="120"/></w:pPr></w:style>
   <w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:pPr><w:ind w:left="360"/><w:spacing w:before="120" w:after="120"/></w:pPr><w:rPr><w:i/><w:color w:val="6B7280"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr></w:style>
   <w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:pPr><w:ind w:left="360"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/><w:sz w:val="22"/></w:rPr></w:style>
-  <w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="Caption"/><w:pPr><w:jc w:val="center"/><w:spacing w:after="180"/></w:pPr><w:rPr><w:i/><w:color w:val="6B7280"/><w:sz w:val="18"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Caption"><w:name w:val="Caption"/><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr><w:rPr><w:i/><w:color w:val="6B7280"/><w:sz w:val="18"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="CaptionNote"><w:name w:val="Caption Note"/><w:pPr><w:jc w:val="center"/><w:spacing w:after="200"/></w:pPr><w:rPr><w:i/><w:color w:val="374151"/><w:sz w:val="20"/><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Microsoft YaHei"/></w:rPr></w:style>
   <w:style w:type="paragraph" w:styleId="CodeBlock"><w:name w:val="Code Block"/><w:pPr><w:spacing w:before="80" w:after="80"/></w:pPr><w:rPr><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas" w:eastAsia="Microsoft YaHei"/><w:sz w:val="20"/></w:rPr></w:style>
 </w:styles>`;
 
 const created = new Date().toISOString();
 const coreProps = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>异地协同监控台使用教程</dc:title>
+  <dc:title>${escapeXml(docTitle || '异地协同监控台使用教程')}</dc:title>
   <dc:creator>Cursor</dc:creator>
   <cp:lastModifiedBy>Cursor</cp:lastModifiedBy>
   <dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created>

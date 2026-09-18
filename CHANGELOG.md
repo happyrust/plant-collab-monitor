@@ -18,7 +18,8 @@
 - `TopologyView` 三处确认弹窗（导入 / 应用 / 激活）与「激活」按钮 title 改成两种后端的现行语义（原文案把 pws 的激活写成「只切 active 标记」，09-16 起已不是）；mock 用例 DA-16 依赖的「不会改写配置」字样保留，`npm run smoke:topology-deploy` pmg 16/16 · pws 16/16。
 - 顺手修 pws（`7997ddd`）：**探测端点真探**——`test-mqtt` TCP 连 `mqtt_host:mqtt_port`，env `test-http` GET `file_server_host`，站点 `test-http` GET `<http_host>/metadata.json`，响应带 `message / url / code / latency_ms`（此前只读 `host/port`，监控台建的 env 恒「目标不可达 · 127.0.0.1」，09-14 报告第 1 条待修项）；**`generated_id` 同秒撞号**——同一秒建两个站点第二个会悄悄替换第一个，现在同秒追加 `-2 / -3`。直连验证 9/9（可达 / 404 / 连接被拒 / 无地址 / 旧 `host/port` 字段仍认）。
 - 文档：AGENTS §4.3.2 形状表与语义段重写；mock 教程 `topology-deploy-tutorial.md` 附录 A 的 pws 差异表更新（生成器同步）；09-14 live smoke 报告第 1 条标已修；HANDOFF 起手表 / 仍欠第 11 条。
-- 验证：教程实跑 26 s、exit 0；同一对进程随后 25 项双站点 smoke **25/25**（LS-10 / 11 / 12 现在是真可达：`127.0.0.1:1883` / `GET /assets/archives 200` / `GET .../metadata.json 200`）；`type-check` 0 errors。Word 版（`npm run docx:topology-deploy:live`）不入库，没重出。
+- 验证：教程实跑 26 s、exit 0；同一对进程随后 25 项双站点 smoke **25/25**（LS-10 / 11 / 12 现在是真可达：`127.0.0.1:1883` / `GET /assets/archives 200` / `GET .../metadata.json 200`）；`type-check` 0 errors。
+- Word 版重出并检查排版（`npm run docx:topology-deploy:live` → `docs/tutorials/topology-deploy-live-tutorial.docx`，21 页 16 图 5 表，不入库）。顺手修 `scripts/generate-remote-collab-docx.mjs` 五处：图下那行 `*说明*` 原样把星号带进正文 → 现在按斜体图注（`CaptionNote`）出并紧贴 alt 图注；截图宽 488 pt 探进右边距 6 pt → 收到正文宽 481.9 pt；表格列宽从均分改按各列内容长度加权（夹 14%–64%），「步骤 / 结果」「项 / 值」不再一半白占一半挤成竖条；标题与「……：」引出段加 `keepNext` 并吞掉其后的空段，标题不再孤悬页底；`.svg` 图有同名 `.png` 就用它并登记各类图片内容类型——`remote-collab-usage-guide.docx` 此前一直「文件可能已经损坏」打不开，就是这条。三份 md 各重出一遍，Word 都能打开（21 / 20 / 9 页）。
 
 ### Changed · 本机双站点环境不再依赖 `plant-model-gen`（跨仓，pws + 本仓脚本）
 
