@@ -303,6 +303,7 @@ const navMonitor = [
 const navTasks = [
   { name: 'tasks', path: '/tasks', icon: '▤', label: '任务队列' },
   { name: 'history', path: '/history', icon: '⟲', label: '同步历史' },
+  { name: 'ledger', path: '/ledger', icon: '≡', label: '中继台账', admin: true },
   { name: 'mqtt', path: '/mqtt/messages', icon: '⚡', label: 'MQTT 消息' },
   { name: 'mqtt-nodes', path: '/mqtt/nodes', icon: '◎', label: 'MQTT 节点', admin: true },
   { name: 'logs', path: '/logs', icon: '▦', label: '系统日志' },

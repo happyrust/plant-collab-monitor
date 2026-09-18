@@ -42,6 +42,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '同步历史' },
   },
   {
+    path: '/ledger',
+    name: 'ledger',
+    component: () => import('@/views/RelayLedgerView.vue'),
+    meta: { title: '中继台账', requiresAdmin: true },
+  },
+  {
     path: '/mqtt/messages',
     name: 'mqtt-messages',
     component: () => import('@/views/MqttMessagesView.vue'),
