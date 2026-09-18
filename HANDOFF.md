@@ -31,7 +31,8 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-18 早 · a789940 弹窗文案按现行语义 · d8a8349 真后端实操教程改按 pws 中继语义重出（16 图） · 061e3df AGENTS / mock 教程附录 / 报告 / HANDOFF / CHANGELOG 对齐（配 pws 7997ddd 探测真探）
+上一次推送: 2026-09-18 早 · 43cfcf5 docx 生成器排版五处修正（Word 版实操教程重出并逐页检查；usage-guide.docx 从此打得开）
+                 ↑ 同日更早已推：a789940 弹窗文案按现行语义 · d8a8349 真后端实操教程改按 pws 中继语义重出（16 图） · 061e3df / 6de2f3d 文档对齐 + 仓状态（配 pws 7997ddd 探测真探）
                  ↑ 同日更早已推：c1c6424 双站点环境不再依赖 plant-model-gen（配 pws d7da7b3） · 6e2d04e / 279edd4 仓状态与旧环境已删
                  ↑ 同日更早已推：0f594bf feat /ledger 视图 + relayLedgerApi · 24c8617 test RL-01–08 / RL-L0–L3 + LS-25（25/25） · a892b6e docs 方案执行记录 / CHANGELOG / 报告 §3.6 · 182cce5 仓状态
                  ↑ 2026-09-17 早已推：f1475de 台账读侧方案 P0 执行记录（pws b61b7ca）+ CHANGELOG
