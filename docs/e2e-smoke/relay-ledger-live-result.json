@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-09-16T23:11:59.474Z",
+  "mode": "live",
+  "baseUrl": "http://localhost:4180/monitor/",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "passed": true,
+  "live": {
+    "api": "http://127.0.0.1:4100",
+    "passed": true,
+    "summary": {
+      "passed": 4,
+      "failed": 0
+    },
+    "cases": [
+      {
+        "id": "RL-L0",
+        "title": "后端可达 · 直连 GET ledger / summary / watermarks 拿到基准",
+        "status": "passed",
+        "ms": 43,
+        "details": {
+          "total": 17,
+          "items": 17,
+          "note": null,
+          "watermarks": 1,
+          "problems": 0
+        }
+      },
+      {
+        "id": "RL-L1",
+        "title": "UI 登录 → /ledger → 行数 == GET ledger?limit=50 的 items.length；chips == summary",
+        "status": "passed",
+        "ms": 969,
+        "details": {
+          "rows": 17,
+          "total": 17,
+          "chipOut": 16,
+          "chipIn": 0,
+          "chipProblems": 0
+        }
+      },
+      {
+        "id": "RL-L2",
+        "title": "第一条有清单的 outbound 行：抽屉清单 total == GET rows/{id}/changes 的 total，kinds 之和 == changes_count",
+        "status": "passed",
+        "ms": 763,
+        "details": {
+          "id": "695fb9b3-e2c9-49d1-9010-d79c521803be",
+          "total": 12,
+          "kinds": {
+            "deleted": 0,
+            "inserted": 10,
+            "modified": 2,
+            "relocated": 0
+          }
+        }
+      },
+      {
+        "id": "RL-L3",
+        "title": "水位面板行数 == GET watermarks 的 total；安全闸 0 拦截、0 pageerror",
+        "status": "passed",
+        "ms": 111,
+        "details": {
+          "rows": 1,
+          "blocked": 0
+        }
+      }
+    ],
+    "mutatingBlocked": [],
+    "consoleErrors": [],
+    "pageErrors": [],
+    "screenshots": "docs\\e2e-smoke\\screenshots\\relay-ledger\\live"
+  }
+}

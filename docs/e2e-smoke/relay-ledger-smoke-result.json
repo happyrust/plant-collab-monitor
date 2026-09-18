@@ -1,0 +1,142 @@
+{
+  "generatedAt": "2026-09-16T23:07:23.645Z",
+  "mode": "mock",
+  "baseUrl": "http://localhost:4179/monitor/",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "passed": true,
+  "variants": {
+    "pws": {
+      "variant": "pws",
+      "passed": true,
+      "summary": {
+        "passed": 6,
+        "failed": 0
+      },
+      "cases": [
+        {
+          "id": "RL-01",
+          "title": "登录 → /ledger → 首页 50 行、汇总 chips 与 fixture 一致、请求带 limit=50&offset=0",
+          "status": "passed",
+          "ms": 1077,
+          "details": {
+            "count": 50,
+            "chips": {
+              "chipOut": 57,
+              "chipIn": 1,
+              "chipProblems": 1,
+              "chipWm": 2
+            },
+            "prefix": "共 60 行",
+            "firstQuery": {
+              "limit": "50",
+              "offset": "0"
+            }
+          }
+        },
+        {
+          "id": "RL-02",
+          "title": "筛选栏 → 请求 query 正确（direction / verify_status 多选逗号 / file_name 前缀 / since）并回第 1 页",
+          "status": "passed",
+          "ms": 3270,
+          "details": {
+            "verifyStatusQuery": "hash_mismatch,skipped",
+            "since": "2026-09-15T23:07:27.498Z"
+          }
+        },
+        {
+          "id": "RL-03",
+          "title": "点行开抽屉：全字段、msg_id 复制按钮、变更清单 200/页 + 翻页 offset=200 + 种类 / 前缀筛选",
+          "status": "passed",
+          "ms": 2075,
+          "details": {
+            "msgId": "9e3779b19e3779b19e3779b19e3779b1",
+            "totalText": "共 450 条",
+            "kinds": "新增 300 删除 75 修改 75 移位 0"
+          }
+        },
+        {
+          "id": "RL-04",
+          "title": "清单被截断的行：列表按钮与抽屉都显示「20000 / 25000（截断）」",
+          "status": "passed",
+          "ms": 714,
+          "details": {
+            "btnText": "20000 / 25000（截断）",
+            "totalText": "已落库 20000 / 25000（截断）"
+          }
+        },
+        {
+          "id": "RL-05",
+          "title": "inbound 行：抽屉说明「接收方不记清单」、不发 changes 请求；「按 msg_id 过滤」→ 列表 query 带 msg_id",
+          "status": "passed",
+          "ms": 973,
+          "details": {
+            "msgId": "daa66d13daa66d13daa66d13daa66d13"
+          }
+        },
+        {
+          "id": "RL-06",
+          "title": "水位面板：展开才请求 watermarks，行数 == fixture；全程 0 写请求、0 pageerror",
+          "status": "passed",
+          "ms": 167,
+          "details": {
+            "wmRows": 2,
+            "calls": 53
+          }
+        }
+      ],
+      "writeCalls": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshots": "docs\\e2e-smoke\\screenshots\\relay-ledger\\pws"
+    },
+    "pws-empty": {
+      "variant": "pws-empty",
+      "passed": true,
+      "summary": {
+        "passed": 1,
+        "failed": 0
+      },
+      "cases": [
+        {
+          "id": "RL-08",
+          "title": "pws 库没建表（note）→ 「台账表尚未建立」空态，无 pageerror",
+          "status": "passed",
+          "ms": 835,
+          "details": {
+            "variant": "pws-empty"
+          }
+        }
+      ],
+      "writeCalls": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshots": "docs\\e2e-smoke\\screenshots\\relay-ledger\\pws-empty"
+    },
+    "pmg": {
+      "variant": "pmg",
+      "passed": true,
+      "summary": {
+        "passed": 1,
+        "failed": 0
+      },
+      "cases": [
+        {
+          "id": "RL-07",
+          "title": "pmg 后端（404）→ 「该后端不提供台账 API」空态，无 pageerror",
+          "status": "passed",
+          "ms": 969,
+          "details": {
+            "variant": "pmg"
+          }
+        }
+      ],
+      "writeCalls": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "pageErrors": [],
+      "screenshots": "docs\\e2e-smoke\\screenshots\\relay-ledger\\pmg"
+    }
+  }
+}

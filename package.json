@@ -11,6 +11,8 @@
     "smoke:phase7-plus": "node scripts/phase7-plus-smoke.mjs",
     "smoke:topology-deploy": "node scripts/topology-deploy-smoke.mjs",
     "smoke:topology-deploy:live": "node scripts/topology-deploy-live-smoke.mjs",
+    "smoke:relay-ledger": "node scripts/relay-ledger-smoke.mjs",
+    "smoke:relay-ledger:live": "node scripts/relay-ledger-smoke.mjs --live",
     "tutorial:topology-deploy": "node scripts/topology-deploy-tutorial.mjs",
     "tutorial:topology-deploy:live": "node scripts/topology-deploy-live-tutorial.mjs",
     "docx:topology-deploy:live": "node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-live-tutorial.md",

@@ -1,6 +1,6 @@
 # 异地部署功能 · 自动化测试用例（2026-09-14）
 
-> 对象：`/topology` 部署动作面（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http / 站点编辑）+ 双站点协同链路。
+> 对象：`/topology` 部署动作面（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http / 站点编辑）+ 双站点协同链路 + `/ledger` 中继台账视图（§8，2026-09-17）。
 > 依据：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`（P1 验收、P3 目标）、`AGENTS.md` §4.3.1 / §4.3.2（两种后端形状）。
 > 用例编号在脚本里原样出现（`cases[].id`），结果 JSON 可直接对表。
 
@@ -11,7 +11,9 @@
 | **L1 契约层**（mock 后端，两种响应形状各跑一遍） | `DA-01`–`DA-16` | 无（脚本自起 `vite preview`，缺 `dist/` 自动 build） | `scripts/topology-deploy-smoke.mjs` | `npm run smoke:topology-deploy`（`-- --shape pmg\|pws`、`-- --build`、`-- --headed`） | `docs/e2e-smoke/topology-deploy-smoke-result.json` + `screenshots/topology-deploy/<shape>/` |
 | **L2 真后端只读层**（安全闸拦下一切写请求） | `LR-00`–`LR-06` | 任一在跑的后端（默认 `:3100`） | `scripts/topology-deploy-live-smoke.mjs` | `npm run smoke:topology-deploy:live`（`-- --api http://127.0.0.1:4100`） | `docs/e2e-smoke/topology-deploy-live-readonly-result.json` + `screenshots/topology-deploy-live/readonly/` |
 | **L3 真后端完整闭环**（会改运行时状态，结束自动恢复） | `LF-00`–`LF-08` | 同上 + **人工确认** | 同上 | `node scripts/topology-deploy-live-smoke.mjs --mode full --confirm-writes [--api …]` | `docs/e2e-smoke/topology-deploy-live-full-result.json` + `screenshots/topology-deploy-live/full/` |
-| **L4 双站点协同 smoke**（P3） | `LS-01`–`LS-22` | Mosquitto + `surreal` + Site A `:4100` + Site B `:4101`（`web_server,mqtt`）；环境由 `scripts/local-remote-collab-setup.ps1` 生成 | `scripts/local-remote-collab-smoke.ps1` | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -FixtureDir <site-b>/output -MosquittoDir "C:\Program Files\mosquitto"` | `docs/e2e-smoke/local-remote-collab-smoke-result.json` |
+| **L4 双站点协同 smoke**（P3） | `LS-01`–`LS-25` | Mosquitto + Site A `:4100` + Site B `:4101`（两站都是 `plant-web-server`，中继模式，不需要 `surreal`）；环境由 `scripts/local-remote-collab-setup.ps1` 生成 | `scripts/local-remote-collab-smoke.ps1` | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -MosquittoDir "C:\Program Files\mosquitto"` | `docs/e2e-smoke/local-remote-collab-smoke-result-pws-ledger.json`（2026-09-17，25/25） |
+| **L1 中继台账 mock**（三种变体：pws 真形状 / pws 库未建表 / pmg 404） | `RL-01`–`RL-08` | 无（同 L1，复用 `topology-deploy-mock.mjs` 应付登录等基础请求） | `scripts/relay-ledger-smoke.mjs` + `scripts/lib/relay-ledger-mock.mjs` | `npm run smoke:relay-ledger`（`-- --build`、`-- --headed`） | `docs/e2e-smoke/relay-ledger-smoke-result.json` + `screenshots/relay-ledger/<variant>/` |
+| **L2 中继台账真后端只读** | `RL-L0`–`RL-L3` | pws ≥ `b61b7ca`（默认 `:4100` 的 Site A） | 同上 | `npm run smoke:relay-ledger:live -- --api http://127.0.0.1:4100` | `docs/e2e-smoke/relay-ledger-live-result.json` + `screenshots/relay-ledger/live/` |
 
 后端形状约定（脚本自动识别，`runtime/status` 有 boolean `active` = pmg）：
 
@@ -41,6 +43,8 @@
 | 「从 DbOption 导入」（确认弹窗、取消 0 写、新卡出现并选中） | DA-16 | — | — | — |
 | 收尾恢复（不留脏数据） | — | LR-06（安全闸） | LF-08 | LS-22 + `cleanup` |
 | MQTT 发布 → Site A 订阅收到 | — | — | — | LS-17, LS-19, LS-20 |
+| 中继链路：A 广播 → B clone + 校验 → 两端台账 | — | — | — | LS-23, LS-24 |
+| **中继台账视图 `/ledger`**（列表 / 筛选 / 抽屉清单 / 截断 / inbound / 水位 / 两种空态） | RL-01–RL-08（§8） | RL-L0–RL-L3（§8） | — | LS-25（读侧 API 与 sqlite3 一致） |
 
 ## 2. L1 · mock 契约层 `DA-xx`（`scripts/topology-deploy-smoke.mjs`）
 
@@ -126,7 +130,9 @@ mock 后端在 `scripts/lib/topology-deploy-mock.mjs`，与教程生成器 `scri
 | LS-21 | `remote-sync-logs` | Site A 同步日志端点可读（pmg 的 MQTT 收包写 SurrealDB `e3d_sync`、不写 `remote_sync_logs`，所以不在这里断言内容） |
 | **LS-22** | **`runtime-stop-clears-active`**（新增） | `POST runtime/stop` → `runtime/status.active === false`；然后删 smoke 建的站点 / env（报告 `cleanup`）。`-KeepEnv` / 后端无 `active` 字段 → skipped |
 
-通过标准：`failed == 0`（≥ 20 passed，LS-19/20 可因缺 `mosquitto_pub` 同时 skipped）。状态：脚本 22 项在无服务环境下 dry-run 全部落到 failed / skipped、无异常退出（2026-09-14）；**真实双站点尚未跑通**——本机缺 Mosquitto 与 `surreal` 二进制（setup 脚本会打印安装命令），装好后按 `COMMANDS.md` 起三个进程即可。
+通过标准：`failed == 0`（≥ 20 passed，LS-19/20 可因缺 `mosquitto_pub` 同时 skipped）。状态：脚本 22 项在无服务环境下 dry-run 全部落到 failed / skipped、无异常退出（2026-09-14）；~~真实双站点尚未跑通~~ → 2026-09-15 起 24/24（中继模式，见 `local-remote-collab-test-plan.md` §6 的 LS-23 / LS-24 与 `2026-09-15-sqlite-only-collab-smoke-report.md`）。
+
+**2026-09-17 加 LS-25 `relay-ledger-api`**（表见 `local-remote-collab-test-plan.md` §6 第 25 行）：对着 LS-23 那条广播的 `msg_id`，A 的 `GET /api/remote-sync/ledger?direction=outbound&msg_id=…` 恰 1 行 ok、`changes_count` / `rows/{id}/changes.total` 等于 sqlite3 数出的 `e3d_sync_changes` 行数，B 的 `GET ledger?direction=inbound&msg_id=…` 恰 1 行 ok。后端没这组端点（404）→ skipped。当日实跑 **25/25（32 s）**，`local-remote-collab-smoke-result-pws-ledger.json`（A 侧 12 条变更、`first_refno 22384/33238`；B 侧 `sesno_seen 33 == sesno_to 33`）。
 
 UI 复验：Site A 起来后跑 `node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --mode full --confirm-writes`（LF-xx），即计划 P3 第 5 步「用 P1 的 UI 路径复做一遍」的自动化版本。
 
@@ -154,5 +160,42 @@ UI 复验：Site A 起来后跑 `node scripts/topology-deploy-live-smoke.mjs --a
 | 环境卡 banner | 卡片内 `.rounded-lg.border.px-3`，文案前缀 `测 MQTT：` / `测文件服务：` / `应用配置：` / `激活环境：`；成功 `bg-emerald-50`，失败 `bg-rose-50` |
 | 表单占位符 | 环境：`例如: 北京总部、上海分部`、`http://192.168.1.10:3000`、`如: 上海园区`、`7999,8001,8002`、`192.168.1.10`、`1883`；站点名：`例如: 1号服务器、备份节点` |
 | 登录弹窗 | 标题 `管理员登录`，占位符 `ADMIN_USER 环境变量值` / `ADMIN_PASS 环境变量值` |
+| `/ledger` `data-testid`（§8） | 视图 `relay-ledger-view`；`ledger-refresh` / `ledger-auto-refresh`；汇总 `ledger-summary` + `chip-outbound-ok` / `chip-inbound-ok` / `chip-problems` / `chip-changes` / `chip-last-outbound` / `chip-last-inbound` / `chip-watermarks`；筛选 `filter-direction` / `filter-verify-status` / `filter-file-name` / `filter-range` / `filter-msg-id`；表 `ledger-table`，行 `<tr data-testid="ledger-row" data-row-id="{id}">`，行内 `ledger-verify-tag` / `ledger-changes-button`；空态 `ledger-empty` / `ledger-unavailable` / `ledger-error`；水位 `ledger-watermarks-toggle` / `ledger-watermarks-table`；抽屉 `ledger-drawer` + `ledger-detail-fields` / `detail-msg-id` / `detail-copy-msg-id` / `detail-filter-msg-id` / `detail-verify-detail`；清单 `ledger-changes` / `changes-total` / `changes-kinds` / `changes-filter-kind` / `changes-filter-refno` / `changes-copy-page` / `changes-table` / `change-refno`；inbound 说明 `ledger-changes-inbound` |
+| `/ledger` 文案 | 空态 `还没有收发过消息` / `台账表尚未建立：…` / `该后端不提供台账 API`；清单总数 `共 N 条` / `已落库 20000 / N（截断）`；列表变更按钮 `N` / `20000 / N（截断）`；种类 `新增 / 删除 / 修改 / 移位`；时间范围 `全部时间 / 近 1 小时 / 近 24 小时 / 近 7 天` |
 
 产物路径：结果 JSON 入库（通过的才提交），截图目录已在 `.gitignore`（`docs/e2e-smoke/screenshots/`）。
+
+## 8. L1 / L2 · 中继台账视图 `RL-xx`（`scripts/relay-ledger-smoke.mjs`，2026-09-17）
+
+> 对象：`/ledger`「中继台账」（`src/views/RelayLedgerView.vue` + `src/api/relayLedgerApi.ts`），后端 `plant-web-server` ≥ `b61b7ca` 的 `/api/remote-sync/ledger/*`（形状见 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §8）。
+> 台账是只读面：mock 与 live 两层都断言**全程 0 写请求**。
+
+### 8.1 mock（默认；`npm run smoke:relay-ledger`）
+
+mock 在 `scripts/lib/relay-ledger-mock.mjs`：60 行 fixture（`L-01`…`L-60`，`created_at` 从新到旧每行隔 47 分钟），`L-01` 带 450 条变更（种类 300 / 75 / 75 / 0，RefNo 前缀 `6000/` 300 条 + `6001/` 150 条），`L-05` 清单截断（`changes_count 20000`、`verify_detail changes_truncated:25000`），`L-03` / `L-10` 是 inbound（`L-03` `skipped`），`L-07` `hash_mismatch`；水位 2 行。筛选 / 分页在 mock 里真做（与后端同一套白名单与夹取），登录等基础请求交给 `topology-deploy-mock.mjs`。
+
+| 编号 | 变体 | 用例 | 期望 |
+|---|---|---|---|
+| RL-01 | pws | 登录 → `/ledger` 首屏 | 重定向记录 `/ledger`；表 50 行、首行 `L-01`；首个列表请求 `limit=50&offset=0`；chips：广播 ok 57 · 接收 ok 1 · 问题行 1 · 水位 2；分页前缀 `共 60 行` |
+| RL-02 | pws | 筛选栏 | 第 2 页 → `offset=50`；方向=广播 → `direction=outbound&offset=0`、`共 58 行`；校验状态多选 hash_mismatch + skipped → `verify_status=hash_mismatch,skipped`（叠加在 direction 上）、1 行；重开页面后文件名前缀 `scb` → `file_name=scb&offset=0`、`共 20 行`；时间范围「近 24 小时」→ 列表与 summary 请求都带 RFC3339 `since` |
+| RL-03 | pws | 点 `L-01` 开抽屉 | 抽屉 `msg_id` == fixture、有「复制」按钮；清单 200 行、`共 450 条`、kinds `新增 300 / 删除 75 / 修改 75 / 移位 0`、首条按主键顺序 `6000/1`；首个清单请求 `limit=200&offset=0`；翻第 2 页 → `offset=200`；第 3 页 50 行；种类=删除 → `kind=deleted&offset=0`、75 行；RefNo 前缀 `6001/` → 叠加 `refno=6001/`、25 行 |
+| RL-04 | pws | 截断行 `L-05` | 列表变更按钮 `20000 / 25000（截断）`；抽屉 `已落库 20000 / 25000（截断）`；`verify_detail` 原文展示 |
+| RL-05 | pws | inbound 行 `L-03` | 抽屉出现「接收方不记清单」说明、**不**请求 `changes`；抽屉头校验 tag `skipped`；「按 msg_id 过滤列表」→ 抽屉关闭、列表请求 `msg_id=<L-03 的 msg_id>`、1 行 |
+| RL-06 | pws | 水位面板 | 展开前 0 次 `watermarks` 请求；展开后 2 行；全程 0 写请求、0 pageerror |
+| RL-07 | pmg | 后端 404 | `ledger-unavailable` 空态含 `该后端不提供台账 API`，不出现 `ledger-error`；0 pageerror |
+| RL-08 | pws-empty | 库没建表（`note`） | `ledger-empty` 空态含 `台账表尚未建立`；chips 全 0；0 pageerror |
+
+通过条件：pws 6/6、pws-empty 1/1、pmg 1/1 且 `pageErrors.length === 0`。**2026-09-17 结果**：8/8（`relay-ledger-smoke-result.json`）。
+
+### 8.2 live（`npm run smoke:relay-ledger:live -- --api http://127.0.0.1:4100`）
+
+安全闸：`page.route` 把除 `auth/login` / `auth/me` 外的一切非 GET 直接 abort 并记录；任何一条被拦下都算 RL-L3 失败。
+
+| 编号 | 用例 | 期望 |
+|---|---|---|
+| RL-L0 | 后端可达、直连拿基准 | `/api/health` 有响应；直连登录；`GET ledger?limit=50` `success:true`（否则整组失败：后端要 pws ≥ `b61b7ca`）；`summary` / `watermarks` 可用 |
+| RL-L1 | UI 登录 → `/ledger` | 表行数 == 直连 `items.length`（0 行时走 `ledger-empty`）；chips 广播 ok / 接收 ok / 问题行 == `summary.by_direction_status` / `problems_total`；分页前缀含 `total` |
+| RL-L2 | 第一条有清单的 outbound 行 | 抽屉 `changes-total` 含直连 `rows/{id}/changes` 的 `total`；清单行数 == min(total, 200)；`kinds` 四计数之和 == `changes_count`，chips 与 `rows/{id}` 一致；没有带清单的行时如实记录并跳过 |
+| RL-L3 | 水位面板 | 行数 == `GET watermarks` 的 `total`；安全闸 0 拦截；0 pageerror |
+
+**2026-09-17 结果**（Site A `:4100`，真台账 16 行 / 336 变更 / 1 水位）：4/4（`relay-ledger-live-result.json`）。

@@ -47,7 +47,7 @@ function Show-Help {
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -SiteABase http://127.0.0.1:4100 -SiteBBase http://127.0.0.1:4101"
   Write-Output "  powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 -FixtureOnly -FixtureDir `$env:TEMP\remote-collab-fixture"
   Write-Output ""
-  Write-Output "Checks (LS-01..LS-24 in report order, see docs/e2e-smoke/local-remote-collab-test-plan.md section 6):"
+  Write-Output "Checks (LS-01..LS-25 in report order, see docs/e2e-smoke/local-remote-collab-test-plan.md section 6):"
   Write-Output "  ports / identities / login / env+site create / test-mqtt / test-http / activate / runtime status / topology / logs"
   Write-Output "  LS-15 remote-runtime-active-env      : runtime/status.active == true && env_id == created env (pws: envs[].active)"
   Write-Output "  LS-20 mqtt-received-after-publish    : after mosquitto_pub, runtime/status.mqtt_connected turns true"
@@ -56,6 +56,9 @@ function Show-Help {
   Write-Output "                                         Site A's relay loop re-broadcasts it -> e3d_sync_ledger outbound/ok row on A"
   Write-Output "  LS-24 relay-inbound-ledger           : Site B receives it, clones + verifies -> inbound/ok row on B with sesno_seen == sesno_to;"
   Write-Output "                                         B's copy (garbage appended beforehand) is restored (SHA256 == -RelayFileA when given)"
+  Write-Output "  LS-25 relay-ledger-api               : GET /api/remote-sync/ledger?direction=outbound&msg_id=<LS-23 msg_id> on A is exactly 1 ok row whose"
+  Write-Output "                                         changes_count and rows/{id}/changes.total equal sqlite3's e3d_sync_changes count; B has 1 inbound/ok row"
+  Write-Output "                                         for the same msg_id (skipped when the backend has no ledger API, i.e. 404)"
   Write-Output ""
   Write-Output "Options:"
   Write-Output "  -SiteAArchivesHost     env.file_server_host written on Site A = where others download A's .cba (default <SiteABase>/assets/archives)"
@@ -671,9 +674,12 @@ Add-Check $checks "remote-sync-logs" ($(if ($logs.ok) { "passed" } else { "faile
 #   2. 等 A 的中继轮询给 -RelayFileB 对应的库写了基线水位；
 #   3. 给 B 的副本追加垃圾字节（之后要看它被 A 的 CBA 还原）；
 #   4. 把 A 的水位回退 N 个会话——A 下一轮判定「sesno 前进了」→ e3d-io diff → 广播；
-#   5. LS-23：A 台账出现 outbound/ok；LS-24：B 台账出现 inbound/ok 且 sesno_seen == sesno_to，副本 SHA256 == A 的源文件。
+#   5. LS-23：A 台账出现 outbound/ok；LS-24：B 台账出现 inbound/ok 且 sesno_seen == sesno_to，副本 SHA256 == A 的源文件；
+#      LS-25：台账读侧 API（pws b61b7ca，/api/remote-sync/ledger/*）对同一 msg_id 读到的与 sqlite3 一致。
 # ---------------------------------------------------------------------------
 $relayChecks = [System.Collections.Generic.List[object]]::new()
+# LS-25 默认 skipped，只有 LS-23 跑到广播成功那一步才真查
+$ledgerApiCheck = @{ name = "relay-ledger-api"; status = "skipped"; details = @{ reason = "LS-23 did not reach a broadcast (see LS-23)" } }
 $siteBHeaders = @{}
 $siteBEnvId = ""
 $relayFileName = [System.IO.Path]::GetFileName($RelayFileB)
@@ -806,6 +812,35 @@ if ($SkipRelay) {
       }
       $relayChecks.Add(@{ name = "relay-outbound-ledger"; status = $(if ($outWait.found) { "passed" } else { "failed" }); details = $outDetails }) | Out-Null
 
+      # 5c. LS-25：台账读侧 API 与 sqlite3 一致（A 的 outbound 行 + 它的清单 total；B 的 inbound 行在 LS-24 之后补查）
+      if ($outWait.found) {
+        $ledgerMsgId = [string]$outWait.row.msg_id
+        $apiDetails = [ordered]@{ msg_id = $ledgerMsgId; sqlite_changes = $outWait.row.changes }
+        $ledgerA = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/ledger?direction=outbound&msg_id=$ledgerMsgId") $null $headers
+        if (-not $ledgerA.ok -and $ledgerA.error -match "404") {
+          $ledgerApiCheck = @{ name = "relay-ledger-api"; status = "skipped"; details = @{ reason = "Site A has no /api/remote-sync/ledger (plant-web-server < b61b7ca, or plant-model-gen)"; error = $ledgerA.error } }
+        } else {
+          $rowA = @(Get-ObjectValue $ledgerA.response @("items")) | Select-Object -First 1
+          $totalA = Get-ObjectValue $ledgerA.response @("total")
+          $apiDetails.site_a = [ordered]@{ ok = $ledgerA.ok; total = $totalA; id = $rowA.id; verify_status = $rowA.verify_status; changes_count = $rowA.changes_count; sesno_to = $rowA.sesno_to; error = $ledgerA.error }
+          $aOk = $ledgerA.ok -and ([string]$totalA -eq "1") -and ($rowA.verify_status -eq "ok") -and ([string]$rowA.changes_count -eq [string]$outWait.row.changes) -and ([string]$rowA.sesno_to -eq [string]$outWait.row.sesno_to)
+          $changesOk = $false
+          if (-not [string]::IsNullOrWhiteSpace([string]$rowA.id)) {
+            $changesA = Invoke-SmokeJson "GET" (Join-Url $SiteABase "/api/remote-sync/ledger/rows/$($rowA.id)/changes?limit=1") $null $headers
+            $changesTotal = Get-ObjectValue $changesA.response @("total")
+            $changesItems = @(Get-ObjectValue $changesA.response @("items"))
+            $apiDetails.site_a_changes = [ordered]@{ ok = $changesA.ok; total = $changesTotal; first_refno = $changesItems[0].refno; error = $changesA.error }
+            $changesOk = $changesA.ok -and ([string]$changesTotal -eq [string]$outWait.row.changes) -and (([int]$outWait.row.changes -eq 0) -or ($changesItems.Count -eq 1))
+          }
+          $apiDetails.site_a_ok = $aOk
+          $apiDetails.site_a_changes_ok = $changesOk
+          $ledgerApiCheck = @{ name = "relay-ledger-api"; status = $(if ($aOk -and $changesOk) { "passed" } else { "failed" }); details = $apiDetails }
+          if (-not ($aOk -and $changesOk)) {
+            $apiDetails.hint = "A 的 GET ledger?direction=outbound&msg_id=… 应恰 1 行 ok 且 changes_count / rows/{id}/changes.total 都等于 sqlite3 数出的 e3d_sync_changes 行数（$($outWait.row.changes)）"
+          }
+        }
+      }
+
       # 5b. LS-24：B 台账 inbound/ok 且 sesno_seen == sesno_to；副本被还原
       if (-not $outWait.found) {
         $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = "skipped"; details = @{ reason = "LS-23 did not pass" } }) | Out-Null
@@ -852,10 +887,25 @@ if ($SkipRelay) {
           $inDetails.hint = "B 台账 ok 但副本与 A 源文件 SHA256 不一致：clone 写的不是 -RelayFileB 这个路径？"
         }
         $relayChecks.Add(@{ name = "relay-inbound-ledger"; status = $(if ($inWait.found -and $sesnoMatches -and $copyOk) { "passed" } else { "failed" }); details = $inDetails }) | Out-Null
+
+        # 5c'. LS-25 的 B 侧：同一 msg_id 在 B 的读侧 API 上恰 1 行 inbound/ok（LS-24 过了才有意义；B 没这组端点就只记录）
+        if ($inWait.found -and $ledgerApiCheck.status -ne "skipped") {
+          $ledgerB = Invoke-SmokeJson "GET" (Join-Url $SiteBBase "/api/remote-sync/ledger?direction=inbound&msg_id=$expectedMsgId") $null $siteBHeaders
+          $rowB = @(Get-ObjectValue $ledgerB.response @("items")) | Select-Object -First 1
+          $totalB = Get-ObjectValue $ledgerB.response @("total")
+          $ledgerApiCheck.details.site_b = [ordered]@{ ok = $ledgerB.ok; total = $totalB; verify_status = $rowB.verify_status; sesno_seen = $rowB.sesno_seen; sesno_to = $rowB.sesno_to; error = $ledgerB.error }
+          $bOk = $ledgerB.ok -and ([string]$totalB -eq "1") -and ($rowB.verify_status -eq "ok") -and ([string]$rowB.sesno_seen -eq [string]$inWait.row.sesno_to)
+          $ledgerApiCheck.details.site_b_ok = $bOk
+          if (-not $bOk) {
+            $ledgerApiCheck.status = "failed"
+            $ledgerApiCheck.details.hint_b = "B 的 GET ledger?direction=inbound&msg_id=… 应恰 1 行 ok 且 sesno_seen == LS-24 那行的 sesno_to"
+          }
+        }
       }
     }
   }
 }
+$relayChecks.Add($ledgerApiCheck) | Out-Null
 
 # LS-22 + 收尾：停止运行时（应清掉 active），删掉 smoke 建的站点 / env；-KeepEnv 时全部跳过
 $cleanup = [ordered]@{ performed = (-not $KeepEnv) }

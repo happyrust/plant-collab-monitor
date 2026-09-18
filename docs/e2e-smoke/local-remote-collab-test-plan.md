@@ -211,7 +211,7 @@ powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1 `
 docs/e2e-smoke/local-remote-collab-smoke-result.json
 ```
 
-## 6. 验收点（24 项，报告 `checks[]` 顺序即 LS 编号）
+## 6. 验收点（25 项，报告 `checks[]` 顺序即 LS 编号）
 
 | LS | check | 验收点 |
 |---|---|---|
@@ -231,8 +231,9 @@ docs/e2e-smoke/local-remote-collab-smoke-result.json
 | **22** | **`runtime-stop-clears-active`**（新增） | `POST runtime/stop` 后 `runtime/status.active === false`；随后删掉 smoke 建的站点与 env（记录在报告 `cleanup`）。`-KeepEnv` 或后端无 `active` 字段 → skipped |
 | **23** | **`relay-outbound-ledger`**（2026-09-15 新增，中继链路发包侧） | 步骤（都记在 `details`）：① 在 Site B 登录、建 env（`file_server_host` = B 的 `/assets/archives`）、`detect_interval` 调小、`activate`（`details.site_b.runtime.relay === true`）；② 等 A 的 `relay_sync_watermark` 出现 `-RelayFileB` 对应库的基线行；③ 给 B 的副本追加 `-AppendBytes` 随机字节；④ 把 A 的该库水位回退 `-RelayRewindSessions`（指纹不动，免去一拍去抖）；⑤ ≤ `-RelayTimeoutSec` 内 A 的 `e3d_sync_ledger` 出现该文件的 **`outbound / ok`** 行（`details.ledger` 带 `sesno_from → sesno_to`、`diff_*` 计数、`e3d_sync_changes` 行数）。没 sqlite 工具 / A 未激活 → skipped |
 | **24** | **`relay-inbound-ledger`**（2026-09-15 新增，收包侧） | LS-23 之后 ≤ `-RelayTimeoutSec` 内 B 的 `e3d_sync_ledger` 出现同一文件、**`msg_id` 与 A 本轮那条广播相同**的 **`inbound / ok`** 行（broker 上的 retained 消息会让 B 一订阅就先把上一轮的文件收一遍，不锁 `msg_id` 就会拿那一行冒充本轮），且 **`sesno_seen === sesno_to`**（= A 广播时的 `sesno_to`）；B 的副本 SHA256 == `-RelayFileA`（垃圾字节被 A 的 CBA 还原）。LS-23 没过 → skipped；B 没 active → failed。副本没被还原时 smoke 会把它截回原长度，别越叠越脏 |
+| **25** | **`relay-ledger-api`**（2026-09-17 新增，台账读侧 API） | 对着 LS-23 那条广播的 `msg_id`：A 的 `GET /api/remote-sync/ledger?direction=outbound&msg_id=…` **恰 1 行**、`verify_status == ok`、`changes_count` 与 `sesno_to` 等于 sqlite3 读到的；`GET ledger/rows/{id}/changes?limit=1` 的 `total` == sqlite3 数出的 `e3d_sync_changes` 行数；LS-24 过了再查 B 的 `GET ledger?direction=inbound&msg_id=…` 恰 1 行 `ok` 且 `sesno_seen == sesno_to`。LS-23 没到广播那一步 → skipped；后端没有这组端点（404，pws < `b61b7ca` 或 pmg）→ skipped |
 
-通过标准：`failed == 0`，即 **≥ 22 passed**（LS-19 / LS-20 允许因缺 `mosquitto_pub` 同时 skipped），`passed: true`。LS-23 / LS-24 是方案 P4 的验收点：两个中继站点、机器上没有 `surreal`，只起 Mosquitto + 两个 `web_server`。
+通过标准：`failed == 0`，即 **≥ 23 passed**（LS-19 / LS-20 允许因缺 `mosquitto_pub` 同时 skipped），`passed: true`。LS-23 / LS-24 是方案 P4 的验收点：两个中继站点、机器上没有 `surreal`，只起 Mosquitto + 两个 `web_server`；LS-25 是台账读侧方案（`docs/plans/2026-09-17-relay-ledger-read-api-plan.md`）的 L4 验收点。**2026-09-17 实跑 25/25（32 s）**：`docs/e2e-smoke/local-remote-collab-smoke-result-pws-ledger.json`。
 
 ## 7. 注意事项
 
