@@ -85,10 +85,11 @@ VITE_API_TARGET=http://staging.example.com:3100
 ```
 src/
 ├── main.ts                    # pinia + vue-router 注入（naive-ui 改为按需引入，详见 vite.config.ts）
-├── App.vue                    # 侧栏 + 12 route 布局
+├── App.vue                    # 侧栏 + 13 route 布局（含 LoginDialog / GuideTourOverlay 全局挂载）
 ├── env.d.ts                   # Vite + import.meta.env 类型
 ├── styles/main.css            # tailwind + 全局样式
-├── router/index.ts            # 12 条路由 + afterEach 标题
+├── router/index.ts            # 13 条路由 + afterEach 标题
+├── guide/collabGuide.ts       # 「协同配置向导」8 步内容（为什么 / 怎么做 / 填什么 / 判定口径）+ 每步的高亮导览定义（2026-09-21）
 ├── api/                       # axios 层（全类型化）
 │   ├── http.ts                # 基础 axios + admin token interceptor
 │   ├── adminAuthApi.ts        # /api/admin/auth/* (login/logout/me)
@@ -102,6 +103,7 @@ src/
 │   └── index.ts
 ├── stores/                    # Pinia stores（全 ts）
 │   ├── adminAuth.ts           # admin token + LoginDialog 状态 + 开发态自动登录（adminAutoLogin / ensureAutoLogin）
+│   ├── guideTour.ts           # 页面内高亮导览状态（steps / index / start / next / stop）
 │   └── appStatus.ts           # AppStatusBar 数据源（site/sync/queue + 1min events）
 ├── composables/               # 全部 .ts，无遗留 .js
 │   ├── useDashboardSummary.ts # Dashboard 6 卡片并发调度
@@ -110,6 +112,7 @@ src/
 ├── components/                # 业务组件
 │   ├── AppStatusBar.vue       # 顶部固定 4 项徽标
 │   ├── LoginDialog.vue        # naive-ui Modal + admin login flow
+│   ├── GuideTourOverlay.vue   # 高亮导览：四块遮罩围住 data-tour 目标 + 说明卡（目标可直接点，点了自动进下一步；Esc 结束）
 │   ├── DetailModal.vue
 │   ├── IncrementalUpdateMonitor.vue
 │   ├── LogViewer.vue
@@ -121,9 +124,10 @@ src/
 │   └── charts/                # 全 ts + 空状态 echarts graphic
 │       ├── SiteStatusChart.vue
 │       └── SyncTrendChart.vue
-└── views/                     # 12 个一级视图（全部接入真 API，无 placeholder 壳）
+└── views/                     # 13 个一级视图（全部接入真 API，无 placeholder 壳）
     ├── DashboardView.vue          # 6 卡片 + 2 chart + 最近事件 · useDashboardSummary
-    ├── TopologyView.vue           # 异地拓扑 CRUD + 部署动作（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http + 编辑）· meta.requiresAdmin
+    ├── CollabGuideView.vue        # 协同配置向导 `/guide`：8 步（准备 → 概念 → 建环境 → 测连通 → 激活 → 登记对端 → 核对 → 停止 / 复原），每步「为什么 / 怎么做 / 填什么（本站实时值） / 完成判定（对着后端 15 s 刷）」+「去页面操作（高亮导览）」+ 页内「帮我测」（2026-09-21）
+    ├── TopologyView.vue           # 异地拓扑 CRUD + 部署动作（测 MQTT / 测文件服务 / 应用 / 激活 / 停止运行时 / 站点 test-http + 编辑）· meta.requiresAdmin · 关键按钮带 data-tour 供导览定位，`?tour=<步骤 id>` 进来自动起导览
     ├── RelayLedgerView.vue        # 中继台账：广播 / 接收记录 + 服务端分页筛选 + 抽屉 RefNo 级变更清单 + 水位 · meta.requiresAdmin（2026-09-17）
     ├── TopologyVisualizationView.vue  # SVG 节点拓扑可视化 · meta.requiresAdmin
     ├── TasksView.vue              # 任务队列 · syncApi.queue
@@ -233,6 +237,7 @@ location /ws/ {
 | Phase 25 | 键盘快捷键（Alt+D 主题, Alt+B 侧栏）| ✅ |
 | Phase 26 | Desktop 通知（Notification API）| ✅ |
 | 2026-09-14 · 部署动作面 | `remoteSyncApi` 补齐 apply / activate / test-mqtt / test-http / sites test-http / updateSite / import-from-dboption / tasks / env config；`TopologyView` 新增运行时状态 pill + 停止运行时、环境卡片「测 MQTT / 测文件服务 / 应用 / 激活」、站点「test-http / 编辑」、环境列表「从 DbOption 导入」；`deploymentSitesApi` 收敛为后端实际存在的 list / get | ✅（计划：`docs/plans/2026-09-14-remote-deploy-next-step-plan.md`）|
+| 2026-09-21 · 配置向导 + 开发态自动登录 | 新视图 `/guide`「协同配置向导」（不设 admin 门）：8 步照着 `topology-deploy-live-tutorial.md` 的主线写，每步给「为什么 / 在页面上怎么做 / 要填什么（本站 `site/info` 实时值、点击复制） / 完成判定」，判定对着后端实时算（`site/info` · 登录态 · `envs` 里有带 broker 的卡 · 页内「帮我测」两绿 · `runtime/status.active` · 站点 ≥ 1 且探测过可达 · `mqtt_connected`），15 s 自动刷，默认停在第一个未完成步骤；「去页面操作」跳 `/topology?tour=<id>` 起**高亮导览**（`GuideTourOverlay` + `stores/guideTour`：四块遮罩围住 `data-tour` 目标、说明卡贴着目标、目标可直接点且点了自动进下一步、目标不在页面时给「先做什么」提示、Esc / 回到向导）；第 1 步记下五个键的快照（sessionStorage）供第 8 步复原对照。同日：开发态默认管理员自动登录（见「admin login flow」） | ✅ |
 | 2026-09-17 · 中继台账 | 新视图 `/ledger`（admin）：汇总 chips + 30 s 自动刷新、方向 / 校验状态多选 / 文件名前缀 / 时间范围 / msg_id 筛选、服务端分页 50/页、点行开抽屉看全字段与 **RefNo 级变更清单**（200/页、种类 / 前缀筛选、复制本页、截断提示）、inbound 行指回广播方、水位面板；两种后端都不炸（pmg / 旧 pws 404 → 「该后端不提供台账 API」，库没建表 → 「台账表尚未建立」）。`relayLedgerApi` 对应 pws `b61b7ca` 的 5 个只读端点。用例：mock `RL-01–08`、live `RL-L0–L3`、双站点 `LS-25` | ✅（方案：`docs/plans/2026-09-17-relay-ledger-read-api-plan.md`）|
 
 ## 相关文档

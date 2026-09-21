@@ -18,6 +18,13 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '全局概览' },
   },
   {
+    path: '/guide',
+    name: 'guide',
+    component: () => import('@/views/CollabGuideView.vue'),
+    // 不设 admin 门：第 1 步就是引导登录；admin 端点只在拿到 token 后才去读
+    meta: { title: '协同配置向导' },
+  },
+  {
     path: '/topology',
     name: 'topology',
     component: () => import('@/views/TopologyView.vue'),

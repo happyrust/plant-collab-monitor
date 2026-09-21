@@ -8,6 +8,17 @@
 
 ## 2026-09-21
 
+### Added · 新视图 `/guide`「协同配置向导」+ 页面内高亮导览：在网页里照着学怎么配异地协同
+
+> 此前「怎么配」只在 `docs/tutorials/*.md`（截图版）里；现在监控台自己带一份，而且判定是活的：每一步对着后端实时算「完成了没」，「去页面操作」直接在 `/topology` 的真实按钮上打聚光灯。
+
+- `src/guide/collabGuide.ts`：8 步内容（准备 → 三个词与主线 → 新建环境 → 测连通 → 激活 → 登记对端 → 核对运行态与台账 → 停止 / 复原），与 `topology-deploy-live-tutorial.md` 同一条主线、同一套 plant-web-server 语义（pmg 差异写在 notes）。每步 `goal / why / howto / fields（填什么）/ notes / checkHint / checkable / route / tour`。
+- `src/views/CollabGuideView.vue`（`/guide`，侧栏「配置向导」，不设 admin 门）：左侧步骤条（状态：已完成 / 未完成 / 需先登录 / 检查失败 / 讲解），右侧「为什么 · 在页面上怎么做 · 要填什么（本站 `site/info` 实时值，点击复制）· 注意 · 完成判定 · 动作」。判定：`site/info` 有响应且已登录 / `envs` 里有带 `mqtt_host` 的卡 / 页内「帮我测 MQTT · 文件服务」两绿 / `runtime/status.active` / 环境下站点 ≥ 1 且探测过可达 / `mqtt_connected`（pmg 无此字段时看 `active`）；15 s 自动刷 + 登录态变化即刷，默认停在第一个未完成步骤，顶部进度条。第 1 步首次拿到 `site/info` 就把五个连接键快照进 `sessionStorage`，第 8 步拿它对照「文件是否被激活改过」。「核对」步顺带读 `ledger/summary`（不可用 / 未建表两种空态）。
+- `src/stores/guideTour.ts` + `src/components/GuideTourOverlay.vue`（全局挂 `App.vue`）：四块遮罩围住目标（目标区域留空、可直接点）+ 蓝色聚光框 + 说明卡贴着目标（放不下就放上面）；每帧对一次目标位置（滚动 / 布局变化 / 元素出现消失都跟着走），首次出现 `scrollIntoView`；点被高亮的目标自动进下一步（最后一步结束）；目标不在页面时说明卡居中 + `missingHint`（「先在左侧选中一张环境卡」）；Esc / ✕ / 「回到向导」结束。z-index 900–902，压在 DaisyUI modal（999）与 naive-ui 弹层之下，导览中弹出的表单 / 确认框可操作。
+- `TopologyView.vue`：关键元素加 `data-tour`（页级 `runtime-pill / stop-runtime / env-list / import-env / create-env / sites-panel / add-site`；卡片级只标选中那张卡 `env-test-mqtt / env-test-http / env-apply / env-activate`；站点行只标第一行 `site-test-http / site-edit`）；`?tour=<步骤 id>` 进来 → 等 `loadEnvs()` 回来、没选中就替用户选一张（激活的优先）→ 起导览 → `router.replace` 摘掉 query。原有按钮、选择器、行为不变。
+- `router/index.ts` 加 `/guide`；`App.vue` 侧栏「监控」组加「配置向导」、挂 `GuideTourOverlay`。README 项目结构 / 状态表、AGENTS §4.7 / §6。
+- 验证：`type-check` 0 errors；对本机 Site A（dev `:4000` → `:4100`）Playwright 真 Chrome 临时用例 **22/22**（脚本放 %TEMP%，已删）：向导页 8 步、第 1 步已完成、本站身份 `local-a / [6000] / 127.0.0.1:1883`、新建环境 / 激活按真实状态判「未完成」（登记卡不算）、进度 `1 / 6`、默认停在第 3 步、环境表 1 行、页内「帮我测 MQTT」拿到后端原话；导览：`create-env` 两步、聚光框存在、点亮着的「新建」→ 表单打开（z 999 > 902）且导览结束；`probe` 自动选中环境后「测 MQTT」被定位（无缺失提示），点它自动进「测文件服务」；Esc 结束；`stop` 按钮存在时定位到它；「回到向导」回 `/guide`；侧栏入口；全程 pageerror / console.error 0。生产产物回归：`npm run smoke:topology-deploy -- --build`（重建 dist 后对 `vite preview`）**pmg 16/16 · pws 16/16**，pageErrors 0 —— `TopologyView` 加的 `data-tour` / `v-for` index / `?tour` 钩子没动到任何既有选择器与行为。
+
 ### Added · 开发态管理员自动登录：`npm run dev` 打开 admin 页面不再弹登录框
 
 > 起因：本机联调每开一个标签页都要在「管理员登录」框里敲一遍 `admin / admin`（token 存 `sessionStorage`，按标签页隔离）。后端 admin 端点仍要 Bearer token，所以不能拆守卫，改成前端先静默把 token 拿到手。

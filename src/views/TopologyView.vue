@@ -10,8 +10,8 @@
         <div class="hidden xl:block text-xs text-slate-500">
           配置各个环境（Environments）及其包含的站点（Sites）
         </div>
-        <!-- 运行时状态（watcher + MQTT 订阅）· 30s 轮询 -->
-        <div class="flex items-center gap-2" data-testid="remote-runtime-status">
+        <!-- 运行时状态（watcher + MQTT 订阅）· 30s 轮询；data-tour 供 /guide 的高亮导览定位 -->
+        <div class="flex items-center gap-2" data-testid="remote-runtime-status" data-tour="runtime-pill">
           <span
             :class="[
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border',
@@ -33,6 +33,7 @@
             class="btn btn-xs btn-outline btn-error gap-1"
             :disabled="stoppingRuntime"
             title="停止后端 watcher + MQTT 订阅"
+            data-tour="stop-runtime"
           >
             <i class="fas fa-stop"></i>
             {{ stoppingRuntime ? '停止中...' : '停止运行时' }}
@@ -52,7 +53,7 @@
     <!-- Content -->
     <div class="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden p-4 lg:p-6 gap-4 lg:gap-6">
       <!-- Left: Environments -->
-      <div class="w-full lg:w-2/5 shrink-0 flex flex-col bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-xl border-2 border-blue-100 p-5 shadow-sm min-h-[400px] lg:min-h-0">
+      <div class="w-full lg:w-2/5 shrink-0 flex flex-col bg-gradient-to-br from-blue-50/50 to-indigo-50/30 rounded-xl border-2 border-blue-100 p-5 shadow-sm min-h-[400px] lg:min-h-0" data-tour="env-list">
         <div class="flex justify-between items-center mb-5 shrink-0">
           <div>
             <h4 class="font-bold text-lg text-slate-800 flex items-center gap-2">
@@ -67,11 +68,12 @@
               class="btn btn-sm btn-outline gap-2"
               :disabled="importingEnv"
               title="读取后端当前进程的 DbOption.toml，生成一个环境（不改写配置、不激活运行时）"
+              data-tour="import-env"
             >
               <i :class="importingEnv ? 'fas fa-spinner fa-spin' : 'fas fa-file-import'"></i>
               <span class="hidden sm:inline">从 DbOption 导入</span>
             </button>
-            <button @click="handleOpenAddEnv" class="btn btn-sm btn-primary gap-2 shadow-md hover:shadow-lg transition-shadow">
+            <button @click="handleOpenAddEnv" class="btn btn-sm btn-primary gap-2 shadow-md hover:shadow-lg transition-shadow" data-tour="create-env">
               <i class="fas fa-plus"></i>
               <span class="hidden sm:inline">新建</span>
             </button>
@@ -132,13 +134,14 @@
                 </p>
               </div>
 
-              <!-- 部署动作：连通性诊断 + 推到运行时 -->
+              <!-- 部署动作：连通性诊断 + 推到运行时；data-tour 只标在选中的那张卡上，供 /guide 高亮导览定位 -->
               <div class="mt-3 flex flex-wrap items-center gap-1.5" @click.stop>
                 <button
                   @click.stop="handleTestMqtt(env)"
                   class="btn btn-xs btn-ghost gap-1"
                   :disabled="isEnvBusy(env.id)"
                   title="TCP 探测该环境的 mqtt_host:mqtt_port"
+                  :data-tour="tourAnchor(env, 'env-test-mqtt')"
                 >
                   <i class="fas fa-signal text-green-600" :class="{ 'fa-fade': envBusy[String(env.id)] === 'test-mqtt' }"></i>
                   测 MQTT
@@ -148,6 +151,7 @@
                   class="btn btn-xs btn-ghost gap-1"
                   :disabled="isEnvBusy(env.id)"
                   title="HTTP 探测该环境的 file_server_host"
+                  :data-tour="tourAnchor(env, 'env-test-http')"
                 >
                   <i class="fas fa-hdd text-blue-600" :class="{ 'fa-fade': envBusy[String(env.id)] === 'test-http' }"></i>
                   测文件服务
@@ -157,6 +161,7 @@
                   class="btn btn-xs btn-outline gap-1"
                   :disabled="isEnvBusy(env.id)"
                   title="把该环境写入后端 DbOption.toml（不重启运行态）"
+                  :data-tour="tourAnchor(env, 'env-apply')"
                 >
                   <i class="fas fa-file-export"></i>
                   应用
@@ -166,6 +171,7 @@
                   class="btn btn-xs btn-primary gap-1"
                   :disabled="isEnvBusy(env.id) || isActiveEnv(env)"
                   :title="isActiveEnv(env) ? '该环境已是当前运行态' : '把连接参数写入 DbOption.toml 并起 / 重建中继运行态（MQTT 订阅 + 源文件轮询）'"
+                  :data-tour="tourAnchor(env, 'env-activate')"
                 >
                   <i class="fas fa-play"></i>
                   {{ envBusy[String(env.id)] === 'activate' ? '激活中...' : '激活' }}
@@ -190,7 +196,7 @@
       </div>
 
       <!-- Right: Sites -->
-      <div class="flex-1 flex flex-col bg-gradient-to-br from-green-50/40 to-emerald-50/20 rounded-xl border-2 border-green-100 relative overflow-hidden shadow-sm min-h-[400px] lg:min-h-0">
+      <div class="flex-1 flex flex-col bg-gradient-to-br from-green-50/40 to-emerald-50/20 rounded-xl border-2 border-green-100 relative overflow-hidden shadow-sm min-h-[400px] lg:min-h-0" data-tour="sites-panel">
         <div v-if="!selectedEnv" class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-800/80 backdrop-blur-sm z-10 text-slate-400">
           <i class="fas fa-hand-point-left text-6xl mb-6 text-slate-200 animate-pulse"></i>
           <p class="text-lg font-medium text-slate-500">请先在左侧选择一个环境</p>
@@ -222,6 +228,7 @@
               @click="handleOpenAddSite"
               class="btn btn-sm btn-success gap-2 shadow-md hover:shadow-lg transition-shadow text-white"
               :disabled="!selectedEnv"
+              :data-tour="selectedEnv ? 'add-site' : null"
             >
               <i class="fas fa-plus"></i>
               添加站点
@@ -262,7 +269,7 @@
                 </td>
               </tr>
               <tr
-                v-for="site in sites"
+                v-for="(site, index) in sites"
                 :key="site.id"
                 @click="handleViewSiteDetails(site)"
                 class="hover:bg-green-50/30 transition-colors border-b border-green-100/50 cursor-pointer"
@@ -347,6 +354,7 @@
                     class="btn btn-ghost btn-xs text-blue-600 hover:bg-blue-50 tooltip tooltip-left"
                     data-tip="由后端探测该站点 HTTP 可达性"
                     :disabled="siteTesting[String(site.id)]"
+                    :data-tour="index === 0 ? 'site-test-http' : null"
                   >
                     <i class="fas fa-stethoscope" :class="{ 'fa-fade': siteTesting[String(site.id)] }"></i>
                   </button>
@@ -354,6 +362,7 @@
                     @click.stop="handleOpenEditSite(site)"
                     class="btn btn-ghost btn-xs text-slate-600 hover:bg-slate-100 tooltip tooltip-left"
                     data-tip="编辑站点"
+                    :data-tour="index === 0 ? 'site-edit' : null"
                   >
                     <i class="fas fa-pen"></i>
                   </button>
@@ -853,6 +862,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   remoteSyncApi,
   siteConfigApi,
@@ -860,6 +870,8 @@ import {
   type RemoteSyncActionResponse,
   type RemoteSyncRuntimeStatus,
 } from '@/api';
+import { useGuideTourStore } from '@/stores/guideTour';
+import { getGuideTour } from '@/guide/collabGuide';
 
 type ApiObject = Record<string, unknown> & {
   status?: string;
@@ -1084,6 +1096,24 @@ const isActiveEnv = (env: RemoteEnv) =>
   runtimeActive.value && activeEnvId.value === String(env.id);
 
 const isEnvBusy = (envId: string | number) => Boolean(envBusy.value[String(envId)]);
+
+// /guide 的高亮导览：卡片级按钮只在选中的那张卡上打 data-tour，导览永远指向用户正在看的那张
+const tourAnchor = (env: RemoteEnv, name: string): string | null =>
+  selectedEnv.value?.id === env.id ? name : null;
+
+// 从 /guide 「去页面操作」跳过来时带 ?tour=<步骤 id>：等首屏数据渲染出来再起导览，然后把 query 摘掉（刷新不重播）
+const route = useRoute();
+const router = useRouter();
+const guideTour = useGuideTourStore();
+const startTourFromQuery = () => {
+  const id = route.query.tour;
+  if (typeof id !== 'string') return;
+  const steps = getGuideTour(id);
+  const { tour: _tour, ...rest } = route.query;
+  void router.replace({ query: rest });
+  if (!steps) return;
+  window.setTimeout(() => guideTour.start(id, steps), 500);
+};
 
 const nowLabel = () => new Date().toLocaleTimeString();
 
@@ -1875,7 +1905,16 @@ const handleViewSiteDetails = async (site: RemoteSite) => {
 };
 
 onMounted(() => {
-  loadEnvs();
+  const tourRequested = typeof route.query.tour === 'string';
+  loadEnvs().then(() => {
+    if (!tourRequested) return;
+    // 导览要指卡片上的按钮：没选中环境就先替用户选一张（激活的那张优先），按钮才会出现
+    if (!selectedEnv.value && envs.value.length > 0) {
+      const preferred = envs.value.find((e) => isActiveEnv(e)) ?? envs.value[0]!;
+      void selectEnv(preferred);
+    }
+    startTourFromQuery();
+  });
   // 预加载当前站点配置
   loadCurrentSiteConfig();
   // 运行时状态：首次 + 30s 轮询（与全局 StatusBar 节奏一致）

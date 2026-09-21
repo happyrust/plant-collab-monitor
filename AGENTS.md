@@ -184,6 +184,15 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 - `tailwind.config.js` 只保留 content 与 font theme 扩展。
 - `@vueuse/core` 不是 direct dependency；源码无直接使用，不要重新加入。
 
+### 4.7 协同配置向导 `/guide` 与页面内高亮导览（2026-09-21）
+
+三块：**内容** `src/guide/collabGuide.ts`（`COLLAB_GUIDE_STEPS`：8 步，每步 `goal / why / howto / fields / notes / checkHint / checkable / route / tour`）、**页面** `views/CollabGuideView.vue`（左步骤条 + 右详情；判定对着后端算，不写死）、**导览** `stores/guideTour.ts` + `components/GuideTourOverlay.vue`（全局挂在 `App.vue`，`Teleport` 到 body）。
+
+- 判定口径与 `TopologyView` 同一套（`activeEnvId / runtimeActive` 兼容两种后端）；admin 端点只在 `adminAuth.isLoggedIn` 后才读，未登录先 `ensureAutoLogin()`。第 1 步首次拿到 `site/info` 就把五个连接键写进 `sessionStorage['guide_site_info_snapshot']`，第 8 步拿它对照「文件是否被激活改过」。
+- 导览目标靠 **`data-tour="<name>"`** 定位：`TopologyView` 里页级元素直接标（`runtime-pill / stop-runtime / env-list / import-env / create-env / sites-panel / add-site`），卡片级按钮只标在**选中那张卡**上（`tourAnchor(env, name)`：`env-test-mqtt / env-test-http / env-apply / env-activate`），站点行只标第一行（`site-test-http / site-edit`）。`?tour=<步骤 id>` 进 `/topology` 时 `onMounted` 等 `loadEnvs()` 回来、没选中就替用户选一张（激活的优先），再 `guideTour.start()`，随后 `router.replace` 摘掉 query。
+- 遮罩 z-index **900–902**，故意压在 DaisyUI `.modal`（999）与 naive-ui 弹层之下：导览中点「新建 / 激活」弹出的表单、确认框浮在遮罩上面可操作。被高亮的目标本身留空不盖（四块遮罩），点它 → `advanceOnClick`（默认 true）自动 `next()`；目标不存在 → 说明卡居中 + `missingHint`。
+- 改 `TopologyView` 的按钮时**别丢 `data-tour`**；改向导文案只动 `collabGuide.ts`；加一步 = 在 `COLLAB_GUIDE_STEPS` 加一项 + 视图里 `完成判定` 那段按 `id` 加一个分支 + `checks` 加一条。
+
 ---
 
 ## 5. 编码约定
@@ -213,6 +222,7 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 | SSE 双路径实现 | `src/composables/useSse.ts` |
 | Dashboard 6 卡片 | `src/views/DashboardView.vue` + `src/composables/useDashboardSummary.ts` |
 | 拓扑 CRUD | `src/views/TopologyView.vue` |
+| 协同配置向导（8 步内容 / 判定 / 高亮导览） | `src/guide/collabGuide.ts` + `src/views/CollabGuideView.vue` + `src/stores/guideTour.ts` + `src/components/GuideTourOverlay.vue`（§4.7） |
 | 中继台账（列表 / 抽屉变更清单 / 水位） | `src/views/RelayLedgerView.vue` + `src/api/relayLedgerApi.ts`；用例 `scripts/relay-ledger-smoke.mjs`（mock + `--live`） |
 | MQTT 节点 + SSE 自动 reload | `src/views/MqttNodesView.vue` |
 | 站点配置编辑器 | `src/views/SiteConfigView.vue` |

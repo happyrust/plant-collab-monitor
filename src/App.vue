@@ -186,6 +186,7 @@
         </main>
 
         <LoginDialog />
+        <GuideTourOverlay />
       </div>
       </NDialogProvider>
     </NMessageProvider>
@@ -198,6 +199,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 // Provider 组件由 NaiveUiResolver 在 template 中自动注册；这里仅保留 theme/locale 等非组件 export
 import { darkTheme, zhCN, dateZhCN } from 'naive-ui';
 import LoginDialog from '@/components/LoginDialog.vue';
+import GuideTourOverlay from '@/components/GuideTourOverlay.vue';
 import AppStatusBar from '@/components/AppStatusBar.vue';
 import {
   adminAuthApi,
@@ -304,6 +306,7 @@ const currentPageTitle = computed(() => {
 
 const navMonitor = [
   { name: 'dashboard', path: '/dashboard', icon: '◉', label: '全局概览' },
+  { name: 'guide', path: '/guide', icon: '✦', label: '配置向导' },
   { name: 'topology', path: '/topology', icon: '◇', label: '异地拓扑', admin: true },
   { name: 'topology-viz', path: '/topology-viz', icon: '◆', label: '拓扑可视化' },
 ];
