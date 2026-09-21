@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-09-21
+
+### Added · 开发态管理员自动登录：`npm run dev` 打开 admin 页面不再弹登录框
+
+> 起因：本机联调每开一个标签页都要在「管理员登录」框里敲一遍 `admin / admin`（token 存 `sessionStorage`，按标签页隔离）。后端 admin 端点仍要 Bearer token，所以不能拆守卫，改成前端先静默把 token 拿到手。
+
+- `stores/adminAuth.ts`：新增 `adminAutoLogin` 配置（`enabled` 缺省 `import.meta.env.DEV`，`VITE_ADMIN_AUTO_LOGIN=1|0` 显式开关；账密 `VITE_ADMIN_USER / VITE_ADMIN_PASS`，缺省 `admin / admin`）与 `ensureAutoLogin()`（已登录 → true；未启用 → false；否则发一次 `login`，并发共用一个请求，失败只记 `autoLoginError` 不弹框）。
+- `router/index.ts`：`beforeEach` 改 async，`requiresAdmin` 且未登录时先 `await ensureAutoLogin()`，成功直接放行；失败才记 redirect + `promptLogin('该页面需要管理员登录（自动登录失败：<原因>）')`。
+- `App.vue`：`onMounted` 无会话时静默登一次（侧栏一进来就是 `admin ⏎`）；`registerUnauthorizedHandler` 收到 401 / 403 / 503 先 `ensureAutoLogin()` 续，续上了不弹框；401 时文案按「之前有没有会话」分「登录已过期」/「该操作需要管理员权限」。
+- `api/http.ts`：`/api/admin/auth/login` 自己的 401 不再触发 `onUnauthorized`——那是账密不对，不是会话过期；此前手工登录填错一次也会多弹一句「登录已过期」。
+- `LoginDialog.vue`：自动登录开着时账密预填，登不上改一处就能重试。`env.d.ts` 补三个变量类型；README 环境变量表 / login flow 段、AGENTS §2 / §4.1 对齐。
+- 生产构建默认关，`vite preview` 上跑的 smoke / 教程（`DA-01` 手工登录、`phase7-plus` redirect key）不受影响。
+- 验证：`type-check` 0 errors；对本机 Site A（`:4100`，dev server `:4000`）用 Playwright 真 Chrome 跑临时用例 **13/13**——成功路径：直开 `/topology` 停在 `/topology`、`sessionStorage` 有 token、无弹框、侧栏 `admin ⏎`、只发 1 次 login、切 `/ledger` 不再发；失败路径（把 login 拦成 401）：弹回 `/dashboard`、框内提示「自动登录失败：用户名或密码错误」、账密预填、无「登录已过期」误报。生产产物不受影响：`npm run smoke:topology-deploy -- --build`（重建 dist 后对 `vite preview`）**pmg 16/16 · pws 16/16**，`DA-01` 手工登录流照旧通过，pageErrors 0（结果 JSON 已更新）。
+
 ## 2026-09-18
 
 ### Changed · 真后端实操教程改按 plant-web-server 中继语义写并实跑重出；pws 探测端点真探（跨仓）

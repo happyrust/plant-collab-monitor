@@ -32,6 +32,8 @@ npm run build        # 产物 dist/ · base 默认 /monitor/
 - `VITE_API_TARGET`：dev 期 vite proxy 目标（默认 `http://127.0.0.1:3100`）
 - `VITE_API_BASE`：axios baseURL（生产同源时留空）
 - `VITE_BASE`：vite 部署 base（生产默认 `/monitor/`）
+- `VITE_ADMIN_AUTO_LOGIN`：管理员自动登录开关，缺省 = 开发态开 / 生产构建关（`stores/adminAuth.ts` `adminAutoLogin`，2026-09-21）
+- `VITE_ADMIN_USER` / `VITE_ADMIN_PASS`：自动登录与登录框预填的账密，缺省 `admin / admin`（须与后端 `ADMIN_USER / ADMIN_PASS` 一致）
 
 ---
 
@@ -71,6 +73,8 @@ npm run build        # 产物 dist/ · base 默认 /monitor/
 ```
 
 **守卫视图**：`/topology` `/ledger` `/mqtt/nodes` `/archives` `/site-config` `/settings`（详见 `router/index.ts` `meta.requiresAdmin`；`/topology-viz` 不设门）。
+
+**开发态自动登录（2026-09-21）**：上面「→ LoginDialog 弹起」之前多一步 `adminAuth.ensureAutoLogin()`——`adminAutoLogin.enabled`（缺省 `import.meta.env.DEV`）为真就用配置账密静默 `login`，成功直接放行、失败才 `promptLogin('该页面需要管理员登录（自动登录失败：…）')`，登录框预填那对账密。`App.vue` 的 `onMounted`（无会话时）与 `registerUnauthorizedHandler`（401 / 503 时）同样先 `ensureAutoLogin()` 再决定弹不弹。并发调用共用一个请求；`http.ts` 对 `/api/admin/auth/login` 自己的 401 不再触发 `onUnauthorized`（那是账密不对，不是会话过期）。生产构建默认关，`vite preview` 上的 smoke / 教程（`DA-01`、`phase7-plus`）仍走手工登录流，不受影响。
 
 ### 4.2 SSE 双路径
 

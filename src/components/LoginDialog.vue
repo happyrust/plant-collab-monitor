@@ -64,15 +64,16 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 // 模板中的 N* 组件由 NaiveUiResolver 自动注册；useMessage 由 unplugin-auto-import 自动注入
 import { adminAuthApi } from '@/api';
-import { useAdminAuthStore } from '@/stores/adminAuth';
+import { adminAutoLogin, useAdminAuthStore } from '@/stores/adminAuth';
 import { consumeRedirectAfterLogin } from '@/router';
 
 const store = useAdminAuthStore();
 const message = useMessage();
 const router = useRouter();
 
-const username = ref('');
-const password = ref('');
+// 自动登录开着却走到了这里 = 那对账密没登上；预填进去，改一处就能重试
+const username = ref(adminAutoLogin.enabled ? adminAutoLogin.username : '');
+const password = ref(adminAutoLogin.enabled ? adminAutoLogin.password : '');
 const loading = ref(false);
 
 async function handleLogin(): Promise<void> {

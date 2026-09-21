@@ -237,19 +237,23 @@ function navigateTo(path: string) {
 
 registerAuthTokenProvider(() => adminAuth.token);
 
-registerUnauthorizedHandler(({ status, message }) => {
+registerUnauthorizedHandler(async ({ status, message }) => {
   if (status === 503 && message.includes('管理员凭据未配置')) {
     adminAuth.markBackendUnconfigured();
     return;
   }
   if (status === 401 || status === 403) {
-    if (adminAuth.isLoggedIn) {
+    const hadSession = adminAuth.isLoggedIn;
+    if (hadSession) {
       adminAuth.clearSession();
     }
-    adminAuth.promptLogin('登录已过期，请重新登录');
+    // 自动登录开着就先静默续一次（后端重启 / token 失效），续上了不弹框
+    if (await adminAuth.ensureAutoLogin()) return;
+    adminAuth.promptLogin(hadSession ? '登录已过期，请重新登录' : '该操作需要管理员权限，请登录');
     return;
   }
   if (status === 503) {
+    if (await adminAuth.ensureAutoLogin()) return;
     adminAuth.promptLogin('该操作需要管理员权限，请登录');
   }
 });
@@ -280,6 +284,10 @@ onMounted(async () => {
     } catch {
       adminAuth.clearSession();
     }
+  }
+  // 没有会话就按配置静默登录一次（开发态默认开），让侧栏 / admin 页面一进来就是登录态；失败不弹框
+  if (!adminAuth.isLoggedIn) {
+    void adminAuth.ensureAutoLogin();
   }
 });
 

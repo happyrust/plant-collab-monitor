@@ -58,7 +58,13 @@ http.interceptors.response.use(
       raw: error?.response?.data,
     };
 
-    if (status === 401 || status === 403) {
+    // login 自己被拒（账密不对）不是「会话过期」，不走 onUnauthorized——
+    // 否则自动登录 / 手工登录填错一次就会额外弹一句「登录已过期」
+    const isLoginCall = String(error?.config?.url ?? '').includes('/api/admin/auth/login');
+
+    if (isLoginCall) {
+      // 交给调用方（LoginDialog / ensureAutoLogin）自己提示
+    } else if (status === 401 || status === 403) {
       onUnauthorized?.(apiError);
     } else if (
       status === 503 &&

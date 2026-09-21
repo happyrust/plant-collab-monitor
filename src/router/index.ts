@@ -116,13 +116,18 @@ export function consumeRedirectAfterLogin(): string | null {
   }
 }
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   if (to.meta?.requiresAdmin) {
     // 在守卫里直接 useStore 是安全的：Pinia 已在 main.ts 安装到 app 上
     const adminAuth = useAdminAuthStore();
-    if (!adminAuth.isLoggedIn) {
+    // 开发态默认自动登录（stores/adminAuth.ts adminAutoLogin）：先静默拿 token，拿不到才弹框
+    if (!adminAuth.isLoggedIn && !(await adminAuth.ensureAutoLogin())) {
       rememberRedirect(to.fullPath);
-      adminAuth.promptLogin('该页面需要管理员登录');
+      adminAuth.promptLogin(
+        adminAuth.autoLoginError
+          ? `该页面需要管理员登录（自动登录失败：${adminAuth.autoLoginError}）`
+          : '该页面需要管理员登录',
+      );
       return { name: 'dashboard', replace: true };
     }
   }

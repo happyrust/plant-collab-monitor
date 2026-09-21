@@ -1,7 +1,30 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-import type { AdminProfile, AdminSession } from '@/api/adminAuthApi';
+import { adminAuthApi, type AdminProfile, type AdminSession } from '@/api/adminAuthApi';
+
+function parseFlag(raw: string | undefined, fallback: boolean): boolean {
+  if (raw === undefined || raw.trim() === '') return fallback;
+  return !/^(0|false|off|no)$/i.test(raw.trim());
+}
+
+/**
+ * 管理员自动登录（2026-09-21）：开发态（`npm run dev`）默认开，生产构建默认关；
+ * `VITE_ADMIN_AUTO_LOGIN=1|0` 可显式开关，账密取 `VITE_ADMIN_USER / VITE_ADMIN_PASS`，
+ * 缺省 `admin / admin`（与后端 ADMIN_USER / ADMIN_PASS 的默认值一致）。
+ * 开着时：进 admin 页面 / 收到 401 先静默拿 token，拿不到才弹登录框（框里预填这对账密）。
+ */
+export const adminAutoLogin = {
+  enabled: parseFlag(import.meta.env.VITE_ADMIN_AUTO_LOGIN, import.meta.env.DEV),
+  username: import.meta.env.VITE_ADMIN_USER || 'admin',
+  password: import.meta.env.VITE_ADMIN_PASS || 'admin',
+} as const;
+
+function errorMessage(err: unknown): string {
+  return typeof err === 'object' && err !== null && 'message' in err
+    ? String((err as { message: unknown }).message)
+    : String(err);
+}
 
 const STORAGE_KEYS = {
   token: 'admin_token',
@@ -43,6 +66,9 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
   const loginVisible = ref(false);
   const loginError = ref<string | null>(null);
   const backendAdminUnconfigured = ref(false);
+  /** 最近一次自动登录失败的原因（成功或未启用时为 null），登录框用它提示 */
+  const autoLoginError = ref<string | null>(null);
+  let autoLoginInFlight: Promise<boolean> | null = null;
 
   const isLoggedIn = computed(() => !!token.value);
 
@@ -96,6 +122,31 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     loginVisible.value = false;
   }
 
+  /**
+   * 用配置里的账密静默登录。已登录 → true；未启用 → false；否则发一次 login，
+   * 并发调用共用同一个请求。失败不弹框，只记 autoLoginError 交给调用方决定要不要弹。
+   */
+  async function ensureAutoLogin(): Promise<boolean> {
+    if (isLoggedIn.value) return true;
+    if (!adminAutoLogin.enabled) return false;
+    if (autoLoginInFlight) return autoLoginInFlight;
+    autoLoginInFlight = (async () => {
+      try {
+        const session = await adminAuthApi.login(adminAutoLogin.username, adminAutoLogin.password);
+        setSession(session);
+        autoLoginError.value = null;
+        return true;
+      } catch (err: unknown) {
+        autoLoginError.value = errorMessage(err);
+        console.warn('[adminAuth] 自动登录失败:', autoLoginError.value);
+        return false;
+      } finally {
+        autoLoginInFlight = null;
+      }
+    })();
+    return autoLoginInFlight;
+  }
+
   return {
     token,
     username,
@@ -104,6 +155,7 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     loginVisible,
     loginError,
     backendAdminUnconfigured,
+    autoLoginError,
     isLoggedIn,
     setSession,
     updateProfile,
@@ -111,5 +163,6 @@ export const useAdminAuthStore = defineStore('adminAuth', () => {
     promptLogin,
     dismissLogin,
     markBackendUnconfigured,
+    ensureAutoLogin,
   };
 });

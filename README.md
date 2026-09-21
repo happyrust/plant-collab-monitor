@@ -55,6 +55,8 @@ npm run dev
 | `VITE_API_TARGET` | `http://127.0.0.1:3100` | vite dev 期代理目标（后端地址）|
 | `VITE_API_BASE` | 空字符串 | axios `baseURL`，生产部署同源时留空 |
 | `VITE_BASE` | 生产 `/monitor/`，开发 `/` | vite 部署 base url，与 nginx `location /monitor/` 对齐 |
+| `VITE_ADMIN_AUTO_LOGIN` | 开发 `1`，生产构建 `0` | 管理员**自动登录**：开着时进 admin 页面 / 收到 401 先静默用下面这对账密拿 token，拿不到才弹登录框（框里预填这对账密并写明失败原因）。`npm run dev` 不用配就是登录态；生产要开需显式 `=1`（2026-09-21）|
+| `VITE_ADMIN_USER` / `VITE_ADMIN_PASS` | `admin` / `admin` | 自动登录与登录框预填用的账密，须与后端 `ADMIN_USER` / `ADMIN_PASS` 一致 |
 
 `.env.local` 示例：
 
@@ -99,7 +101,7 @@ src/
 │   ├── incrementalApi.ts      # /api/incremental/*（11 endpoint）
 │   └── index.ts
 ├── stores/                    # Pinia stores（全 ts）
-│   ├── adminAuth.ts           # admin token + LoginDialog 状态
+│   ├── adminAuth.ts           # admin token + LoginDialog 状态 + 开发态自动登录（adminAutoLogin / ensureAutoLogin）
 │   └── appStatus.ts           # AppStatusBar 数据源（site/sync/queue + 1min events）
 ├── composables/               # 全部 .ts，无遗留 .js
 │   ├── useDashboardSummary.ts # Dashboard 6 卡片并发调度
@@ -201,6 +203,8 @@ location /ws/ {
 ```
 
 后端 `ADMIN_USER` / `ADMIN_PASS` 通过环境变量配置（默认 `admin` / `admin`）。
+
+**开发态默认不弹这个框**（2026-09-21）：`npm run dev` 下 `router.beforeEach` 在「未登录」和「弹框」之间多一步 `adminAuth.ensureAutoLogin()`——用 `VITE_ADMIN_USER / VITE_ADMIN_PASS`（缺省 `admin / admin`）静默 `POST /api/admin/auth/login`，拿到 token 就直接放行；App 启动与收到 401 时也会先这样续一次。只有登不上（后端没起、账密不对）才弹框，提示写明「自动登录失败：<后端原话>」且账密已预填。生产构建默认关（`VITE_ADMIN_AUTO_LOGIN=1` 显式开），所以 `vite preview` 上跑的 smoke / 教程仍走上面的手工登录流。
 
 ## 状态
 
