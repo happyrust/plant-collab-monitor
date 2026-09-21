@@ -501,9 +501,15 @@ async function main() {
     const step = (name, data) => cleanup.steps.push({ name, ...data });
     try {
       if (results.testEnvId) {
-        const sites = (await api('GET', `/api/remote-sync/envs/${results.testEnvId}/sites`)).body;
-        for (const s of sites?.items ?? []) step('delete-site', { id: s.id, ...(await api('DELETE', `/api/remote-sync/sites/${s.id}`)) });
-        step('delete-env', { id: results.testEnvId, ...(await api('DELETE', `/api/remote-sync/envs/${results.testEnvId}`)) });
+        // 直接删 env，靠后端级联删它的站点（pmg 一直如此；pws 2026-09-21 起也级联），删完回查一次：
+        // 还剩站点 = 后端没级联，记 noOrphanSites=false 让 LF-08 失败，但仍把它们删掉、别给环境留垃圾。
+        const sitesBefore = (await api('GET', `/api/remote-sync/envs/${results.testEnvId}/sites`)).body;
+        step('delete-env', { id: results.testEnvId, siteCountBefore: (sitesBefore?.items ?? []).length, ...(await api('DELETE', `/api/remote-sync/envs/${results.testEnvId}`)) });
+        const leftover = (await api('GET', `/api/remote-sync/envs/${results.testEnvId}/sites`)).body;
+        cleanup.noOrphanSites = (leftover?.items ?? []).length === 0;
+        for (const s of leftover?.items ?? []) step('delete-orphan-site', { id: s.id, ...(await api('DELETE', `/api/remote-sync/sites/${s.id}`)) });
+      } else {
+        cleanup.noOrphanSites = true;
       }
       if (before?.activeEnvId) {
         step('reactivate-original', { id: before.activeEnvId, ...(await api('POST', `/api/remote-sync/envs/${before.activeEnvId}/activate`)) });
@@ -528,13 +534,14 @@ async function main() {
       cleanup.error = String(err?.message ?? err);
     }
     report.cleanup = cleanup;
+    const lf08Ok = Boolean(cleanup.envIdsRestored && cleanup.activeRestored && cleanup.noOrphanSites && !cleanup.error);
     cases.push({
       id: 'LF-08',
-      title: '收尾：删测试 env / 站点，恢复原激活态，env 集合与联调前一致',
-      status: cleanup.envIdsRestored && cleanup.activeRestored && !cleanup.error ? 'passed' : 'failed',
-      details: { envIdsRestored: cleanup.envIdsRestored, activeRestored: cleanup.activeRestored, leftoverEnvIds: cleanup.leftoverEnvIds, error: cleanup.error ?? null },
+      title: '收尾：删测试 env（后端级联删站点，回查无孤儿），恢复原激活态，env 集合与联调前一致',
+      status: lf08Ok ? 'passed' : 'failed',
+      details: { envIdsRestored: cleanup.envIdsRestored, activeRestored: cleanup.activeRestored, noOrphanSites: cleanup.noOrphanSites, leftoverEnvIds: cleanup.leftoverEnvIds, error: cleanup.error ?? null },
     });
-    console.log(`  LF-08 ${cleanup.envIdsRestored && cleanup.activeRestored && !cleanup.error ? 'passed' : 'FAILED'} · 收尾恢复 · envIdsRestored=${cleanup.envIdsRestored} activeRestored=${cleanup.activeRestored}`);
+    console.log(`  LF-08 ${lf08Ok ? 'passed' : 'FAILED'} · 收尾恢复 · envIdsRestored=${cleanup.envIdsRestored} activeRestored=${cleanup.activeRestored} noOrphanSites=${cleanup.noOrphanSites}`);
   }
 
   // =========================================================================

@@ -103,7 +103,9 @@ mock 后端在 `scripts/lib/topology-deploy-mock.mjs`，与教程生成器 `scri
 | LF-05 | 应用 → 确定 | banner 出现、非传输失败 |
 | LF-06 | 站点 test-http + 编辑备注 | 结果出现；`PUT sites/{id}` 后后端 notes == 新值；测试 env 下无站点时如实记录并跳过 |
 | LF-07 | 停止运行时 → 确定 | **pmg**：`runtime.active === false`、pill 未激活；**pws**：`running` 仍 true（只标任务 Stopped），pill 如实跟随 |
-| LF-08 | 收尾恢复 | 删测试站点 / env；原来有激活 env → 重新 activate；pmg 且原来没有 → apply 快照 env + `runtime/stop`，再删快照 env。断言：env 集合与联调前一致、激活态恢复；记录活动任务数前后（pws 的 activate / apply 任务记录不随 env 删除，会 +2，属已知后端行为） |
+| LF-08 | 收尾恢复 | **直接删测试 env，靠后端级联删其站点**（pmg 一直如此；pws 2026-09-21 起，`afff42f`），删完回查 `GET envs/{id}/sites`——还剩站点 = 后端没级联，记 `noOrphanSites=false` 判失败，但仍把它们补删掉；原来有激活 env → 重新 activate；pmg 且原来没有 → apply 快照 env + `runtime/stop`，再删快照 env。断言：env 集合与联调前一致、激活态恢复、**无孤儿站点**；记录活动任务数前后（pws 的 activate / apply 任务记录不随 env 删除，会 +2，属已知后端行为） |
+
+**2026-09-21 结果**（本机 Site A `:4100` plant-web-server 中继后端 · 隔离配置 `runtime/local-collab/site-a`，pws `afff42f`）：**9/9**，15 s，pageErrors 0（`topology-deploy-live-full-pws-relay-result.json`）。UI 建 `monitor-e2e-20260921-113055`（后端 `env-1789990258`，自动加入本站 `SCB` → `site-1789990258`）→ 测 MQTT `目标可达 · 127.0.0.1:1883`、测文件服务 `HTTP 200 · http://127.0.0.1:4101`（09-18 探测真探后首次在 LF 里两绿）→ 激活后 `active:true`、`mqtt_connected:true`、账面 `active.id == env-1789990258` → 应用成功 → 站点 test-http `HTTP 404`（本站 `http_host` 是监控台自己）+ 备注 PUT 落盘 → 停止后 `active:false`、`running:true` → 收尾 `DELETE envs/env-1789990258` 返回 `{deleted:true, deleted_site_count:1, deleted_sites:[site-1789990258]}`，回查站点 0、`sites.json` 为 `[]`，env 集合 / 激活态与跑前一致；活动任务 20 → 22。两处备注：① 09-16 起 pws 的 `runtime/status` 带 boolean `active`，脚本的形状识别把它认成 `pmg`，于是开跑前多发了一次 `import-from-dboption`（pws 只是覆盖同一张 `dboption-local-a` 卡，响应无顶层 `id` → `snapshotEnvId=null`，收尾没有误删）——判定不受影响，识别口径待收紧；② 对 pws，激活会把测试 env 的 `location / location_dbs / file_server_host` 写进 `site-a/DbOption.toml`，脚本收尾**不回写**（教程脚本才回写），这次跑完由人从跑前备份复原（SHA256 一致；进程内 `GET /api/site/info` 全程仍是 `local-a / [6000]`，运行态已停），**只能对隔离配置跑**。
 
 **2026-09-14 结果**（`:3100` plant-web-server，pws，用户确认后）：9/9。UI 建 `monitor-e2e-20260914-073403`（后端 `env-1789371246`，自动加入本站 `AvevaMarineSample`）→ 探测「目标不可达 · 127.0.0.1」→ 激活后后端 `envs.active.id == env-1789371246` → 应用成功 → 站点 test-http 不可达 + 备注 PUT 落盘 → 停止后 `running` 仍 true（pws 语义）→ 收尾 env 集合 / 激活态恢复、站点无孤儿；活动任务 10 → 12（activate / apply 记录不随 env 删除）。与上午手工闭环（`2026-09-14-live-plant-web-server-topology-smoke.md`）结论一致。
 
@@ -143,7 +145,7 @@ UI 复验：Site A 起来后跑 `node scripts/topology-deploy-live-smoke.mjs --a
 | 动作返回 401/403 → 自动弹登录 | 依赖 `App.vue` 的 unauthorized handler，与 `/topology` 不同层 | 归到 admin login 流的用例（Phase 7-Plus） |
 | 30s 运行时轮询 | 等待成本高 | DA-14 只验证「动作后立即刷新」；轮询用 `setInterval` 已在 `onMounted` |
 | 「从 DbOption 导入」对真后端的实际产物 | DA-16 只验 mock 契约；pmg 每次导入新建一个 env（不幂等），pws 覆盖同一个 `dboption-<site_id>` | 真后端上人工点一次看卡片字段（pws 的 mqtt / 文件服务在 `config` 里，卡片会显示「未配置」，属后端形状） |
-| 删除 env 级联删站点 | pws 不级联（后端待修） | 后端修复后在 LF-08 加断言「测试 env 删除后 sites 无孤儿」 |
+| ~~删除 env 级联删站点~~ | ~~pws 不级联（后端待修）~~ → 2026-09-21 pws 已级联（`afff42f`） | 已自动化：LF-08 断言 `noOrphanSites`（删测试 env 后回查其站点为 0），对 Site A 9/9 |
 | Dark mode 视觉 | 只截图不断言 | 人工看 `10-topology-dark.png` |
 
 ## 7. 维护约定（选择器契约）

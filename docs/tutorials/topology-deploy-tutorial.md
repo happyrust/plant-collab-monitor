@@ -201,7 +201,7 @@
 | 应用 | 只写 `DbOption.toml` | 只落账：标为当前环境 + 一条 apply 任务，不写文件、不动运行态 |
 | 测 MQTT / 测文件服务 / 站点探测 | 真探 `mqtt_host:port` / GET `file_server_host` | 2026-09-18 起也真探：TCP `mqtt_host:mqtt_port`、GET `file_server_host`、站点 GET `<http_host>/metadata.json`，响应带 `message / url / code / latency_ms`（之前只 TCP 探 env 的 `host/port` 字段，监控台建的 env 一律「目标不可达 · 127.0.0.1」） |
 | 停止运行时 | 清激活态，pill →「未激活」 | 停中继：`active` → false，pill →「运行中 · 未激活环境」；`running` 恒 true，账面 `envs[].active` 不清 |
-| 删除环境 | 级联删站点 | 不级联（sites.json 留孤儿） |
+| 删除环境 | 级联删站点 | 2026-09-21 起也级联（响应带 deleted_sites / deleted_site_count），启动时还会清掉历史遗留的孤儿站点 |
 | 从 DbOption 导入 | 每次新建（带连接参数） | 覆盖同一个 `dboption-<site_id>`，只带工程 / 端口 / 配置文件路径，**不带**连接参数 |
 
 这些差异已记在 `AGENTS.md` §4.3.2，等后端修正后监控台的判定不用改（统一走 `isRemoteSyncActionOk()`）。

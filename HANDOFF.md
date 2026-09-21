@@ -6,7 +6,7 @@
 
 ## 一句话
 
-前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）** · **四层自动化用例全覆盖，并有一份真浏览器 + 真后端跑出来的操作教程（2026-09-16）** · **中继台账 `/ledger` 视图：点任意一次广播看 RefNo 级变更清单，双站点 smoke 扩到 25/25（2026-09-17）** · **监控台自带「协同配置向导」`/guide`：8 步照着学配异地协同，每步判定对着后端实时算，「去页面操作」在 `/topology` 真实按钮上打聚光灯；开发态默认管理员自动登录（2026-09-21）**。
+前端观测面 ~99% · **部署动作面已接入 `/topology`（2026-09-14，含「从 DbOption 导入」）** · 后端 Sprint B 100% · **本机双站点 e2e smoke 已跑通：中继模式下 24/24，站点不再需要 SurrealDB（2026-09-15）** · **四层自动化用例全覆盖，并有一份真浏览器 + 真后端跑出来的操作教程（2026-09-16）** · **中继台账 `/ledger` 视图：点任意一次广播看 RefNo 级变更清单，双站点 smoke 扩到 25/25（2026-09-17）** · **监控台自带「协同配置向导」`/guide`：8 步照着学配异地协同，每步判定对着后端实时算，「去页面操作」在 `/topology` 真实按钮上打聚光灯；开发态默认管理员自动登录（2026-09-21）** · **删环境级联删站点收口：pws 级联 + 启动清孤儿，LF-08 断言无孤儿，对 Site A 9/9（2026-09-21 晚）**。
 
 ---
 
@@ -15,6 +15,8 @@
 | 想做什么？ | 起手命令 / 文档 |
 |---|---|
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
+| **在网页里照着学怎么配异地协同（`/guide`，2026-09-21）** | 起 dev（开发态默认 `admin/admin` 自动登录，不再弹框）→ 侧栏「配置向导」：8 步每步「为什么 / 点哪里 / 填什么 / 完成判定（对着后端 15 s 刷）」，「去页面操作」跳 `/topology?tour=<id>` 在真实按钮上打聚光灯。内容 `src/guide/collabGuide.ts`，约定 `AGENTS.md` §4.7 |
+| **跑真后端完整闭环 LF-00–08（会写后端，只对隔离配置）** | 起 Site A（`COMMANDS.md`）→ `node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --mode full --confirm-writes --report docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json`；2026-09-21 起 LF-08 断言后端级联删站点无孤儿（pws ≥ `afff42f`）。**注意**对 pws 它收尾不回写 `site-a/DbOption.toml`（激活写进去的 `location / location_dbs / file_server_host` 会留下），跑前先备份、跑完复原；教程脚本 `tutorial:topology-deploy:live` 才自带回写 |
 | **在网页里学 / 改「协同配置向导」（`/guide`，2026-09-21 已落地）** | `npm run dev` → `http://localhost:4000/guide`（开发态默认自动登录，不用再敲 `admin / admin`；生产构建要开需 `VITE_ADMIN_AUTO_LOGIN=1`）。8 步文案与判定口径在 `src/guide/collabGuide.ts`，页面 `src/views/CollabGuideView.vue`，导览 `src/stores/guideTour.ts` + `src/components/GuideTourOverlay.vue`（`AGENTS.md` §4.7）。改 `/topology` 的按钮**别丢 `data-tour`**；回归 `npm run type-check` + `npm run smoke:topology-deploy -- --build`（pmg / pws 各 16 例） |
 | **看 / 跑中继台账「变更清单」视图（`/ledger`，2026-09-17 已落地）** | 方案与执行记录 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §8；mock 用例 `npm run smoke:relay-ledger`（RL-01–08，缺 dist 自动 build，改了视图加 `-- --build`）；真后端只读 `npm run smoke:relay-ledger:live -- --api http://127.0.0.1:4100`（RL-L0–L3，先按 `COMMANDS.md` 起 Site A）；双站点 smoke 现在 **25 项**（LS-25 核读侧 API 与 sqlite3 一致）。后端要 pws ≥ `b61b7ca`，否则视图显示「该后端不提供台账 API」 |
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
@@ -32,7 +34,8 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-21 晚 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录（本条 handoff 提交随后同推）
+本地领先 origin/main **1 个提交，尚未推**（2026-09-21 晚）：fix(topology-deploy) 删环境级联删站点收口（本条 HANDOFF 在同一提交里）——LF-08 改「直接删 env → 回查无孤儿」断言 + AGENTS §4.3.2 / CHANGELOG / 用例文档 / 教程附录对齐（配 pws afff42f，也未推）
+上一次推送: 2026-09-21 晚 · cce1e92 仓状态 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录
                  ↑ 2026-09-18 早已推：43cfcf5 docx 生成器排版五处修正（Word 版实操教程重出并逐页检查；usage-guide.docx 从此打得开）
                  ↑ 同日更早已推：a789940 弹窗文案按现行语义 · d8a8349 真后端实操教程改按 pws 中继语义重出（16 图） · 061e3df / 6de2f3d 文档对齐 + 仓状态（配 pws 7997ddd 探测真探）
                  ↑ 同日更早已推：c1c6424 双站点环境不再依赖 plant-model-gen（配 pws d7da7b3） · 6e2d04e / 279edd4 仓状态与旧环境已删
@@ -41,10 +44,10 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
                  ↑ 2026-09-16 晚已推：1a9eb39 方案「后记」 · 0b2a1ee activate 应用 env（pws 581052a） · 0560f58 relay 单测 19/19（pws d8a9ca4） · dd0cd5d 台账读侧方案草案
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
-本地与 origin/main: 一致；工作树里只剩「删环境级联删站点」那条 WIP 未提交（见「仍欠」第 12 条）：docs/tutorials/topology-deploy-tutorial.md · scripts/topology-deploy-live-smoke.mjs · scripts/topology-deploy-tutorial.mjs（+16/−9）
+工作树: 无待提交改动（上面那个未推的提交之外）
 type-check: 0 errors（2026-09-21 `npm run type-check` 实跑，5.6 s）
 
-站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）；工作树有一条未提交 src/standalone_services.rs（+52/−8，级联删站点，配上面那条 WIP）
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿，**本地未推**），origin/main = 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓，HEAD 76b39f6（2026-09-18 删掉本机双站点环境），**故意不建远端**——这个仓待废弃；工作树里只剩 sqlite_spatial_api.rs 那份与本线无关的 WIP
 ```
 
@@ -102,7 +105,8 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 9. ~~**中继台账读侧只做了后端（P0，pws `b61b7ca`）**~~ → 2026-09-17 同日 P1 / P2 也落地：`/ledger`「中继台账」视图 + `relayLedgerApi` + mock RL-01–08 / live RL-L0–L3 / 双站点 LS-25（25/25）。方案 §6 的后续建议（台账保留策略、导出、Dashboard 卡、元素级查询、服务端鉴权）仍未立项。
 10. ~~**双站点环境仍借着 `plant-model-gen`**（模板、`runtime/local-collab/`、两站 `--repo-root`、CBA 目录）~~ → 2026-09-18 全搬到 `../plant-web-server`：它自带模板 `db_options/DbOption.toml`、`--repo-root` 缺省为自身；setup / smoke 脚本与文档对齐，重生成后 25/25。老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）**同日已删**（pmg 本地提交 `76b39f6`：连 `.gitignore` 里为它开的例外、`assets/archives` 里的 fixture 与 `scb6000_0001.cba` 一起清掉；`runtime/backup-2026-09-15/` 与 06-09 的真实 CBA 不动）。监控台对 pmg 响应形状的兼容代码、mock 的 pmg 变体没动——那是兼容，不是依赖。
 11. ~~**真后端实操教程只认 plant-model-gen**（`topology-deploy-live-tutorial.mjs` 的闸 + 全篇 pmg 语义）~~ → 2026-09-18 重写为 plant-web-server 中继语义并实跑重出（16 图）：环境 = 本站身份 + 共用 broker；导入卡不带连接参数；激活 = 写五键 + 起中继（响应 `runtime_config.changed` 作证）；应用只落账；停止不回滚配置也不清账面标记；收尾用开跑前 `/api/site/info` 五键建临时卡激活写回、二次激活核 `changed=false`。顺手修了两处 pws：**探测真探**（`test-mqtt` TCP `mqtt_host:mqtt_port`、`test-http` GET `file_server_host`、站点 GET `<http_host>/metadata.json`；此前监控台建的 env 恒「不可达」，09-14 报告第 1 条）与 **`generated_id` 同秒撞号**（同一秒建两个站点第二个悄悄替换第一个）。监控台三处确认弹窗文案（导入 / 应用 / 激活）也改成两种后端的现行语义。
-12. **「删环境级联删站点」WIP 未收口**（两仓都未提交）：pws `src/standalone_services.rs`（+52/−8：`DELETE envs/{id}` 级联删该 env 的站点，响应带 `deleted_sites / deleted_site_count`；启动时清掉父 env 已不存在的孤儿站点）+ 本仓 `docs/tutorials/topology-deploy-tutorial.md` / `scripts/topology-deploy-live-smoke.mjs`（LF-08 收尾依赖级联删）/ `scripts/topology-deploy-tutorial.mjs`。`AGENTS.md` §4.3.2 仍写着「删 env 不级联」待修、CHANGELOG 无条目、**没对真后端跑过**。要么收口（pws 先 `cargo +nightly-2026-07-21 build --bin plant-web-server`——2026-09-21 实测默认 nightly 在依赖 `diskann-wide` 上报 E0283 编不过，本机已装的 `nightly-2026-07-21` 能过；再对隔离环境跑 LF-08、更新 §4.3.2 / CHANGELOG，两仓各提一条），要么两边 `git checkout` 丢掉。
+12. ~~**「删环境级联删站点」WIP 未收口**~~ → 2026-09-21 晚已收口：pws `afff42f`（`DELETE envs/{id}` 级联删该 env 的站点，响应带 `deleted_sites / deleted_site_count`；启动时清掉父 env 已不存在的孤儿站点，无 `env_id` 的行不动）+ 本仓同日 fix(topology-deploy) 提交（LF-08 改「直接删 env → 回查 `envs/{id}/sites` 为 0」断言 `noOrphanSites`；AGENTS §4.3.2 / CHANGELOG / 用例文档 §4 §6 / 09-14 报告第 4 条 / 教程附录 A 对齐）。对 Site A 实跑 LF-00–08 **9/9**（`docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json`），启动清孤儿另起 `:4199` 临时实例验证（4 行 → 2 行）。顺带记下两条待办：① live smoke 的形状识别把 09-16 后带 boolean `active` 的 pws 认成 `pmg`（多发一次 `import-from-dboption`，pws 只是覆盖同一张导入卡、无害，但口径该收紧）；② 对 pws 它收尾**不回写** `site-a/DbOption.toml`（激活写进去的 `location / location_dbs / file_server_host` 留着），这次由人从跑前备份复原——教程脚本那套「临时恢复卡激活写回」可以搬过来。
+13. **两仓各有本地未推的提交**（见「仓状态」）：监控台 1 个、pws 1 个。
 
 ---
 

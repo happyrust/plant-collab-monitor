@@ -1,0 +1,296 @@
+{
+  "mode": "full",
+  "api": "http://127.0.0.1:4100",
+  "envName": "monitor-e2e-20260921-113055",
+  "generatedAt": "2026-09-21T11:30:55.814Z",
+  "backend": {
+    "shape": "pmg",
+    "health": {
+      "mode": "detached",
+      "service": "plant-web-server",
+      "status": "ok"
+    },
+    "mode": "standalone-real",
+    "loginHasExpiresAt": false,
+    "envCount": 1,
+    "activeEnvId": null,
+    "runtime": {
+      "active": false,
+      "active_task_count": 20,
+      "env_count": 1,
+      "env_id": null,
+      "mode": "standalone-real",
+      "mqtt_connected": null,
+      "relay": false,
+      "relay_location": null,
+      "relay_mqtt_host": null,
+      "relay_mqtt_port": null,
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+      "running": true,
+      "site_count": 0,
+      "success": true
+    }
+  },
+  "cases": [
+    {
+      "id": "LF-00",
+      "title": "后端可达、admin 登录、识别响应形状",
+      "status": "passed",
+      "ms": 6,
+      "details": {
+        "shape": "pmg",
+        "health": {
+          "mode": "detached",
+          "service": "plant-web-server",
+          "status": "ok"
+        },
+        "mode": "standalone-real",
+        "loginHasExpiresAt": false,
+        "envCount": 1,
+        "activeEnvId": null,
+        "runtime": {
+          "active": false,
+          "active_task_count": 20,
+          "env_count": 1,
+          "env_id": null,
+          "mode": "standalone-real",
+          "mqtt_connected": null,
+          "relay": false,
+          "relay_location": null,
+          "relay_mqtt_host": null,
+          "relay_mqtt_port": null,
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+          "running": true,
+          "site_count": 0,
+          "success": true
+        }
+      }
+    },
+    {
+      "id": "LF-01",
+      "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
+      "status": "passed",
+      "ms": 1931,
+      "details": {
+        "loginStatus": 200,
+        "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
+        "title": "后端运行时在跑，但没有已激活的环境；在环境卡片上点「激活」"
+      }
+    },
+    {
+      "id": "LF-02",
+      "title": "UI 新建测试 env → 卡片出现 → 后端能查到（含自动加入的本站站点）",
+      "status": "passed",
+      "ms": 2160,
+      "details": {
+        "id": "env-1789990258",
+        "autoSites": [
+          {
+            "id": "site-1789990258",
+            "name": "SCB",
+            "http_host": "http://localhost:4178"
+          }
+        ]
+      }
+    },
+    {
+      "id": "LF-03",
+      "title": "测 MQTT / 测文件服务 → 都拿到后端诊断（结果按环境真实情况记录）",
+      "status": "passed",
+      "ms": 152,
+      "details": {
+        "mqtt": "测 MQTT：目标可达 · 127.0.0.1:1883 · 0 ms 19:31:00",
+        "http": "测文件服务：目标可达 · http://127.0.0.1:4101 · HTTP 200 · 18 ms 19:31:00"
+      }
+    },
+    {
+      "id": "LF-04",
+      "title": "激活 → 确认 → pill 切到测试 env，后端激活态 == 测试 env",
+      "status": "passed",
+      "ms": 1638,
+      "details": {
+        "dialogText": "确认激活环境 将把环境「monitor-e2e-20260921-113055」设为后端当前运行环境：plant-web-server 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写进本站 DbOption.toml（环境上没有的键不动），再起 / 重建中继运行态（MQTT 订阅 + 源文件轮询），立即生效；旧 plant-model-gen 后端会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅。 取消 确定",
+        "banner": "激活环境：成功 19:31:01",
+        "backendActive": "env-1789990258",
+        "mqtt_connected": true
+      }
+    },
+    {
+      "id": "LF-05",
+      "title": "应用 → 确认 → 拿到后端结果 banner",
+      "status": "passed",
+      "ms": 488,
+      "details": {
+        "banner": "应用配置：成功 19:31:02"
+      }
+    },
+    {
+      "id": "LF-06",
+      "title": "站点 test-http → 结果；编辑备注 → PUT → 后端 notes 更新",
+      "status": "passed",
+      "ms": 4017,
+      "details": {
+        "rowCount": 1,
+        "siteTest": {
+          "summary": "不可达",
+          "title": "后端探测：目标不可达：HTTP 404 · http://localhost:4178/metadata.json · HTTP 404 · 5 ms"
+        },
+        "notes": "edited by topology-deploy-live-smoke 20260921-113055"
+      }
+    },
+    {
+      "id": "LF-07",
+      "title": "停止运行时 → 确认 → 后端运行时状态按各自语义变化",
+      "status": "passed",
+      "ms": 3124,
+      "details": {
+        "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
+        "runtime": {
+          "active": false,
+          "active_task_count": 22,
+          "env_count": 2,
+          "env_id": null,
+          "mode": "standalone-real",
+          "mqtt_connected": true,
+          "relay": false,
+          "relay_location": null,
+          "relay_mqtt_host": null,
+          "relay_mqtt_port": null,
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
+          "running": true,
+          "site_count": 1,
+          "success": true
+        },
+        "backendActive": null
+      }
+    },
+    {
+      "id": "LF-08",
+      "title": "收尾：删测试 env（后端级联删站点，回查无孤儿），恢复原激活态，env 集合与联调前一致",
+      "status": "passed",
+      "details": {
+        "envIdsRestored": true,
+        "activeRestored": true,
+        "noOrphanSites": true,
+        "leftoverEnvIds": [],
+        "error": null
+      }
+    }
+  ],
+  "apiCalls": [
+    "GET /api/site/info",
+    "GET /api/sync/status",
+    "GET /api/sync/queue",
+    "GET /api/sync/metrics",
+    "GET /api/mqtt/nodes",
+    "GET /api/sync/history",
+    "POST /api/admin/auth/login",
+    "GET /api/remote-sync/envs",
+    "GET /api/site-config",
+    "GET /api/remote-sync/runtime/status",
+    "GET /api/site-config/server-ip",
+    "POST /api/remote-sync/envs",
+    "POST /api/remote-sync/envs/env-1789990258/sites",
+    "GET /api/remote-sync/envs/env-1789990258/sites",
+    "GET /api/health",
+    "POST /api/remote-sync/envs/env-1789990258/test-mqtt",
+    "POST /api/remote-sync/envs/env-1789990258/test-http",
+    "POST /api/remote-sync/envs/env-1789990258/activate",
+    "POST /api/remote-sync/envs/env-1789990258/apply",
+    "POST /api/remote-sync/sites/site-1789990258/test-http",
+    "PUT /api/remote-sync/sites/site-1789990258",
+    "POST /api/remote-sync/runtime/stop"
+  ],
+  "mutatingBlocked": [],
+  "writes": [
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs",
+      "status": 200,
+      "body": "{\"data\":{\"active\":false,\"created_at\":\"2026-09-21T11:30:58.8856007Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789990258\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-113055\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:30:58.8856176Z\"},\"item\":{\"active\":false,\"created_at\":\"2026-09-21T11:30:5"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789990258/sites",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-21T11:30:58.9027554Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789990258\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789990258\",\"location\":\"local-a\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"站点（自动添加）\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:30:58.9027679Z\"},\"item\":{\"created_at\":\"2026-09-21T11:30:58.9027554Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789990258\",\"http_host"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789990258/activate",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-21T11:31:01.2057897Z\",\"active\":true,\"created_at\":\"2026-09-21T11:30:58.8856007Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789990258\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-113055\",\"status\":\"active\",\"updated_at\":\"2026-09-21T11:30:58.8856176Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/envs/env-1789990258/apply",
+      "status": 200,
+      "body": "{\"data\":{\"activated_at\":\"2026-09-21T11:31:02.8058573Z\",\"active\":true,\"created_at\":\"2026-09-21T11:30:58.8856007Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789990258\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-113055\",\"status\":\"active\",\"updated_at\":\"2026-09-21T11:30:58.8856176Z\"},\"item\":{\"ac"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/remote-sync/sites/site-1789990258",
+      "status": 200,
+      "body": "{\"data\":{\"created_at\":\"2026-09-21T11:30:58.9027554Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789990258\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789990258\",\"location\":\"local-a\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"edited by topology-deploy-live-smoke 20260921-113055\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:31:05.5922665Z\"},\"item\":{\"created_at\":\"2026-09-21T11:30:58.9027554Z\",\"dbnums\""
+    },
+    {
+      "method": "POST",
+      "path": "/api/remote-sync/runtime/stop",
+      "status": 200,
+      "body": "{\"mode\":\"standalone-real\",\"relay_stopped\":true,\"stopped\":true,\"success\":true}"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "cleanup": {
+    "steps": [
+      {
+        "name": "delete-env",
+        "id": "env-1789990258",
+        "siteCountBefore": 1,
+        "status": 200,
+        "body": {
+          "deleted": true,
+          "deleted_site_count": 1,
+          "deleted_sites": [
+            "site-1789990258"
+          ],
+          "id": "env-1789990258",
+          "mode": "standalone-real",
+          "success": true
+        }
+      },
+      {
+        "name": "stop-runtime",
+        "status": 200,
+        "body": {
+          "mode": "standalone-real",
+          "relay_stopped": true,
+          "stopped": true,
+          "success": true
+        }
+      }
+    ],
+    "noOrphanSites": true,
+    "envIdsRestored": true,
+    "activeRestored": true,
+    "taskTotalBefore": 20,
+    "taskTotalAfter": 22,
+    "leftoverEnvIds": []
+  },
+  "passed": true,
+  "before": {
+    "activeEnvId": null,
+    "envIds": [
+      "dboption-local-a"
+    ],
+    "taskTotal": 20,
+    "snapshotEnvId": null
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "screenshots": "docs\\e2e-smoke\\screenshots\\topology-deploy-live\\full"
+}

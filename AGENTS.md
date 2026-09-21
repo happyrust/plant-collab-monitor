@@ -142,7 +142,8 @@ API 模块清单：
 plant-web-server 的语义（2026-09-14 真后端联调实测，详见 `docs/e2e-smoke/2026-09-14-live-plant-web-server-topology-smoke.md` §3；此后两轮后端修正）：
 - **激活**（2026-09-16 起）：把 env 的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 写进本站 `DbOption.toml`（env 上没有的键不动），再起 / 重建中继运行态；`apply` 仍只落账（标当前环境 + 一条 apply 任务，不写文件、不动运行态）。
 - **探测**（2026-09-18 起真探，pws `standalone_services::connection_probe_response`）：`test-mqtt` TCP 连 `mqtt_host:mqtt_port`；env `test-http` GET `file_server_host`；site `test-http` GET `<http_host>/metadata.json`；2xx / 3xx 算可达，`message` 带原因（`HTTP 404` / 连接被拒 / 超时）。此前只读 `host/port`，监控台建的 env 恒「不可达」。
-- `runtime/stop`：停中继（`active` → false），`running` 恒 true，账面 `envs[].active` 不清；`DELETE envs/{id}` 不级联删站点（仍是待修项）。
+- `runtime/stop`：停中继（`active` → false），`running` 恒 true，账面 `envs[].active` 不清。
+- **删环境**（2026-09-21 起级联，pws `afff42f`）：`DELETE envs/{id}` 连带删该 env 下全部站点，响应带 `deleted_sites[] / deleted_site_count`；进程启动时还会扫一遍 `sites.json`，父 env 已不存在的孤儿行直接清掉并记一条 info 日志（没有 `env_id` 字段的行不动）。此前不级联、`sites.json` 留孤儿（09-14 报告第 4 条）；LF-08 现在断言「删测试 env 后回查其站点为 0」（`noOrphanSites`）。
 - 「从 DbOption 导入」按本站 id 覆盖 `dboption-<site_id>`，只带工程 / 端口 / 配置文件路径，**不带连接参数**——激活它 = 按文件现状起中继。
 前端不要用 hack 绕后端语义；真后端实操教程 `docs/tutorials/topology-deploy-live-tutorial.md` 按上述语义写并实跑。
 

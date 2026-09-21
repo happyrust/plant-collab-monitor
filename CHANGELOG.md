@@ -8,6 +8,15 @@
 
 ## 2026-09-21
 
+### Fixed · 删环境级联删站点（跨仓 pws）+ LF-08 断言「无孤儿站点」；09-14 报告第 4 条收口
+
+> 09-14 真后端联调报告第 4 条：plant-web-server 的 `DELETE envs/{id}` 只摘 `envs.json` 那一条，`sites.json` 里挂在它下面的站点原样留着——监控台按 env 列站点永远看不见它们，「删除环境」确认框里那句「同时删除其下所有站点」对它不成立。
+
+- **pws `afff42f`**（`src/standalone_services.rs`）：`delete_env` 先在 envs 锁里删 env 并落盘，放掉锁再拿 sites 锁把 `env_id == id` 的站点 partition 出去、有变化才重写 `sites.json`；响应多带 `deleted_sites[] / deleted_site_count`。`RemoteSyncService::new` 读完 envs / sites 后扫一遍，父 env 已不存在的孤儿行直接清掉并写回、记一条 info 日志（没有 `env_id` 字段的行不动）。
+- `scripts/topology-deploy-live-smoke.mjs` LF-08：收尾改成**直接删测试 env → 回查 `GET envs/{id}/sites`**，还剩站点 = 后端没级联，记 `noOrphanSites=false` 判失败但仍补删（别给环境留垃圾）；标题 / details / 控制台一行同步带 `noOrphanSites`。此前是脚本自己先逐个删站点再删 env，等于替后端把孤儿藏起来。
+- 文档：AGENTS §4.3.2 那条「不级联（仍是待修项）」改成现行语义；`remote-deploy-auto-test-cases.md` §4 LF-08 行 / 2026-09-21 结果段 / §6 那行「后端待修」划掉；09-14 报告第 4 条标已修；mock 教程附录 A 差异表「删除环境」一行（`topology-deploy-tutorial.md` + 生成器）。
+- 验证：对本机 Site A（`:4100`，pws 中继后端，隔离配置）跑 `node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --mode full --confirm-writes --report docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json` → **LF-00–08 9/9**，15 s，pageErrors 0：收尾 `DELETE envs/env-1789990258` 返回 `deleted_site_count:1, deleted_sites:[site-1789990258]`，回查站点 0、`sites.json` 为 `[]`，env 集合 / 激活态与跑前一致（细节与两处备注见用例文档 §4）。启动清孤儿另起一个 `:4199` 临时实例验证：4 行站点（2 行父 env 不存在、1 行正常、1 行无 `env_id`）→ 剩 2 行、日志「清掉 2 个父 env 已不存在的孤儿站点」。pws `cargo +nightly-2026-07-21 check` 通过（默认 nightly 2026-09-18 编 `diskann-wide` 报 E0283，与改动无关；`build` 在两站进程占着 exe 时只会卡在最后替换文件那一步）。
+
 ### Added · 新视图 `/guide`「协同配置向导」+ 页面内高亮导览：在网页里照着学怎么配异地协同
 
 > 此前「怎么配」只在 `docs/tutorials/*.md`（截图版）里；现在监控台自己带一份，而且判定是活的：每一步对着后端实时算「完成了没」，「去页面操作」直接在 `/topology` 的真实按钮上打聚光灯。
