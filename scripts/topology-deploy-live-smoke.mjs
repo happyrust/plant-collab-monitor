@@ -2,7 +2,8 @@
 //
 // 用例编号与 docs/e2e-smoke/remote-deploy-auto-test-cases.md §3 / §4 一一对应。
 // 起 vite preview 把 /api 反代到目标后端，用真实 Chrome 走 UI；两种后端（plant-model-gen / plant-web-server）都能跑，
-// 形状由 runtime/status 自动识别（有 boolean `active` = pmg，否则 pws）。
+// 形状由 runtime/status 自动识别：带 `mode: standalone-real` / `running` / `relay` = pws，否则带 boolean `active` = pmg
+// （pws ≥ 2026-09-16 也带 boolean `active`，所以不能反过来先认 pmg）。
 //
 // 用法：
 //   node scripts/topology-deploy-live-smoke.mjs                                   # readonly（默认）
@@ -10,9 +11,11 @@
 //   node scripts/topology-deploy-live-smoke.mjs --mode full --confirm-writes      # 完整闭环：会改后端运行时状态，结束后自动恢复
 //
 // readonly：登录 / 列表 / 运行时 pill / 测 MQTT / 测文件服务 / 站点 test-http；脚本层安全闸拦下一切非探测写请求。
-// full   ：UI 新建测试 env → 探测 → 激活 → 应用 → 站点 test-http + 编辑 → 停止运行时；收尾走 API 删测试 env / 站点、
-//          恢复原激活 env（pmg 且原本未激活时：用开跑前 import-from-dboption 的快照 env 把 DbOption.toml 写回，再 stop）。
-//          ⚠ 对 plant-model-gen 这会真实改写 DbOption.toml 并重启 watcher + MQTT，只在隔离配置上跑。
+// full   ：UI 新建测试 env → 探测 → 激活 → 应用 → 站点 test-http + 编辑 → 停止运行时；收尾走 API 删测试 env（后端级联删站点，
+//          回查无孤儿）、恢复原运行态。pws：激活写进本站 DbOption.toml 的五个键按开跑前 GET /api/site/info 的原值写回
+//          （建临时恢复卡激活写回，再激活一次拿 runtime_config.changed=false 当凭证），运行态 / 账面「当前环境」标记分别还原；
+//          pmg 且原本未激活时：用开跑前 import-from-dboption 的快照 env 把 DbOption.toml apply 回去，再 stop。
+//          ⚠ 两种后端都会真实改写 DbOption.toml 并起 / 重建运行态，只在隔离配置（runtime/local-collab/site-*）上跑。
 //
 // 参数 / 环境变量：
 //   --api      SMOKE_API_TARGET        后端地址（默认 http://127.0.0.1:3100）
@@ -97,13 +100,37 @@ async function api(method, p, body) {
     return { status: r.status, body: null, text: text.slice(0, 200) };
   }
 }
-const isPmgRuntime = (rt) => Boolean(rt) && typeof rt.active === 'boolean';
-/** 当前激活 env id（兼容两种后端） */
-function activeEnvIdOf(rt, envs) {
-  if (isPmgRuntime(rt)) return rt.active && rt.env_id ? String(rt.env_id) : null;
+// 形状识别（2026-09-21 收紧）：plant-web-server 的 runtime/status 自 2026-09-16 起也带 boolean `active / relay`，
+// 「有 boolean active」不再能当 pmg 的记号——先认 pws 自己的记号（mode / running / relay），剩下带 active 的才是 pmg。
+const isPwsRuntime = (rt) => Boolean(rt) && (rt.mode === 'standalone-real' || typeof rt.running === 'boolean' || typeof rt.relay === 'boolean');
+const isPmgRuntime = (rt) => Boolean(rt) && !isPwsRuntime(rt) && typeof rt.active === 'boolean';
+/** 运行态字段在不在（pmg 一直有；pws ≥ 2026-09-16 有） */
+const hasRuntimeActive = (rt) => Boolean(rt) && typeof rt.active === 'boolean';
+/** 账面「当前环境」标记（`envs.active` / `items[].active`）：apply / activate 都改它，stop 不清（pws 语义） */
+function ledgerEnvIdOf(envs) {
   const flagged = envs?.active?.id ?? (envs?.items ?? []).find((e) => e.active === true)?.id ?? null;
   return flagged ? String(flagged) : null;
 }
+/** 运行态上正在跑的 env（没跑 = null）；没有运行态字段的旧 pws 退回账面标记 */
+function activeEnvIdOf(rt, envs) {
+  if (hasRuntimeActive(rt)) return rt.active && rt.env_id ? String(rt.env_id) : null;
+  return ledgerEnvIdOf(envs);
+}
+/** pws 激活会写进本站 DbOption.toml 的五个键；收尾按开跑前 GET /api/site/info 的值写回 */
+const CONNECTION_KEYS = ['mqtt_host', 'mqtt_port', 'file_server_host', 'location', 'location_dbs'];
+const dbList = (value) => {
+  if (Array.isArray(value)) return value.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  if (typeof value === 'string') return value.split(/[\s,，]+/).map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  return [];
+};
+const pickConnection = (obj) => ({
+  mqtt_host: obj?.mqtt_host ?? null,
+  mqtt_port: obj?.mqtt_port !== undefined && obj?.mqtt_port !== null ? Number(obj.mqtt_port) : null,
+  file_server_host: obj?.file_server_host ?? null,
+  location: obj?.location ?? null,
+  location_dbs: dbList(obj?.location_dbs),
+});
+const RESTORE_ENV = `monitor-e2e-restore-${stamp}`;
 
 // ---------------------------------------------------------------------------
 async function main() {
@@ -120,6 +147,8 @@ async function main() {
     apiCalls: [],
     mutatingBlocked: [],
     writes: [],
+    /** 页面发出的 activate 响应里的 runtime_config（path / keys / changed）——「激活真改了 DbOption.toml 吗」的证据（pws） */
+    activations: [],
     consoleErrors: [],
     pageErrors: [],
     cleanup: null,
@@ -188,13 +217,43 @@ async function main() {
       tasks: (await api('GET', '/api/remote-sync/tasks/active')).body,
     };
     before.activeEnvId = activeEnvIdOf(before.runtime, before.envs);
+    before.ledgerEnvId = ledgerEnvIdOf(before.envs);
     before.envIds = (before.envs?.items ?? []).map((e) => String(e.id));
     if (shape === 'pmg' && !before.activeEnvId) {
       // 没有可回激活的 env 时，先把当前 DbOption.toml 快照成一个 env，收尾用它 apply 回去
       const snap = await api('POST', '/api/remote-sync/envs/import-from-dboption');
       snapshotEnvId = snap.body?.id ?? null;
     }
-    report.before = { activeEnvId: before.activeEnvId, envIds: before.envIds, taskTotal: before.tasks?.total ?? null, snapshotEnvId };
+    if (shape === 'pws') {
+      // pws 的激活会把测试 env 的五个键写进本站 DbOption.toml，收尾要写回：开跑前先把原值记下来（GET /api/site/info 读的是进程启动时的配置）
+      const siteInfo = (await api('GET', '/api/site/info')).body ?? {};
+      const own = pickConnection(siteInfo?.data ?? siteInfo);
+      const missing = CONNECTION_KEYS.filter((k) => own[k] === null || own[k] === '' || (k === 'location_dbs' && !Array.isArray(own[k])));
+      before.ownConfig = missing.length ? null : own;
+      before.ownConfigMissing = missing;
+      // 写不回去就别往下激活（与 topology-deploy-live-tutorial.mjs 同一条闸）：pws 对 env 上为空的键一律不动 toml，
+      // 所以本站 location_dbs 原本是 [] 的话，激活写进去的自有库事后没法用 API 清掉
+      const reason = missing.length
+        ? `GET /api/site/info 缺 ${missing.join(' / ')}`
+        : own.location_dbs.length === 0
+          ? 'GET /api/site/info 的 location_dbs 为空——pws 不写空数组，激活后 API 写不回 []（要清空只能手改 toml）'
+          : null;
+      if (reason) {
+        report.error = `收尾没法把 DbOption.toml 写回原值（${reason}），full 模式不往下跑；换 --api 指向别的站，或先给这台的 toml 标一个自有库`;
+        console.log(`  ! ${report.error}`);
+        await finish(report);
+        return;
+      }
+    }
+    report.before = {
+      activeEnvId: before.activeEnvId,
+      ledgerEnvId: before.ledgerEnvId,
+      envIds: before.envIds,
+      taskTotal: before.tasks?.total ?? null,
+      snapshotEnvId,
+      ownConfig: before.ownConfig ?? null,
+      ownConfigMissing: before.ownConfigMissing ?? [],
+    };
   }
 
   // ---- 起 preview + Chrome ----
@@ -235,13 +294,23 @@ async function main() {
     const req = r.request();
     const u = new URL(req.url());
     if (u.pathname.startsWith('/api/') && req.method() !== 'GET' && !PROBE_PATH.test(u.pathname)) {
-      let body = null;
+      let text = null;
       try {
-        body = (await r.text()).slice(0, 400);
+        text = await r.text();
       } catch {
-        body = null;
+        text = null;
       }
-      report.writes.push({ method: req.method(), path: u.pathname, status: r.status(), body });
+      report.writes.push({ method: req.method(), path: u.pathname, status: r.status(), body: text?.slice(0, 400) ?? null });
+      const m = u.pathname.match(/^\/api\/remote-sync\/envs\/([^/]+)\/activate$/);
+      if (m && text) {
+        let parsed = null;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = null;
+        }
+        report.activations.push({ envId: decodeURIComponent(m[1]), status: r.status(), relay: parsed?.relay ?? null, runtime_config: parsed?.runtime_config ?? null });
+      }
     }
   });
   if (mode === 'readonly') {
@@ -511,13 +580,55 @@ async function main() {
       } else {
         cleanup.noOrphanSites = true;
       }
-      if (before?.activeEnvId) {
-        step('reactivate-original', { id: before.activeEnvId, ...(await api('POST', `/api/remote-sync/envs/${before.activeEnvId}/activate`)) });
-      } else if (shape === 'pmg') {
-        if (snapshotEnvId) step('apply-dboption-snapshot', { id: snapshotEnvId, ...(await api('POST', `/api/remote-sync/envs/${snapshotEnvId}/apply`)) });
-        step('stop-runtime', await api('POST', '/api/remote-sync/runtime/stop'));
+
+      if (shape === 'pws') {
+        // plant-web-server：激活写文件 + 起中继，apply / activate 还会改账面标记；三样分开还原（与 topology-deploy-live-tutorial.mjs 收尾同一套）
+        // 1. 本轮激活若真改写了 DbOption.toml（activate 响应 runtime_config.changed），用开跑前 GET /api/site/info 的五个键建一张临时恢复卡
+        //    激活写回，再激活一次拿 changed=false 当凭证——第二次一个键都没改，说明文件已与原值一致
+        const tomlChanged = report.activations.some((a) => a.runtime_config?.changed === true);
+        cleanup.tomlChangedByRun = tomlChanged;
+        let restoreEnvId = null;
+        if (tomlChanged && before?.ownConfig) {
+          const created = await api('POST', '/api/remote-sync/envs', { name: RESTORE_ENV, ...before.ownConfig });
+          restoreEnvId = created.body?.item?.id ?? created.body?.data?.id ?? created.body?.id ?? null;
+          restoreEnvId = restoreEnvId ? String(restoreEnvId) : null;
+          step('create-restore-env', { id: restoreEnvId, status: created.status, config: before.ownConfig });
+          if (!restoreEnvId) throw new Error('建不出恢复卡，DbOption.toml 没法写回原值');
+          const first = await api('POST', `/api/remote-sync/envs/${restoreEnvId}/activate`);
+          step('activate-restore-env', { id: restoreEnvId, status: first.status, runtime_config: first.body?.runtime_config ?? null });
+          const second = await api('POST', `/api/remote-sync/envs/${restoreEnvId}/activate`);
+          step('activate-restore-env-verify', { id: restoreEnvId, status: second.status, runtime_config: second.body?.runtime_config ?? null });
+          const keys = second.body?.runtime_config?.keys ?? [];
+          cleanup.configRestored =
+            first.status === 200 && second.status === 200 && second.body?.runtime_config?.changed === false && CONNECTION_KEYS.every((k) => keys.includes(k));
+        } else {
+          // null = 本轮没改过文件，无需写回；false = 改过却没法写回（开跑前 site/info 缺键）
+          cleanup.configRestored = tomlChanged ? false : null;
+          if (tomlChanged) cleanup.configRestoreSkipped = `开跑前 GET /api/site/info 缺 ${(before?.ownConfigMissing ?? []).join(' / ') || '五个键'}`;
+        }
+        // 2. 运行态：开跑前在跑就把那个 env 再激活；否则 stop（恢复卡的激活会把中继起起来，LF-07 停掉的也要保持停着）
+        if (before?.activeEnvId) {
+          step('reactivate-original', { id: before.activeEnvId, ...(await api('POST', `/api/remote-sync/envs/${before.activeEnvId}/activate`)) });
+        } else {
+          step('stop-runtime', await api('POST', '/api/remote-sync/runtime/stop'));
+        }
+        // 3. 恢复卡删掉（级联删它自动带上的本站站点）
+        if (restoreEnvId) step('delete-restore-env', { id: restoreEnvId, ...(await api('DELETE', `/api/remote-sync/envs/${restoreEnvId}`)) });
+        // 4. 账面「当前环境」标记：apply / activate 会把别的卡全标 false；开跑前有标记且不是运行态那张，就用 apply（只落账）标回去
+        if (before?.ledgerEnvId && before.ledgerEnvId !== before.activeEnvId) {
+          step('reapply-ledger-flag', { id: before.ledgerEnvId, ...(await api('POST', `/api/remote-sync/envs/${before.ledgerEnvId}/apply`)) });
+        }
+      } else {
+        // plant-model-gen：apply 写文件、activate 重启 watcher；原来有激活 env 就再激活，否则 apply 开跑前的 DbOption 快照卡 + stop
+        cleanup.configRestored = null;
+        if (before?.activeEnvId) {
+          step('reactivate-original', { id: before.activeEnvId, ...(await api('POST', `/api/remote-sync/envs/${before.activeEnvId}/activate`)) });
+        } else {
+          if (snapshotEnvId) step('apply-dboption-snapshot', { id: snapshotEnvId, ...(await api('POST', `/api/remote-sync/envs/${snapshotEnvId}/apply`)) });
+          step('stop-runtime', await api('POST', '/api/remote-sync/runtime/stop'));
+        }
+        if (snapshotEnvId) step('delete-snapshot-env', { id: snapshotEnvId, ...(await api('DELETE', `/api/remote-sync/envs/${snapshotEnvId}`)) });
       }
-      if (snapshotEnvId) step('delete-snapshot-env', { id: snapshotEnvId, ...(await api('DELETE', `/api/remote-sync/envs/${snapshotEnvId}`)) });
 
       const after = {
         envs: (await api('GET', '/api/remote-sync/envs')).body,
@@ -526,7 +637,9 @@ async function main() {
       };
       const afterIds = (after.envs?.items ?? []).map((e) => String(e.id)).sort();
       cleanup.envIdsRestored = JSON.stringify(afterIds) === JSON.stringify([...(before?.envIds ?? [])].sort());
-      cleanup.activeRestored = activeEnvIdOf(after.runtime, after.envs) === (before?.activeEnvId ?? null);
+      cleanup.runtimeRestored = activeEnvIdOf(after.runtime, after.envs) === (before?.activeEnvId ?? null);
+      cleanup.ledgerRestored = shape === 'pws' ? ledgerEnvIdOf(after.envs) === (before?.ledgerEnvId ?? null) : null;
+      cleanup.activeRestored = cleanup.runtimeRestored && cleanup.ledgerRestored !== false;
       cleanup.taskTotalBefore = before?.tasks?.total ?? null;
       cleanup.taskTotalAfter = after.tasks?.total ?? null;
       cleanup.leftoverEnvIds = afterIds.filter((id) => !(before?.envIds ?? []).includes(id));
@@ -534,14 +647,26 @@ async function main() {
       cleanup.error = String(err?.message ?? err);
     }
     report.cleanup = cleanup;
-    const lf08Ok = Boolean(cleanup.envIdsRestored && cleanup.activeRestored && cleanup.noOrphanSites && !cleanup.error);
+    const lf08Ok = Boolean(cleanup.envIdsRestored && cleanup.activeRestored && cleanup.noOrphanSites && cleanup.configRestored !== false && !cleanup.error);
     cases.push({
       id: 'LF-08',
-      title: '收尾：删测试 env（后端级联删站点，回查无孤儿），恢复原激活态，env 集合与联调前一致',
+      title: '收尾：删测试 env（后端级联删站点，回查无孤儿），运行态 / 账面标记 / DbOption.toml 都回到联调前，env 集合一致',
       status: lf08Ok ? 'passed' : 'failed',
-      details: { envIdsRestored: cleanup.envIdsRestored, activeRestored: cleanup.activeRestored, noOrphanSites: cleanup.noOrphanSites, leftoverEnvIds: cleanup.leftoverEnvIds, error: cleanup.error ?? null },
+      details: {
+        envIdsRestored: cleanup.envIdsRestored,
+        activeRestored: cleanup.activeRestored,
+        runtimeRestored: cleanup.runtimeRestored,
+        ledgerRestored: cleanup.ledgerRestored,
+        noOrphanSites: cleanup.noOrphanSites,
+        tomlChangedByRun: cleanup.tomlChangedByRun ?? null,
+        configRestored: cleanup.configRestored ?? null,
+        leftoverEnvIds: cleanup.leftoverEnvIds,
+        error: cleanup.error ?? null,
+      },
     });
-    console.log(`  LF-08 ${lf08Ok ? 'passed' : 'FAILED'} · 收尾恢复 · envIdsRestored=${cleanup.envIdsRestored} activeRestored=${cleanup.activeRestored} noOrphanSites=${cleanup.noOrphanSites}`);
+    console.log(
+      `  LF-08 ${lf08Ok ? 'passed' : 'FAILED'} · 收尾恢复 · envIdsRestored=${cleanup.envIdsRestored} activeRestored=${cleanup.activeRestored} noOrphanSites=${cleanup.noOrphanSites} configRestored=${cleanup.configRestored ?? 'n/a'}`,
+    );
   }
 
   // =========================================================================

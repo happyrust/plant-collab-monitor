@@ -8,6 +8,18 @@
 
 ## 2026-09-21
 
+### Changed · live smoke：形状识别先认 pws；LF-08 把教程脚本那套 DbOption.toml 写回搬进来，写不回的站直接拒跑
+
+> 同日对 Site A 跑 LF 暴露的两处（见下一节「验证」）：① 09-16 起 pws 的 `runtime/status` 带 boolean `active`，脚本拿「有 boolean active」当 pmg 的记号，把 pws 认成了 pmg，多发一次 `import-from-dboption`；② 对 pws 收尾不回写 `DbOption.toml`，激活写进去的测试值留在文件里，得人手复原。
+
+- `scripts/topology-deploy-live-smoke.mjs`
+  - 形状识别：`mode: standalone-real` / `running` / `relay` 任一在 = **pws**，剩下带 boolean `active` 的才是 pmg（`isPwsRuntime` / `isPmgRuntime`）。运行态 env 统一取 `runtime/status.active && env_id`（pmg 与 pws ≥ 09-16 都有），没有运行态字段的旧 pws 才退回账面 `envs.active`（`activeEnvIdOf`）；账面标记另记 `ledgerEnvIdOf`。
+  - full · pws 开跑前记 `GET /api/site/info` 的五个连接键（`report.before.ownConfig`）；缺键或 `location_dbs` 为空（pws 对 env 上为空的键一律不动 toml，激活后 API 写不回 `[]`）→ LF-00 之后**拒跑**，一个写请求都不发（与 `topology-deploy-live-tutorial.mjs` 同一条闸）。
+  - 页面发出的 `activate` 响应里的 `runtime_config`（`path / keys / changed`）记进 `report.activations[]`。
+  - LF-08 · pws 收尾（与教程脚本同一套）：本轮 `changed === true` → 建临时恢复卡 `monitor-e2e-restore-<stamp>` 激活写回 → 再激活一次拿 `changed=false` 且五键齐（`configRestored`；没改过 = `null`）→ 运行态：开跑前在跑就重新 activate 那张，否则 `runtime/stop` → 删恢复卡 → 账面标记：开跑前有且不是运行态那张 → `apply` 标回。判定多两项 `runtimeRestored` / `ledgerRestored`（`activeRestored` = 两者都回），`configRestored !== false` 进 LF-08 通过条件；pmg 分支不变。
+- `docs/e2e-smoke/remote-deploy-auto-test-cases.md` §4：LF-00 / LF-04 / LF-08 三行按新口径写，2026-09-21 结果段补「改完复跑」。
+- 验证：Site A 当时正被人拿来走 `/guide` 向导（有激活中的环境），不去打扰——另起一个隔离的临时 pws 实例 `:4199`（`location=local-t`、`location_dbs=[6100]`、独立 `PLANT_WEB_RUNTIME_DIR`）跑 `--mode full --confirm-writes` → **9/9**，18 s，`shape: pws`，`apiCalls` 无 `import-from-dboption`；activate `changed=true, keys=五键` → 收尾 `activate-restore-env`（`changed=true`）→ `activate-restore-env-verify`（**`changed=false`**）→ `stop-runtime` → `delete-restore-env`；`configRestored / runtimeRestored / ledgerRestored` 全 true，跑完该实例 `DbOption.toml` SHA256 与跑前一致、envs 空、`sites.json` 为 `[]`（结果 JSON 换成这一跑；实例随后已杀、目录已删）。对 Site B `:4101`（`location_dbs=[]`）试 full → LF-00 后即拒跑，0 写请求、文件 SHA 不变。`node --check` 通过。
+
 ### Fixed · 删环境级联删站点（跨仓 pws）+ LF-08 断言「无孤儿站点」；09-14 报告第 4 条收口
 
 > 09-14 真后端联调报告第 4 条：plant-web-server 的 `DELETE envs/{id}` 只摘 `envs.json` 那一条，`sites.json` 里挂在它下面的站点原样留着——监控台按 env 列站点永远看不见它们，「删除环境」确认框里那句「同时删除其下所有站点」对它不成立。
