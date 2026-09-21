@@ -8,6 +8,16 @@
 
 ## 2026-09-21
 
+### Fixed · 向导实跑（Site A / Site B 全程 3 → 8 步）抓出的三处：探测判定跨页且刷新不丢、「新建」预填丢路径、第 6 步文案漏了 dev 例外
+
+> 对本机 Site A（`:4100`）/ Site B（`:4101`）照着 `/guide` 从第 3 步走到第 8 步复原，主线都对（激活 `runtime_config.changed=true` 五键落盘、停止不回滚、恢复卡二次激活 `changed=false`），但向导自己有三处不准。
+
+- **第 4 / 6 步的判定只认向导页内的探测，且只存内存**：在 `/topology` 卡片上测绿两条回来仍「未完成」，刷一下页也掉回「未完成」，于是激活之后向导还是默认停在第 4 步；`checkHint` 写的「或页面上探测」与实现不符。→ 新增 `src/guide/probeMemory.ts`（`sessionStorage['guide_probe_results']`，按环境 id 记 mqtt / http 两项、按站点 id 记 HTTP 探测，只记最后一次，同页 `CustomEvent` + 跨页 `storage` 事件通知）；`TopologyView` 的 `runEnvAction`（test-mqtt / test-http）与 `handleTestSiteHttp`、向导页的 `runProbe` / `runSiteProbe` 都写它；向导换环境 / 拉站点列表 / 收到变化事件时 `syncProbeMemory()` 读回。`sites` 判定收窄为**当前环境下**至少一个站点可达（原来任何环境探过都算）。两条 `checkHint` 改成实际口径（按标签页隔离，换标签页要重测）。
+- **「新建」表单预填的 `file_server_host` 丢了路径**：`handleOpenAddEnv` 把 `localhost / 127.0.0.1` 换成本机 IP 时只拼了协议 + 主机 + 端口，`/assets/archives` 没了——不改直接保存、激活，写进 `DbOption.toml` 的就是错地址，对端下 CBA 会拼错。→ 保留 `pathname`（去尾斜杠）与 `search`。
+- **第 6 步「本站行第一次探测必然 404」在 `npm run dev` 下不成立**：vite dev 对 `/metadata.json` 回 SPA 的 `index.html`（200 text/html），后端探测只看状态码就判「可达」。→ `sites.why / howto[0]` 与导览 `site-test-http` 文案补上「生产 / preview 是 404；开发态会绿，是误报，地址照样要改」。
+- AGENTS §4.7 补「探测结果的记忆」一条（新加探测入口要写进去）。
+- 验证：`npm run type-check` 0 errors；对 Site A 用 Playwright 真 Chrome 跑临时用例 **14/14**（脚本放 %TEMP%，已删）：「新建」表单预填 `http://127.0.0.1:4100/assets/archives`、只填名字保存后后端 `file_server_host` 带路径；`/topology` 上测 MQTT / 测文件服务 / 站点行探测 → `sessionStorage` 里有 env 两项 + 1 条 site 记录 → `/guide` 第 4、6 步「已完成」、进度 4 / 6、默认落在第 5 步「激活」；刷新仍是已完成；向导页探测框直接显示记住的那条；第 6 步文案含 dev 例外；新开标签页干净（按标签页隔离）；pageerror 0。生产产物回归 `npm run smoke:topology-deploy -- --build` **pmg 16/16 · pws 16/16**，pageErrors 0（结果 JSON 已更新）。
+
 ### Changed · live smoke：形状识别先认 pws；LF-08 把教程脚本那套 DbOption.toml 写回搬进来，写不回的站直接拒跑
 
 > 同日对 Site A 跑 LF 暴露的两处（见下一节「验证」）：① 09-16 起 pws 的 `runtime/status` 带 boolean `active`，脚本拿「有 boolean active」当 pmg 的记号，把 pws 认成了 pmg，多发一次 `import-from-dboption`；② 对 pws 收尾不回写 `DbOption.toml`，激活写进去的测试值留在文件里，得人手复原。

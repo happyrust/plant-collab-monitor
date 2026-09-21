@@ -872,6 +872,7 @@ import {
 } from '@/api';
 import { useGuideTourStore } from '@/stores/guideTour';
 import { getGuideTour } from '@/guide/collabGuide';
+import { recordEnvProbe, recordSiteProbe } from '@/guide/probeMemory';
 
 type ApiObject = Record<string, unknown> & {
   status?: string;
@@ -1168,13 +1169,17 @@ async function runEnvAction(
 ) {
   const key = String(env.id);
   envBusy.value = { ...envBusy.value, [key]: kind };
+  // 两项探测的结果同时记进 /guide 共用的 sessionStorage 记忆，向导第 4 步据此判「完成」
+  const probeKind = kind === 'test-mqtt' ? 'mqtt' : kind === 'test-http' ? 'http' : null;
   try {
     const res = await call();
     const ok = isRemoteSyncActionOk(res);
+    const at = nowLabel();
     envActionResults.value = {
       ...envActionResults.value,
-      [key]: { ok, text: `${label}：${describeActionResponse(res)}`, at: nowLabel() },
+      [key]: { ok, text: `${label}：${describeActionResponse(res)}`, at },
     };
+    if (probeKind) recordEnvProbe(key, probeKind, { ok, text: describeActionResponse(res), at });
     if (ok) {
       message.success(`${env.name || '环境'}：${label}成功`);
     } else {
@@ -1184,10 +1189,12 @@ async function runEnvAction(
   } catch (e) {
     const msg = formatError(e);
     console.error(`${label}失败:`, msg);
+    const at = nowLabel();
     envActionResults.value = {
       ...envActionResults.value,
-      [key]: { ok: false, text: `${label}：请求失败 — ${msg}`, at: nowLabel() },
+      [key]: { ok: false, text: `${label}：请求失败 — ${msg}`, at },
     };
+    if (probeKind) recordEnvProbe(key, probeKind, { ok: false, text: `请求失败 — ${msg}`, at });
     message.error(`${label}失败: ${msg}`);
     return false;
   } finally {
@@ -1257,15 +1264,18 @@ const handleTestSiteHttp = async (site: RemoteSite) => {
     const res = await remoteSyncApi.testHttpSite(site.id);
     const ok = isRemoteSyncActionOk(res);
     const latency = typeof res?.latency_ms === 'number' ? ` · ${res.latency_ms} ms` : '';
+    const at = nowLabel();
     siteTestResults.value = {
       ...siteTestResults.value,
       [key]: {
         ok,
         text: describeActionResponse(res),
         summary: ok ? `可达${latency}` : '不可达',
-        at: nowLabel(),
+        at,
       },
     };
+    // 记进 /guide 共用的探测记忆，向导第 6 步据此判「完成」
+    recordSiteProbe(key, { ok, text: describeActionResponse(res), at });
     if (ok) {
       message.success(`${site.name || '站点'}：HTTP 可达`);
     } else {
@@ -1274,10 +1284,12 @@ const handleTestSiteHttp = async (site: RemoteSite) => {
   } catch (e) {
     const msg = formatError(e);
     console.error('站点 HTTP 诊断失败:', msg);
+    const at = nowLabel();
     siteTestResults.value = {
       ...siteTestResults.value,
-      [key]: { ok: false, text: `请求失败 — ${msg}`, summary: '请求失败', at: nowLabel() },
+      [key]: { ok: false, text: `请求失败 — ${msg}`, summary: '请求失败', at },
     };
+    recordSiteProbe(key, { ok: false, text: `请求失败 — ${msg}`, at });
     message.error('站点 HTTP 诊断失败: ' + msg);
   } finally {
     const next = { ...siteTesting.value };
@@ -1496,9 +1508,11 @@ const handleOpenAddEnv = async () => {
       try {
         const url = new URL(fileServerHost);
         if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-          // 保留端口号，但使用服务器IP
+          // 只换主机：端口与路径（如 /assets/archives，对端就是从这个目录下载 CBA）原样保留——
+          // 2026-09-21 前这里把路径丢了，预填成 http://<ip>:<port>，不改就保存、激活会把错的地址写进 DbOption.toml
           const port = url.port || (url.protocol === 'https:' ? '443' : '80');
-          fileServerHost = `${url.protocol}//${serverIP}${port && port !== '80' && port !== '443' ? ':' + port : ''}`;
+          const pathAndQuery = `${url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, '')}${url.search}`;
+          fileServerHost = `${url.protocol}//${serverIP}${port && port !== '80' && port !== '443' ? ':' + port : ''}${pathAndQuery}`;
         }
       } catch (e) {
         // 如果不是有效URL，使用服务器origin

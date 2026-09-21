@@ -341,6 +341,7 @@ import {
 import { useAdminAuthStore } from '@/stores/adminAuth';
 import { useGuideTourStore } from '@/stores/guideTour';
 import { COLLAB_GUIDE_STEPS, type GuideField, type GuideStepDef } from '@/guide/collabGuide';
+import { envProbes, onProbeMemoryChange, recordEnvProbe, recordSiteProbe, siteProbe } from '@/guide/probeMemory';
 import { useFormatters } from '@/composables/useFormatters';
 
 type StepStatus = 'done' | 'todo' | 'info' | 'locked' | 'error';
@@ -419,11 +420,24 @@ const snapshot = ref<SiteInfoSnapshot | null>(readSnapshot());
 
 const targetEnvId = ref<string | null>(null);
 const probing = ref<'mqtt' | 'http' | null>(null);
+// 探测结果与 /topology 共用一份 sessionStorage 记忆（guide/probeMemory.ts）：在哪个页面测都算，刷新不丢
 const probeResults = ref<{ mqtt?: ProbeResult; http?: ProbeResult }>({});
 const siteProbing = ref<string | null>(null);
 const siteProbeResults = ref<Record<string, ProbeResult>>({});
 
 let timer: ReturnType<typeof setInterval> | null = null;
+let stopProbeMemoryWatch: (() => void) | null = null;
+
+/** 从共享记忆里把当前环境 / 当前站点列表的探测结果读进来 */
+function syncProbeMemory(): void {
+  probeResults.value = envProbes(targetEnvId.value);
+  const next: Record<string, ProbeResult> = {};
+  for (const s of sites.value) {
+    const rec = siteProbe(s.id);
+    if (rec) next[String(s.id)] = rec;
+  }
+  siteProbeResults.value = next;
+}
 
 // ---------- helpers ----------
 
@@ -571,7 +585,8 @@ const checks = computed<Record<string, boolean>>(() => {
     'create-env': envs.value.some((e) => Boolean(e.mqtt_host)),
     probe: Boolean(probeResults.value.mqtt?.ok && probeResults.value.http?.ok),
     activate: runtimeActive.value,
-    sites: sites.value.length > 0 && Object.values(siteProbeResults.value).some((r) => r.ok),
+    // 只看当前环境下的站点：别的环境探过的不算
+    sites: sites.value.length > 0 && sites.value.some((s) => siteProbeResults.value[String(s.id)]?.ok === true),
     verify: runtimeActive.value && mqttOk,
   };
 });
@@ -723,6 +738,7 @@ async function loadSites(): Promise<void> {
     sites.value = [];
     checkErrors.value.sites = errText(err);
   }
+  syncProbeMemory();
 }
 
 async function loadLedger(): Promise<void> {
@@ -781,10 +797,14 @@ async function runProbe(kind: 'mqtt' | 'http'): Promise<void> {
   try {
     const res = kind === 'mqtt' ? await remoteSyncApi.testMqttEnv(id) : await remoteSyncApi.testHttpEnv(id);
     const ok = isRemoteSyncActionOk(res);
-    probeResults.value = { ...probeResults.value, [kind]: { ok, text: describeProbe(res), at: nowLabel() } };
+    const rec: ProbeResult = { ok, text: describeProbe(res), at: nowLabel() };
+    probeResults.value = { ...probeResults.value, [kind]: rec };
+    recordEnvProbe(id, kind, rec);
     (ok ? message.success : message.error)(`${kind === 'mqtt' ? '测 MQTT' : '测文件服务'}：${describeProbe(res)}`);
   } catch (err: unknown) {
-    probeResults.value = { ...probeResults.value, [kind]: { ok: false, text: errText(err), at: nowLabel() } };
+    const rec: ProbeResult = { ok: false, text: errText(err), at: nowLabel() };
+    probeResults.value = { ...probeResults.value, [kind]: rec };
+    recordEnvProbe(id, kind, rec);
     message.error(`${kind === 'mqtt' ? '测 MQTT' : '测文件服务'}失败：${errText(err)}`);
   } finally {
     probing.value = null;
@@ -798,9 +818,13 @@ async function runSiteProbe(site: SiteLite): Promise<void> {
   try {
     const res = await remoteSyncApi.testHttpSite(site.id);
     const ok = isRemoteSyncActionOk(res);
-    siteProbeResults.value = { ...siteProbeResults.value, [key]: { ok, text: describeProbe(res), at: nowLabel() } };
+    const rec: ProbeResult = { ok, text: describeProbe(res), at: nowLabel() };
+    siteProbeResults.value = { ...siteProbeResults.value, [key]: rec };
+    recordSiteProbe(key, rec);
   } catch (err: unknown) {
-    siteProbeResults.value = { ...siteProbeResults.value, [key]: { ok: false, text: errText(err), at: nowLabel() } };
+    const rec: ProbeResult = { ok: false, text: errText(err), at: nowLabel() };
+    siteProbeResults.value = { ...siteProbeResults.value, [key]: rec };
+    recordSiteProbe(key, rec);
   } finally {
     siteProbing.value = null;
   }
@@ -816,7 +840,8 @@ function goWithTour(step: GuideStepDef): void {
 // ---------- 生命周期 ----------
 
 watch(targetEnvId, () => {
-  probeResults.value = {};
+  // 换环境：读这张卡自己记过的探测结果（没测过就是空），站点列表重取后 loadSites 里再同步一次
+  probeResults.value = envProbes(targetEnvId.value);
   if (adminAuth.isLoggedIn) void loadSites();
 });
 
@@ -829,6 +854,8 @@ watch(
 );
 
 onMounted(async () => {
+  // 别的标签页 / 同页别处写了探测结果就跟着更新
+  stopProbeMemoryWatch = onProbeMemoryChange(syncProbeMemory);
   await refreshAll();
   // 默认停在第一个没完成的可判定步骤
   const firstTodo = steps.findIndex((s) => s.checkable && !checks.value[s.id]);
@@ -838,5 +865,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  stopProbeMemoryWatch?.();
 });
 </script>

@@ -34,8 +34,9 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-本地领先 origin/main **2 个提交，尚未推**（2026-09-21 晚）：214a7ad fix(topology-deploy) 删环境级联删站点收口——LF-08 改「直接删 env → 回查无孤儿」断言 + AGENTS §4.3.2 / CHANGELOG / 用例文档 / 教程附录对齐（配 pws afff42f，也未推） · 其后一条 fix(topology-deploy) live smoke 形状识别先认 pws + LF-08 写回 DbOption.toml（本条 HANDOFF 在这一提交里）
-上一次推送: 2026-09-21 晚 · cce1e92 仓状态 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录
+上一次推送: 2026-09-21 晚 · fix(guide) 向导实跑（Site A / B 全程 3 → 8 步）后三处修正——探测结果记 sessionStorage 且 /topology 上测的也算（src/guide/probeMemory.ts）、「新建」预填补回 /assets/archives、第 6 步文案补 dev 下 200 误报（本条 HANDOFF 在这一提交里）
+                 ↑ 同日稍早已推：4395a43 live smoke 形状识别先认 pws + LF-08 写回 DbOption.toml · 214a7ad 删环境级联删站点收口——LF-08 改「直接删 env → 回查无孤儿」断言 + AGENTS §4.3.2 / CHANGELOG / 用例文档 / 教程附录对齐（配 pws afff42f，已推）
+                 ↑ 同日更早已推：cce1e92 仓状态 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录
                  ↑ 2026-09-18 早已推：43cfcf5 docx 生成器排版五处修正（Word 版实操教程重出并逐页检查；usage-guide.docx 从此打得开）
                  ↑ 同日更早已推：a789940 弹窗文案按现行语义 · d8a8349 真后端实操教程改按 pws 中继语义重出（16 图） · 061e3df / 6de2f3d 文档对齐 + 仓状态（配 pws 7997ddd 探测真探）
                  ↑ 同日更早已推：c1c6424 双站点环境不再依赖 plant-model-gen（配 pws d7da7b3） · 6e2d04e / 279edd4 仓状态与旧环境已删
@@ -44,10 +45,10 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
                  ↑ 2026-09-16 晚已推：1a9eb39 方案「后记」 · 0b2a1ee activate 应用 env（pws 581052a） · 0560f58 relay 单测 19/19（pws d8a9ca4） · dd0cd5d 台账读侧方案草案
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
-工作树: 无待提交改动（上面那个未推的提交之外）
-type-check: 0 errors（2026-09-21 `npm run type-check` 实跑，5.6 s）
+本地与 origin/main: 一致，工作树无待提交改动
+type-check: 0 errors（2026-09-21 晚 `npm run type-check` 实跑，5.7 s）；mock smoke `npm run smoke:topology-deploy -- --build` pmg 16/16 · pws 16/16
 
-站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿，**本地未推**），origin/main = 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿），再前 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓，HEAD 76b39f6（2026-09-18 删掉本机双站点环境），**故意不建远端**——这个仓待废弃；工作树里只剩 sqlite_spatial_api.rs 那份与本线无关的 WIP
 ```
 
@@ -105,8 +106,7 @@ curl -X POST http://localhost:3100/api/admin/auth/login -H "Content-Type: applic
 9. ~~**中继台账读侧只做了后端（P0，pws `b61b7ca`）**~~ → 2026-09-17 同日 P1 / P2 也落地：`/ledger`「中继台账」视图 + `relayLedgerApi` + mock RL-01–08 / live RL-L0–L3 / 双站点 LS-25（25/25）。方案 §6 的后续建议（台账保留策略、导出、Dashboard 卡、元素级查询、服务端鉴权）仍未立项。
 10. ~~**双站点环境仍借着 `plant-model-gen`**（模板、`runtime/local-collab/`、两站 `--repo-root`、CBA 目录）~~ → 2026-09-18 全搬到 `../plant-web-server`：它自带模板 `db_options/DbOption.toml`、`--repo-root` 缺省为自身；setup / smoke 脚本与文档对齐，重生成后 25/25。老环境 `plant-model-gen/runtime/local-collab/`（含 09-15 起的台账）**同日已删**（pmg 本地提交 `76b39f6`：连 `.gitignore` 里为它开的例外、`assets/archives` 里的 fixture 与 `scb6000_0001.cba` 一起清掉；`runtime/backup-2026-09-15/` 与 06-09 的真实 CBA 不动）。监控台对 pmg 响应形状的兼容代码、mock 的 pmg 变体没动——那是兼容，不是依赖。
 11. ~~**真后端实操教程只认 plant-model-gen**（`topology-deploy-live-tutorial.mjs` 的闸 + 全篇 pmg 语义）~~ → 2026-09-18 重写为 plant-web-server 中继语义并实跑重出（16 图）：环境 = 本站身份 + 共用 broker；导入卡不带连接参数；激活 = 写五键 + 起中继（响应 `runtime_config.changed` 作证）；应用只落账；停止不回滚配置也不清账面标记；收尾用开跑前 `/api/site/info` 五键建临时卡激活写回、二次激活核 `changed=false`。顺手修了两处 pws：**探测真探**（`test-mqtt` TCP `mqtt_host:mqtt_port`、`test-http` GET `file_server_host`、站点 GET `<http_host>/metadata.json`；此前监控台建的 env 恒「不可达」，09-14 报告第 1 条）与 **`generated_id` 同秒撞号**（同一秒建两个站点第二个悄悄替换第一个）。监控台三处确认弹窗文案（导入 / 应用 / 激活）也改成两种后端的现行语义。
-12. ~~**「删环境级联删站点」WIP 未收口**~~ → 2026-09-21 晚已收口：pws `afff42f`（`DELETE envs/{id}` 级联删该 env 的站点，响应带 `deleted_sites / deleted_site_count`；启动时清掉父 env 已不存在的孤儿站点，无 `env_id` 的行不动）+ 本仓同日 fix(topology-deploy) 提交（LF-08 改「直接删 env → 回查 `envs/{id}/sites` 为 0」断言 `noOrphanSites`；AGENTS §4.3.2 / CHANGELOG / 用例文档 §4 §6 / 09-14 报告第 4 条 / 教程附录 A 对齐）。对 Site A 实跑 LF-00–08 **9/9**（`docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json`），启动清孤儿另起 `:4199` 临时实例验证（4 行 → 2 行）。这一跑暴露的两条**同晚已改**（见 CHANGELOG 2026-09-21「Changed · live smoke」）：① 形状识别先认 pws 记号（`mode / running / relay`），不再把带 boolean `active` 的 pws 认成 `pmg`；② 教程脚本那套「临时恢复卡激活写回 + 二次激活 `changed=false`」搬进 LF-08，运行态 / 账面标记分别还原，`location_dbs` 为空的站拒跑 full。对隔离临时实例 `:4199` 复跑 9/9、`DbOption.toml` SHA 跑前跑后一致；Site A 当时有人在走向导（`env-1789991344` 激活中），没去碰。
-13. **两仓各有本地未推的提交**（见「仓状态」）：监控台 2 个、pws 1 个。
+12. ~~**「删环境级联删站点」WIP 未收口**~~ → 2026-09-21 晚已收口：pws `afff42f`（`DELETE envs/{id}` 级联删该 env 的站点，响应带 `deleted_sites / deleted_site_count`；启动时清掉父 env 已不存在的孤儿站点，无 `env_id` 的行不动）+ 本仓同日 fix(topology-deploy) 提交（LF-08 改「直接删 env → 回查 `envs/{id}/sites` 为 0」断言 `noOrphanSites`；AGENTS §4.3.2 / CHANGELOG / 用例文档 §4 §6 / 09-14 报告第 4 条 / 教程附录 A 对齐）。对 Site A 实跑 LF-00–08 **9/9**（`docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json`），启动清孤儿另起 `:4199` 临时实例验证（4 行 → 2 行）。这一跑暴露的两条**同晚已改**（见 CHANGELOG 2026-09-21「Changed · live smoke」）：① 形状识别先认 pws 记号（`mode / running / relay`），不再把带 boolean `active` 的 pws 认成 `pmg`；② 教程脚本那套「临时恢复卡激活写回 + 二次激活 `changed=false`」搬进 LF-08，运行态 / 账面标记分别还原，`location_dbs` 为空的站拒跑 full。对隔离临时实例 `:4199` 复跑 9/9、`DbOption.toml` SHA 跑前跑后一致（Site A 当时有人在走向导，没去碰）；Site A 空下来后再跑一次 **9/9**，`site-a/DbOption.toml` 自己写回、SHA 与跑前一致，活动任务 24 → 27（结果 JSON 就是这一跑）。两仓当晚都已推。
 
 ---
 
