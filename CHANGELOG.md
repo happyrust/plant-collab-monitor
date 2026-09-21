@@ -8,6 +8,15 @@
 
 ## 2026-09-21
 
+### Fixed · pws `site/info` / `site-config` 每次重读 DbOption.toml 的五个连接键（跨仓）；向导第 8 步「文件是否被激活改过」从此是真的
+
+> 审核发现：plant-web-server 的 `SiteConfigService::info / get` 只回进程启动时的配置快照（+ override.json），而 `activate` 改的是 toml 文件——激活把文件写成 `local-e2e / [7999]` 之后，`GET /api/site/info` 仍回 `local-a / [6000]`。连锁：`/guide` 第 8 步比的是两次 `site/info`，同一进程内永远「一致」，那行绿字是假的；「新建」预填、「从 DbOption 导入」拿的是陈值；教程 / live smoke 收尾按 `site/info` 记的「原值」实际是「启动时的值」（今天恰好相同，SHA 才对得上）。
+
+- **pws `ac299df`**（`src/standalone_services.rs`）：`SiteConfigService::effective_config` 先把 `runtime.config_path` 指向的 toml 里现在的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 盖到启动快照上，再叠 override（相对路径按 `repo_root` 解析；文件读不了 / 解析不了原样退回快照，不 500；文件里没有的键从结果里去掉）。其余键仍按启动快照——改了要重启，`save` 本来就这么标。新增单测 `site_config_tests::site_info_connection_keys_follow_the_toml_file`（文件没变 / 改写后五键跟文件、非连接键不动 / 删键 / 文件缺失 / 文件损坏）。
+- `views/CollabGuideView.vue` 第 8 步：原来一行「当前文件里的五个键与开跑前一致」改成**逐键对照表**「开跑前快照 vs 文件现状」（差异行标黄、`data-differs`），结论行 `data-verdict="differs|same"` 并点名被改的键；加一条**后端太旧**提示——运行态在跑的 `relay_location` 与 `site/info.location` 不一致就说明这台 pws 的 `site/info` 还是启动快照，「文件现状」列不可信。第 1 步「本站身份」卡加一句「以 DbOption.toml 当前内容为准」。`guide/collabGuide.ts` 第 8 步 howto 按对照表重写，级联删的日期改 2026-09-21。
+- `scripts/topology-deploy-live-smoke.mjs` 那条「site/info 读的是启动配置」的注释改成现行语义（原值 = 跑前文件现状）。AGENTS §4.3.2 加一条。
+- 验证：pws `cargo +nightly-2026-07-21 test site_config_tests` 1 passed；用新 exe 另起隔离实例 `:4199`（`location=local-t / [6100]`）直连 API：建 env `[6100, 6101]` → activate（`changed=true`）→ **`GET /api/site/info` 立刻回 `location_dbs=[6100, 6101]`**、`site-config.config` 同步（老 exe 这里仍是 `[6100]`）→ 恢复卡 `[6100]` 激活写回、二次激活 `changed=false` → `site/info` 回 `[6100]`，文件 SHA256 与跑前一致 → stop / 删卡。监控台 `type-check` 0 errors；`/guide` 第 8 步对着该实例跑 Playwright 临时用例 **9/9**（脚本放 %TEMP%，已删）：初始结论 same → API 激活 `[6100, 6101]` 后「重新检查」→ 结论 differs、点名 `location_dbs`、只此一行标黄、现状列 `[6100, 6101]`、无「后端太旧」提示 → 恢复卡二次激活 `changed=false` → 结论回 same、0 行标黄；pageerror 0。mock smoke `npm run smoke:topology-deploy` pmg 16/16 · pws 16/16。**部署提醒**：Site A / B 仍跑旧 exe（进程占着 `target/debug` 那个 exe，`cargo build` 替换不了），重起两站前先重编，否则第 8 步在它们上会看到红字「site/info 不重读文件」。
+
 ### Fixed · 向导实跑（Site A / Site B 全程 3 → 8 步）抓出的三处：探测判定跨页且刷新不丢、「新建」预填丢路径、第 6 步文案漏了 dev 例外
 
 > 对本机 Site A（`:4100`）/ Site B（`:4101`）照着 `/guide` 从第 3 步走到第 8 步复原，主线都对（激活 `runtime_config.changed=true` 五键落盘、停止不回滚、恢复卡二次激活 `changed=false`），但向导自己有三处不准。

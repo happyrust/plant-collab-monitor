@@ -152,6 +152,7 @@
                   <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">broker</dt><dd>{{ siteInfo.mqtt_host }}:{{ siteInfo.mqtt_port }}</dd></div>
                   <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">file_server_host</dt><dd class="break-all">{{ siteInfo.file_server_host }}</dd></div>
                 </dl>
+                <p v-if="siteInfo" class="text-[11px] text-slate-400 mt-2">五个连接键以 DbOption.toml 当前内容为准（后端每次重读文件，激活写进去的值这里立刻能看到）；首次读到时已快照进第 8 步的「开跑前」一列。</p>
                 <p v-else class="text-xs text-rose-600">后端没有响应 —— 确认 dev server 的 VITE_API_TARGET 指向的站点后端在跑。</p>
               </div>
               <div class="rounded-lg border border-base-200 p-3 flex flex-col justify-between">
@@ -284,17 +285,36 @@
           <!-- stop -->
           <template v-else-if="current.id === 'stop'">
             <div class="rounded-lg border border-base-200 p-3 text-xs">
-              <p class="font-semibold text-slate-500 mb-1">开跑前记下的五个键（复原时按这些值建「恢复卡」激活写回）</p>
-              <dl v-if="snapshot" class="font-mono space-y-1" data-testid="guide-snapshot">
-                <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">broker</dt><dd>{{ snapshot.mqtt_host }}:{{ snapshot.mqtt_port }}</dd></div>
-                <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">location</dt><dd>{{ snapshot.location }}</dd></div>
-                <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">location_dbs</dt><dd>[{{ (snapshot.location_dbs ?? []).join(', ') }}]</dd></div>
-                <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">file_server_host</dt><dd class="break-all">{{ snapshot.file_server_host }}</dd></div>
-                <div class="flex gap-2"><dt class="text-slate-400 w-28 shrink-0">记录时间</dt><dd>{{ snapshot.captured_at }}</dd></div>
-              </dl>
+              <p class="font-semibold text-slate-500 mb-1">DbOption.toml 五个键：开跑前快照 vs 文件现状（后端每次 <code>GET /api/site/info</code> 重读文件，本页 15 s 刷一次）</p>
+              <table v-if="snapshot" class="w-full font-mono" data-testid="guide-snapshot">
+                <thead>
+                  <tr class="text-slate-400 text-left">
+                    <th class="py-1 w-32 font-normal">键</th>
+                    <th class="py-1 font-normal">开跑前（{{ snapshot.captured_at }}）</th>
+                    <th class="py-1 font-normal">文件现状</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in snapshotRows" :key="row.key" :class="row.differs ? 'text-amber-700' : ''" :data-differs="row.differs">
+                    <td class="py-0.5 text-slate-400">{{ row.key }}</td>
+                    <td class="py-0.5 break-all">{{ row.before }}</td>
+                    <td class="py-0.5 break-all">
+                      {{ row.now }}
+                      <i v-if="row.differs" class="fas fa-exclamation-triangle ml-1"></i>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               <p v-else class="text-slate-400">第 1 步后端有响应时会自动记下。</p>
-              <p v-if="snapshot && siteInfo && snapshotDiffers" class="mt-2 text-amber-700"><i class="fas fa-exclamation-triangle mr-1"></i>当前文件里的值与开跑前不同 —— 需要复原时按上表建卡激活。</p>
-              <p v-else-if="snapshot && siteInfo" class="mt-2 text-emerald-700"><i class="fas fa-check mr-1"></i>当前文件里的五个键与开跑前一致。</p>
+              <p v-if="snapshot && siteInfo && snapshotDiffKeys.length" class="mt-2 text-amber-700" data-testid="guide-snapshot-verdict" data-verdict="differs">
+                <i class="fas fa-exclamation-triangle mr-1"></i>文件里 {{ snapshotDiffKeys.join(' / ') }} 已被激活改过 —— 要复原就按「开跑前」那一列新建一张恢复卡并激活，再激活一次看响应 <code>runtime_config.changed</code> 为 false。
+              </p>
+              <p v-else-if="snapshot && siteInfo" class="mt-2 text-emerald-700" data-testid="guide-snapshot-verdict" data-verdict="same">
+                <i class="fas fa-check mr-1"></i>文件里的五个键与开跑前一致，不需要复原。
+              </p>
+              <p v-if="siteInfoLooksStale" class="mt-2 text-rose-700" data-testid="guide-site-info-stale">
+                <i class="fas fa-exclamation-circle mr-1"></i>运行态在跑 <code>{{ runtime?.relay_location }}</code>，但 <code>site/info</code> 仍报 <code>{{ siteInfo?.location }}</code> —— 这台后端的 site/info 不重读文件（plant-web-server 需 ≥ 2026-09-21 那版），上面「文件现状」一列不可信。
+              </p>
             </div>
           </template>
 
@@ -497,17 +517,38 @@ function writeSnapshot(info: SiteInfo): void {
   }
 }
 
-const snapshotDiffers = computed(() => {
+/** 第 8 步对照表：开跑前快照 vs 文件现状（site/info 每次重读文件，pws ≥ 2026-09-21），逐键标出差异 */
+const snapshotRows = computed(() => {
   const a = snapshot.value;
   const b = siteInfo.value;
-  if (!a || !b) return false;
-  return (
-    a.location !== b.location ||
-    a.mqtt_host !== b.mqtt_host ||
-    Number(a.mqtt_port) !== Number(b.mqtt_port) ||
-    a.file_server_host !== b.file_server_host ||
-    JSON.stringify(a.location_dbs ?? []) !== JSON.stringify(b.location_dbs ?? [])
-  );
+  if (!a) return [];
+  const fmt = (v: unknown): string => (v === undefined || v === null || v === '' ? '—' : String(v));
+  const rows: { key: string; before: string; now: string; differs: boolean }[] = [
+    { key: 'mqtt_host', before: fmt(a.mqtt_host), now: fmt(b?.mqtt_host), differs: Boolean(b) && a.mqtt_host !== b?.mqtt_host },
+    { key: 'mqtt_port', before: fmt(a.mqtt_port), now: fmt(b?.mqtt_port), differs: Boolean(b) && Number(a.mqtt_port) !== Number(b?.mqtt_port) },
+    { key: 'location', before: fmt(a.location), now: fmt(b?.location), differs: Boolean(b) && a.location !== b?.location },
+    {
+      key: 'location_dbs',
+      before: dbsText(a.location_dbs ?? []),
+      now: b ? dbsText(b.location_dbs ?? []) : '—',
+      differs: Boolean(b) && JSON.stringify(a.location_dbs ?? []) !== JSON.stringify(b?.location_dbs ?? []),
+    },
+    { key: 'file_server_host', before: fmt(a.file_server_host), now: fmt(b?.file_server_host), differs: Boolean(b) && a.file_server_host !== b?.file_server_host },
+  ];
+  return rows;
+});
+const snapshotDiffKeys = computed(() => snapshotRows.value.filter((r) => r.differs).map((r) => r.key));
+
+/**
+ * 运行态明明按某个 location 在跑、site/info 却报另一个 —— 说明这台后端的 site/info 还是启动快照
+ * （旧 plant-web-server），第 8 步的「文件现状」一列不可信；提示用户升后端，而不是让绿字骗人。
+ */
+const siteInfoLooksStale = computed(() => {
+  const rt = runtime.value;
+  const info = siteInfo.value;
+  if (!rt || !info || !runtimeActive.value) return false;
+  const relayLocation = rt.relay_location;
+  return typeof relayLocation === 'string' && relayLocation !== '' && typeof info.location === 'string' && relayLocation !== info.location;
 });
 
 /** 「本站当前值」列：从 site/info 取 */

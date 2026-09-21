@@ -225,7 +225,8 @@ async function main() {
       snapshotEnvId = snap.body?.id ?? null;
     }
     if (shape === 'pws') {
-      // pws 的激活会把测试 env 的五个键写进本站 DbOption.toml，收尾要写回：开跑前先把原值记下来（GET /api/site/info 读的是进程启动时的配置）
+      // pws 的激活会把测试 env 的五个键写进本站 DbOption.toml，收尾要写回：开跑前先把原值记下来
+      //（GET /api/site/info 自 2026-09-21 起每次重读文件里的五键 = 跑前文件现状；更老的 pws 只回进程启动时的快照）
       const siteInfo = (await api('GET', '/api/site/info')).body ?? {};
       const own = pickConnection(siteInfo?.data ?? siteInfo);
       const missing = CONNECTION_KEYS.filter((k) => own[k] === null || own[k] === '' || (k === 'location_dbs' && !Array.isArray(own[k])));

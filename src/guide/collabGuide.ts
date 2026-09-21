@@ -203,8 +203,9 @@ export const COLLAB_GUIDE_STEPS: GuideStepDef[] = [
     why: '「停止运行时」停的是运行态不是配置：MQTT 订阅与源文件轮询都停、pill 回到「运行中 · 未激活环境」，但 DbOption.toml 里刚写进去的五个键不回滚、账面「当前环境」标记也留着，再点一次「激活」就按同一份配置跑起来。',
     howto: [
       '页头「停止运行时」→ 确认。后端 runtime.active 变 false、env_id 变 null。',
-      '要把配置文件写回原值：按第 1 步「本站身份」卡里记下的五个键（开跑前的值）新建一张「恢复卡」并激活；再激活一次，响应 runtime_config.changed 应为 false，说明文件已与原值一致。',
-      '删除环境：plant-web-server 2026-09-18 起会级联删它下面的站点。',
+      '看下面的对照表：「开跑前」是第 1 步首次读到 site/info 时的快照，「文件现状」是后端刚重读的 DbOption.toml（plant-web-server ≥ 2026-09-21 每次重读；更老的版本只回启动快照，表下会有红字提醒）。哪一键被激活改过会标黄。',
+      '要把配置文件写回原值：按「开跑前」那一列的五个键新建一张「恢复卡」并激活；再激活一次，响应 runtime_config.changed 应为 false，说明文件已与原值一致；然后删掉恢复卡、按需「停止运行时」。',
+      '删除环境：plant-web-server 2026-09-21 起会级联删它下面的站点（响应带 deleted_sites）。',
     ],
     checkHint: '收尾步骤，不做判定。',
     checkable: false,

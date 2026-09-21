@@ -144,6 +144,7 @@ plant-web-server 的语义（2026-09-14 真后端联调实测，详见 `docs/e2e
 - **探测**（2026-09-18 起真探，pws `standalone_services::connection_probe_response`）：`test-mqtt` TCP 连 `mqtt_host:mqtt_port`；env `test-http` GET `file_server_host`；site `test-http` GET `<http_host>/metadata.json`；2xx / 3xx 算可达，`message` 带原因（`HTTP 404` / 连接被拒 / 超时）。此前只读 `host/port`，监控台建的 env 恒「不可达」。
 - `runtime/stop`：停中继（`active` → false），`running` 恒 true，账面 `envs[].active` 不清。
 - **删环境**（2026-09-21 起级联，pws `afff42f`）：`DELETE envs/{id}` 连带删该 env 下全部站点，响应带 `deleted_sites[] / deleted_site_count`；进程启动时还会扫一遍 `sites.json`，父 env 已不存在的孤儿行直接清掉并记一条 info 日志（没有 `env_id` 字段的行不动）。此前不级联、`sites.json` 留孤儿（09-14 报告第 4 条）；LF-08 现在断言「删测试 env 后回查其站点为 0」（`noOrphanSites`）。
+- **`GET /api/site/info` / `GET /api/site-config` 的五个连接键以文件现状为准**（2026-09-21 起，pws `ac299df`）：每次请求重读本站 `DbOption.toml` 的 `mqtt_host / mqtt_port / file_server_host / location / location_dbs` 盖到启动快照上（其余键仍是启动快照，改了要重启），所以激活写进去的值下一次 `site/info` 就能看到。此前只回进程启动时的快照——激活改了文件 `site/info` 还是旧值，向导第 8 步「文件是否被改过」永远显示「一致」，教程 / live smoke 收尾按 `site/info` 记的「原值」其实是「启动时的值」。前端：`CollabGuideView` 第 8 步按键对照「开跑前快照 vs 文件现状」，并在 `runtime/status.relay_location ≠ site/info.location` 时提示后端太旧。
 - 「从 DbOption 导入」按本站 id 覆盖 `dboption-<site_id>`，只带工程 / 端口 / 配置文件路径，**不带连接参数**——激活它 = 按文件现状起中继。
 前端不要用 hack 绕后端语义；真后端实操教程 `docs/tutorials/topology-deploy-live-tutorial.md` 按上述语义写并实跑。
 
