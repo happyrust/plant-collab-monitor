@@ -1,8 +1,8 @@
 {
   "mode": "full",
-  "api": "http://127.0.0.1:4199",
-  "envName": "monitor-e2e-20260921-115642",
-  "generatedAt": "2026-09-21T11:56:42.247Z",
+  "api": "http://127.0.0.1:4100",
+  "envName": "monitor-e2e-20260921-122220",
+  "generatedAt": "2026-09-21T12:22:20.640Z",
   "backend": {
     "shape": "pws",
     "health": {
@@ -12,20 +12,20 @@
     },
     "mode": "standalone-real",
     "loginHasExpiresAt": false,
-    "envCount": 0,
+    "envCount": 1,
     "activeEnvId": null,
     "runtime": {
       "active": false,
-      "active_task_count": 0,
-      "env_count": 0,
+      "active_task_count": 24,
+      "env_count": 1,
       "env_id": null,
       "mode": "standalone-real",
-      "mqtt_connected": null,
+      "mqtt_connected": true,
       "relay": false,
       "relay_location": null,
       "relay_mqtt_host": null,
       "relay_mqtt_port": null,
-      "root": "C:\\Users\\dpc\\AppData\\Local\\Temp\\pws-lf-test\\rt\\remote_sync",
+      "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
       "running": true,
       "site_count": 0,
       "success": true
@@ -36,7 +36,7 @@
       "id": "LF-00",
       "title": "后端可达、admin 登录、识别响应形状",
       "status": "passed",
-      "ms": 16,
+      "ms": 6,
       "details": {
         "shape": "pws",
         "health": {
@@ -46,20 +46,20 @@
         },
         "mode": "standalone-real",
         "loginHasExpiresAt": false,
-        "envCount": 0,
+        "envCount": 1,
         "activeEnvId": null,
         "runtime": {
           "active": false,
-          "active_task_count": 0,
-          "env_count": 0,
+          "active_task_count": 24,
+          "env_count": 1,
           "env_id": null,
           "mode": "standalone-real",
-          "mqtt_connected": null,
+          "mqtt_connected": true,
           "relay": false,
           "relay_location": null,
           "relay_mqtt_host": null,
           "relay_mqtt_port": null,
-          "root": "C:\\Users\\dpc\\AppData\\Local\\Temp\\pws-lf-test\\rt\\remote_sync",
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
           "running": true,
           "site_count": 0,
           "success": true
@@ -70,7 +70,7 @@
       "id": "LF-01",
       "title": "UI admin 登录 → 重定向回 /topology → 运行时 pill 拿到状态",
       "status": "passed",
-      "ms": 2430,
+      "ms": 1937,
       "details": {
         "loginStatus": 200,
         "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
@@ -81,12 +81,12 @@
       "id": "LF-02",
       "title": "UI 新建测试 env → 卡片出现 → 后端能查到（含自动加入的本站站点）",
       "status": "passed",
-      "ms": 2194,
+      "ms": 2149,
       "details": {
-        "id": "env-1789991806",
+        "id": "env-1789993343",
         "autoSites": [
           {
-            "id": "site-1789991806",
+            "id": "site-1789993343",
             "name": "SCB",
             "http_host": "http://localhost:4178"
           }
@@ -97,21 +97,21 @@
       "id": "LF-03",
       "title": "测 MQTT / 测文件服务 → 都拿到后端诊断（结果按环境真实情况记录）",
       "status": "passed",
-      "ms": 182,
+      "ms": 165,
       "details": {
-        "mqtt": "测 MQTT：目标可达 · 127.0.0.1:1883 · 1 ms 19:56:48",
-        "http": "测文件服务：目标可达 · http://127.0.0.1:4101 · HTTP 200 · 4 ms 19:56:48"
+        "mqtt": "测 MQTT：目标可达 · 127.0.0.1:1883 · 0 ms 20:22:25",
+        "http": "测文件服务：目标可达 · http://127.0.0.1:4101 · HTTP 200 · 2 ms 20:22:25"
       }
     },
     {
       "id": "LF-04",
       "title": "激活 → 确认 → pill 切到测试 env，后端激活态 == 测试 env",
       "status": "passed",
-      "ms": 1681,
+      "ms": 1610,
       "details": {
-        "dialogText": "确认激活环境 将把环境「monitor-e2e-20260921-115642」设为后端当前运行环境：plant-web-server 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写进本站 DbOption.toml（环境上没有的键不动），再起 / 重建中继运行态（MQTT 订阅 + 源文件轮询），立即生效；旧 plant-model-gen 后端会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅。 取消 确定",
-        "banner": "激活环境：成功 19:56:49",
-        "backendActive": "env-1789991806",
+        "dialogText": "确认激活环境 将把环境「monitor-e2e-20260921-122220」设为后端当前运行环境：plant-web-server 会把 mqtt_host / mqtt_port / file_server_host / location / location_dbs 写进本站 DbOption.toml（环境上没有的键不动），再起 / 重建中继运行态（MQTT 订阅 + 源文件轮询），立即生效；旧 plant-model-gen 后端会写入 DbOption.toml 并在进程内重启 watcher + MQTT 订阅。 取消 确定",
+        "banner": "激活环境：成功 20:22:26",
+        "backendActive": "env-1789993343",
         "mqtt_connected": true
       }
     },
@@ -119,36 +119,36 @@
       "id": "LF-05",
       "title": "应用 → 确认 → 拿到后端结果 banner",
       "status": "passed",
-      "ms": 398,
+      "ms": 478,
       "details": {
-        "banner": "应用配置：成功 19:56:50"
+        "banner": "应用配置：成功 20:22:27"
       }
     },
     {
       "id": "LF-06",
       "title": "站点 test-http → 结果；编辑备注 → PUT → 后端 notes 更新",
       "status": "passed",
-      "ms": 4015,
+      "ms": 4038,
       "details": {
         "rowCount": 1,
         "siteTest": {
           "summary": "不可达",
-          "title": "后端探测：目标不可达：HTTP 404 · http://localhost:4178/metadata.json · HTTP 404 · 8 ms"
+          "title": "后端探测：目标不可达：HTTP 404 · http://localhost:4178/metadata.json · HTTP 404 · 1 ms"
         },
-        "notes": "edited by topology-deploy-live-smoke 20260921-115642"
+        "notes": "edited by topology-deploy-live-smoke 20260921-122220"
       }
     },
     {
       "id": "LF-07",
       "title": "停止运行时 → 确认 → 后端运行时状态按各自语义变化",
       "status": "passed",
-      "ms": 3102,
+      "ms": 3075,
       "details": {
         "pill": "运行时 · 运行中 · 未激活环境 停止运行时",
         "runtime": {
           "active": false,
-          "active_task_count": 2,
-          "env_count": 1,
+          "active_task_count": 26,
+          "env_count": 2,
           "env_id": null,
           "mode": "standalone-real",
           "mqtt_connected": true,
@@ -156,7 +156,7 @@
           "relay_location": null,
           "relay_mqtt_host": null,
           "relay_mqtt_port": null,
-          "root": "C:\\Users\\dpc\\AppData\\Local\\Temp\\pws-lf-test\\rt\\remote_sync",
+          "root": "D:\\work\\plant-code\\plant-web-server\\runtime\\local-collab\\site-a\\pws-runtime\\remote_sync",
           "running": true,
           "site_count": 1,
           "success": true
@@ -194,15 +194,15 @@
     "GET /api/remote-sync/runtime/status",
     "GET /api/site-config/server-ip",
     "POST /api/remote-sync/envs",
-    "POST /api/remote-sync/envs/env-1789991806/sites",
-    "GET /api/remote-sync/envs/env-1789991806/sites",
+    "POST /api/remote-sync/envs/env-1789993343/sites",
+    "GET /api/remote-sync/envs/env-1789993343/sites",
     "GET /api/health",
-    "POST /api/remote-sync/envs/env-1789991806/test-mqtt",
-    "POST /api/remote-sync/envs/env-1789991806/test-http",
-    "POST /api/remote-sync/envs/env-1789991806/activate",
-    "POST /api/remote-sync/envs/env-1789991806/apply",
-    "POST /api/remote-sync/sites/site-1789991806/test-http",
-    "PUT /api/remote-sync/sites/site-1789991806",
+    "POST /api/remote-sync/envs/env-1789993343/test-mqtt",
+    "POST /api/remote-sync/envs/env-1789993343/test-http",
+    "POST /api/remote-sync/envs/env-1789993343/activate",
+    "POST /api/remote-sync/envs/env-1789993343/apply",
+    "POST /api/remote-sync/sites/site-1789993343/test-http",
+    "PUT /api/remote-sync/sites/site-1789993343",
     "POST /api/remote-sync/runtime/stop"
   ],
   "mutatingBlocked": [],
@@ -211,31 +211,31 @@
       "method": "POST",
       "path": "/api/remote-sync/envs",
       "status": 200,
-      "body": "{\"data\":{\"active\":false,\"created_at\":\"2026-09-21T11:56:46.7847307Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789991806\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-115642\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:56:46.7847627Z\"},\"item\":{\"active\":false,\"created_at\":\"2026-09-21T11:56:4"
+      "body": "{\"data\":{\"active\":false,\"created_at\":\"2026-09-21T12:22:23.6868922Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789993343\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-122220\",\"status\":\"created\",\"updated_at\":\"2026-09-21T12:22:23.686906Z\"},\"item\":{\"active\":false,\"created_at\":\"2026-09-21T12:22:23"
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/env-1789991806/sites",
+      "path": "/api/remote-sync/envs/env-1789993343/sites",
       "status": 200,
-      "body": "{\"data\":{\"created_at\":\"2026-09-21T11:56:46.8174035Z\",\"dbnums\":\"6100\",\"env_id\":\"env-1789991806\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789991806\",\"location\":\"local-t\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"站点（自动添加）\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:56:46.8174398Z\"},\"item\":{\"created_at\":\"2026-09-21T11:56:46.8174035Z\",\"dbnums\":\"6100\",\"env_id\":\"env-1789991806\",\"http_host"
+      "body": "{\"data\":{\"created_at\":\"2026-09-21T12:22:23.7051671Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789993343\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789993343\",\"location\":\"local-a\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"站点（自动添加）\",\"status\":\"created\",\"updated_at\":\"2026-09-21T12:22:23.7051828Z\"},\"item\":{\"created_at\":\"2026-09-21T12:22:23.7051671Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789993343\",\"http_host"
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/env-1789991806/activate",
+      "path": "/api/remote-sync/envs/env-1789993343/activate",
       "status": 200,
-      "body": "{\"data\":{\"activated_at\":\"2026-09-21T11:56:49.1945466Z\",\"active\":true,\"created_at\":\"2026-09-21T11:56:46.7847307Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789991806\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-115642\",\"status\":\"active\",\"updated_at\":\"2026-09-21T11:56:46.7847627Z\"},\"item\":{\"ac"
+      "body": "{\"data\":{\"activated_at\":\"2026-09-21T12:22:25.9924966Z\",\"active\":true,\"created_at\":\"2026-09-21T12:22:23.6868922Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789993343\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-122220\",\"status\":\"active\",\"updated_at\":\"2026-09-21T12:22:23.686906Z\"},\"item\":{\"act"
     },
     {
       "method": "POST",
-      "path": "/api/remote-sync/envs/env-1789991806/apply",
+      "path": "/api/remote-sync/envs/env-1789993343/apply",
       "status": 200,
-      "body": "{\"data\":{\"activated_at\":\"2026-09-21T11:56:50.7443666Z\",\"active\":true,\"created_at\":\"2026-09-21T11:56:46.7847307Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789991806\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-115642\",\"status\":\"active\",\"updated_at\":\"2026-09-21T11:56:46.7847627Z\"},\"item\":{\"ac"
+      "body": "{\"data\":{\"activated_at\":\"2026-09-21T12:22:27.5749425Z\",\"active\":true,\"created_at\":\"2026-09-21T12:22:23.6868922Z\",\"file_server_host\":\"http://127.0.0.1:4101\",\"id\":\"env-1789993343\",\"location\":\"local-e2e\",\"location_dbs\":\"7999\",\"mode\":\"standalone-real\",\"mqtt_host\":\"127.0.0.1\",\"mqtt_port\":1883,\"name\":\"monitor-e2e-20260921-122220\",\"status\":\"active\",\"updated_at\":\"2026-09-21T12:22:23.686906Z\"},\"item\":{\"act"
     },
     {
       "method": "PUT",
-      "path": "/api/remote-sync/sites/site-1789991806",
+      "path": "/api/remote-sync/sites/site-1789993343",
       "status": 200,
-      "body": "{\"data\":{\"created_at\":\"2026-09-21T11:56:46.8174035Z\",\"dbnums\":\"6100\",\"env_id\":\"env-1789991806\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789991806\",\"location\":\"local-t\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"edited by topology-deploy-live-smoke 20260921-115642\",\"status\":\"created\",\"updated_at\":\"2026-09-21T11:56:53.5417006Z\"},\"item\":{\"created_at\":\"2026-09-21T11:56:46.8174035Z\",\"dbnums\""
+      "body": "{\"data\":{\"created_at\":\"2026-09-21T12:22:23.7051671Z\",\"dbnums\":\"6000\",\"env_id\":\"env-1789993343\",\"http_host\":\"http://localhost:4178\",\"id\":\"site-1789993343\",\"location\":\"local-a\",\"mode\":\"standalone-real\",\"name\":\"SCB\",\"notes\":\"edited by topology-deploy-live-smoke 20260921-122220\",\"status\":\"created\",\"updated_at\":\"2026-09-21T12:22:30.3948799Z\"},\"item\":{\"created_at\":\"2026-09-21T12:22:23.7051671Z\",\"dbnums\""
     },
     {
       "method": "POST",
@@ -246,7 +246,7 @@
   ],
   "activations": [
     {
-      "envId": "env-1789991806",
+      "envId": "env-1789993343",
       "status": 200,
       "relay": true,
       "runtime_config": {
@@ -258,7 +258,7 @@
           "location",
           "location_dbs"
         ],
-        "path": "C:/Users/dpc/AppData/Local/Temp/pws-lf-test/DbOption.toml"
+        "path": "runtime/local-collab/site-a/DbOption.toml"
       }
     }
   ],
@@ -268,37 +268,37 @@
     "steps": [
       {
         "name": "delete-env",
-        "id": "env-1789991806",
+        "id": "env-1789993343",
         "siteCountBefore": 1,
         "status": 200,
         "body": {
           "deleted": true,
           "deleted_site_count": 1,
           "deleted_sites": [
-            "site-1789991806"
+            "site-1789993343"
           ],
-          "id": "env-1789991806",
+          "id": "env-1789993343",
           "mode": "standalone-real",
           "success": true
         }
       },
       {
         "name": "create-restore-env",
-        "id": "env-1789991818",
+        "id": "env-1789993354",
         "status": 200,
         "config": {
           "mqtt_host": "127.0.0.1",
           "mqtt_port": 1883,
-          "file_server_host": "http://127.0.0.1:4199/assets/archives",
-          "location": "local-t",
+          "file_server_host": "http://127.0.0.1:4100/assets/archives",
+          "location": "local-a",
           "location_dbs": [
-            6100
+            6000
           ]
         }
       },
       {
         "name": "activate-restore-env",
-        "id": "env-1789991818",
+        "id": "env-1789993354",
         "status": 200,
         "runtime_config": {
           "changed": true,
@@ -309,12 +309,12 @@
             "location",
             "location_dbs"
           ],
-          "path": "C:/Users/dpc/AppData/Local/Temp/pws-lf-test/DbOption.toml"
+          "path": "runtime/local-collab/site-a/DbOption.toml"
         }
       },
       {
         "name": "activate-restore-env-verify",
-        "id": "env-1789991818",
+        "id": "env-1789993354",
         "status": 200,
         "runtime_config": {
           "changed": false,
@@ -325,7 +325,7 @@
             "location",
             "location_dbs"
           ],
-          "path": "C:/Users/dpc/AppData/Local/Temp/pws-lf-test/DbOption.toml"
+          "path": "runtime/local-collab/site-a/DbOption.toml"
         }
       },
       {
@@ -340,13 +340,13 @@
       },
       {
         "name": "delete-restore-env",
-        "id": "env-1789991818",
+        "id": "env-1789993354",
         "status": 200,
         "body": {
           "deleted": true,
           "deleted_site_count": 0,
           "deleted_sites": [],
-          "id": "env-1789991818",
+          "id": "env-1789993354",
           "mode": "standalone-real",
           "success": true
         }
@@ -359,24 +359,26 @@
     "runtimeRestored": true,
     "ledgerRestored": true,
     "activeRestored": true,
-    "taskTotalBefore": 0,
-    "taskTotalAfter": 3,
+    "taskTotalBefore": 24,
+    "taskTotalAfter": 27,
     "leftoverEnvIds": []
   },
   "passed": true,
   "before": {
     "activeEnvId": null,
     "ledgerEnvId": null,
-    "envIds": [],
-    "taskTotal": 0,
+    "envIds": [
+      "dboption-local-a"
+    ],
+    "taskTotal": 24,
     "snapshotEnvId": null,
     "ownConfig": {
       "mqtt_host": "127.0.0.1",
       "mqtt_port": 1883,
-      "file_server_host": "http://127.0.0.1:4199/assets/archives",
-      "location": "local-t",
+      "file_server_host": "http://127.0.0.1:4100/assets/archives",
+      "location": "local-a",
       "location_dbs": [
-        6100
+        6000
       ]
     },
     "ownConfigMissing": []
