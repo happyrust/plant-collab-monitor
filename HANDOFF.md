@@ -1,4 +1,4 @@
-# HANDOFF · plant-collab-monitor 当前状态（2026-09-21）
+# HANDOFF · plant-collab-monitor 当前状态（2026-09-22）
 
 > 5 秒钟交接清单。详细背景看 `AGENTS.md` / `README.md` / `docs/plans/`。
 
@@ -35,7 +35,8 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-21 晚 · f12a26d test(topology-deploy) LF full 对 Site A 复跑 9/9（脚本收紧后真站点上 DbOption.toml 自己写回、SHA 与跑前一致） · 5c7895d fix(guide) 向导实跑（Site A / B 全程 3 → 8 步）后三处修正——探测结果记 sessionStorage 且 /topology 上测的也算（src/guide/probeMemory.ts）、「新建」预填补回 /assets/archives、第 6 步文案补 dev 下 200 误报
+上一次推送: 2026-09-22 早 · 80c72ff feat(guide) 《协同配置向导 · 实操教程》35 图自动生成（scripts/collab-guide-live-tutorial.mjs，真后端两站照着 /guide 走完 8 步，跑完复原）+ 「去页面操作」把向导里选中的卡带去 /topology（?env=）先选中再起导览 · 018d59d fix(guide) 第 8 步「文件是否被激活改过」改逐键对照表并识别后端太旧（配 pws ac299df，同时已推）
+                 ↑ 2026-09-21 晚已推：f12a26d test(topology-deploy) LF full 对 Site A 复跑 9/9（脚本收紧后真站点上 DbOption.toml 自己写回、SHA 与跑前一致） · 5c7895d fix(guide) 向导实跑（Site A / B 全程 3 → 8 步）后三处修正——探测结果记 sessionStorage 且 /topology 上测的也算（src/guide/probeMemory.ts）、「新建」预填补回 /assets/archives、第 6 步文案补 dev 下 200 误报
                  ↑ 同日稍早已推：4395a43 live smoke 形状识别先认 pws + LF-08 写回 DbOption.toml · 214a7ad 删环境级联删站点收口——LF-08 改「直接删 env → 回查无孤儿」断言 + AGENTS §4.3.2 / CHANGELOG / 用例文档 / 教程附录对齐（配 pws afff42f，已推）
                  ↑ 同日更早已推：cce1e92 仓状态 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录
                  ↑ 2026-09-18 早已推：43cfcf5 docx 生成器排版五处修正（Word 版实操教程重出并逐页检查；usage-guide.docx 从此打得开）
@@ -46,11 +47,10 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
                  ↑ 2026-09-16 晚已推：1a9eb39 方案「后记」 · 0b2a1ee activate 应用 env（pws 581052a） · 0560f58 relay 单测 19/19（pws d8a9ca4） · dd0cd5d 台账读侧方案草案
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
-本地领先 origin/main **2 个提交，尚未推**（2026-09-22 早）：feat(guide) 《协同配置向导 · 实操教程》35 图（scripts/collab-guide-live-tutorial.mjs，真后端两站照着 /guide 走完 8 步，跑完复原）+ 「去页面操作」把向导里选中的卡带去 /topology（?env=）先选中再起导览（本条 HANDOFF 在这一提交里） · 018d59d fix(guide) 第 8 步「文件是否被激活改过」改逐键对照表并识别后端太旧（配 pws ac299df，**pws 那条也未推**）
-工作树: 无其它待提交改动
+本地与 origin/main: 一致（本条 docs(handoff) 之外无待提交改动）
 type-check: 0 errors（2026-09-22 早 `npm run type-check` 实跑）；mock smoke `npm run smoke:topology-deploy -- --build` pmg 16/16 · pws 16/16（同日实跑）
 
-站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = ac299df（2026-09-21 晚 site/info / site-config 五个连接键每次重读 DbOption.toml，**本地未推**），origin/main = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿），再前 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = ac299df（2026-09-21 晚 site/info / site-config 五个连接键每次重读 DbOption.toml，2026-09-22 早推），再前 afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿），再前 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓，HEAD 76b39f6（2026-09-18 删掉本机双站点环境），**故意不建远端**——这个仓待废弃；工作树里只剩 sqlite_spatial_api.rs 那份与本线无关的 WIP
 ```
 
