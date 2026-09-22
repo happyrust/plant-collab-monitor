@@ -1110,7 +1110,7 @@ const startTourFromQuery = () => {
   const id = route.query.tour;
   if (typeof id !== 'string') return;
   const steps = getGuideTour(id);
-  const { tour: _tour, ...rest } = route.query;
+  const { tour: _tour, env: _env, ...rest } = route.query;
   void router.replace({ query: rest });
   if (!steps) return;
   window.setTimeout(() => guideTour.start(id, steps), 500);
@@ -1920,10 +1920,15 @@ const handleViewSiteDetails = async (site: RemoteSite) => {
 
 onMounted(() => {
   const tourRequested = typeof route.query.tour === 'string';
+  // /guide 会把它正在看的那张卡带过来（?env=<id>），导览就指到这张卡的按钮上；导览遮罩挡着别处，中途换卡得先 Esc
+  const tourEnvId = typeof route.query.env === 'string' ? route.query.env : null;
   loadEnvs().then(() => {
     if (!tourRequested) return;
-    // 导览要指卡片上的按钮：没选中环境就先替用户选一张（激活的那张优先），按钮才会出现
-    if (!selectedEnv.value && envs.value.length > 0) {
+    // 导览要指卡片上的按钮：向导带来的那张优先；没带 / 找不到且没选中时替用户选一张（激活的那张优先），按钮才会出现
+    const wanted = tourEnvId ? envs.value.find((e) => String(e.id) === tourEnvId) : undefined;
+    if (wanted) {
+      void selectEnv(wanted);
+    } else if (!selectedEnv.value && envs.value.length > 0) {
       const preferred = envs.value.find((e) => isActiveEnv(e)) ?? envs.value[0]!;
       void selectEnv(preferred);
     }

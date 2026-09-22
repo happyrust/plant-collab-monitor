@@ -8,6 +8,15 @@
 
 ## 2026-09-21
 
+### Added · 《协同配置向导 · 实操教程》（35 图，真浏览器 + 真后端两站，照着 `/guide` 走完 8 步）；导览带上向导里选中的那张卡
+
+> 向导本身实跑过一遍之后，把「照着向导配一次」做成和 `topology-deploy-live-tutorial` 同一套路的自动生成教程：每步先截向导页（为什么 / 怎么做 / 填什么 / 完成判定），再点「去页面操作」进 `/topology` 的高亮导览在真按钮上做动作，回来截判定变绿；对端 Site B 也按自己身份建卡激活，两边真的互相收得到。
+
+- `scripts/collab-guide-live-tutorial.mjs`（`npm run tutorial:collab-guide:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101`，`--build` / `--headed` / `--port`，preview 端口 4180）：生产构建 + `vite preview`（自动登录默认关，第 1 步真走登录框）→ 8 步 35 张图 → `docs/tutorials/collab-guide-live-tutorial.md` + `screenshots/collab-guide-live/`；事实记录 `docs/e2e-smoke/collab-guide-live-tutorial-result.json`（含每一步之后向导 8 步的 `data-status` 快照，进附录 A 的表）。文案数据驱动：激活后同时读 `runtime_config.changed`、`site/info` 与**直接读 DbOption.toml**（identity 给了 `repo_root + config` 且同机时），`site/info` 跟不上文件就照实写「这台后端只回启动快照」；第 8 步的说明按向导 `guide-snapshot-verdict` 的实际判词 + 文件真值写。收尾两站都做（恢复卡写回 → 二次激活 `changed=false` → 停 / 复原运行态 → 删卡 → 账面标记标回），本站再直接读文件核五键逐键相等。Word 版 `npm run docx:collab-guide:live`（不入库）。
+- **导览指向向导里选中的卡**：`CollabGuideView.goWithTour` 跳 `/topology?tour=<id>&env=<targetEnvId>`，`TopologyView.onMounted` 先 `selectEnv` 那张再起导览（没带 / 找不到才退回「激活的优先，否则第一张」）。此前 `?tour` 进来替用户选的是列表第一张（多半是 DbOption 登记卡），「激活」「测 MQTT」的聚光框会落在错的卡上，而导览遮罩挡着别处、中途换卡得先 Esc——教程第一跑就是在这里卡住的。
+- README 命令表 / 文档索引、AGENTS §4.7 两条（导览指向哪张卡、实操教程怎么重出）、HANDOFF 起手表。
+- 验证：脚本对本机 Site A（`:4100`）/ Site B（`:4101`）实跑 → 35 图、pageerror 0、两站 `envIdsRestored / runtimeRestored / ledgerRestored` 全 true、本站 `configRestored=true`（恢复卡二次激活 `changed=false`）且直接读文件 `location_dbs=[6000]` 与开跑前相等、对端 `changed=false` 无需写回；`npm run type-check` 0 errors；`docx:collab-guide:live` 出 35 图 Word 可生成。这一跑还坐实了 pws `site/info` 只回启动快照（激活后文件 `[6000, 6001]`、`site/info` 仍 `[6000]`），与下一节跨仓修复对上。
+
 ### Fixed · pws `site/info` / `site-config` 每次重读 DbOption.toml 的五个连接键（跨仓）；向导第 8 步「文件是否被激活改过」从此是真的
 
 > 审核发现：plant-web-server 的 `SiteConfigService::info / get` 只回进程启动时的配置快照（+ override.json），而 `activate` 改的是 toml 文件——激活把文件写成 `local-e2e / [7999]` 之后，`GET /api/site/info` 仍回 `local-a / [6000]`。连锁：`/guide` 第 8 步比的是两次 `site/info`，同一进程内永远「一致」，那行绿字是假的；「新建」预填、「从 DbOption 导入」拿的是陈值；教程 / live smoke 收尾按 `site/info` 记的「原值」实际是「启动时的值」（今天恰好相同，SHA 才对得上）。

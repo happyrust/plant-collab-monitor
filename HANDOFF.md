@@ -17,6 +17,7 @@
 | **看异地部署功能的下一步计划（已批准）** | `docs/plans/2026-09-14-remote-deploy-next-step-plan.md` |
 | **在网页里照着学怎么配异地协同（`/guide`，2026-09-21）** | 起 dev（开发态默认 `admin/admin` 自动登录，不再弹框）→ 侧栏「配置向导」：8 步每步「为什么 / 点哪里 / 填什么 / 完成判定（对着后端 15 s 刷）」，「去页面操作」跳 `/topology?tour=<id>` 在真实按钮上打聚光灯。内容 `src/guide/collabGuide.ts`，约定 `AGENTS.md` §4.7 |
 | **跑真后端完整闭环 LF-00–08（会写后端，只对隔离配置）** | 起 Site A（`COMMANDS.md`）→ `node scripts/topology-deploy-live-smoke.mjs --api http://127.0.0.1:4100 --mode full --confirm-writes --report docs/e2e-smoke/topology-deploy-live-full-pws-relay-result.json`；2026-09-21 起 LF-08 断言后端级联删站点无孤儿（pws ≥ `afff42f`），并把激活写进 `DbOption.toml` 的五个键按开跑前 `site/info` 原值写回（恢复卡激活 + 二次激活核 `changed=false`）、运行态 / 账面标记分别还原；本站 `location_dbs` 为空的站（如 Site B）**拒跑 full**——pws 不写空数组，写不回 `[]`。用了别人正在操作的站点（Site A 走向导时）就别跑，另起隔离实例 |
+| **要一份「照着向导配一次」的截图教程 / Word（35 图，真后端两站，2026-09-21）** | 先起本机两站（`COMMANDS.md`），再 `npm run tutorial:collab-guide:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101`（改过向导 / 拓扑页加 `--build`）→ `docs/tutorials/collab-guide-live-tutorial.md`，Word 版 `npm run docx:collab-guide:live`。它**会真的改两站**（建卡、激活写 `DbOption.toml`、对端也激活），跑完两站自动复原并直接读文件核五键；**只对隔离环境跑** |
 | **在网页里学 / 改「协同配置向导」（`/guide`，2026-09-21 已落地）** | `npm run dev` → `http://localhost:4000/guide`（开发态默认自动登录，不用再敲 `admin / admin`；生产构建要开需 `VITE_ADMIN_AUTO_LOGIN=1`）。8 步文案与判定口径在 `src/guide/collabGuide.ts`，页面 `src/views/CollabGuideView.vue`，导览 `src/stores/guideTour.ts` + `src/components/GuideTourOverlay.vue`（`AGENTS.md` §4.7）。改 `/topology` 的按钮**别丢 `data-tour`**；回归 `npm run type-check` + `npm run smoke:topology-deploy -- --build`（pmg / pws 各 16 例） |
 | **看 / 跑中继台账「变更清单」视图（`/ledger`，2026-09-17 已落地）** | 方案与执行记录 `docs/plans/2026-09-17-relay-ledger-read-api-plan.md` §8；mock 用例 `npm run smoke:relay-ledger`（RL-01–08，缺 dist 自动 build，改了视图加 `-- --build`）；真后端只读 `npm run smoke:relay-ledger:live -- --api http://127.0.0.1:4100`（RL-L0–L3，先按 `COMMANDS.md` 起 Site A）；双站点 smoke 现在 **25 项**（LS-25 核读侧 API 与 sqlite3 一致）。后端要 pws ≥ `b61b7ca`，否则视图显示「该后端不提供台账 API」 |
 | **跑部署动作面自动化用例（无需后端）** | `docs/e2e-smoke/remote-deploy-auto-test-cases.md` → `npm run smoke:topology-deploy`（pmg + pws 各 16 例）；真后端只读 `npm run smoke:topology-deploy:live` |
@@ -34,7 +35,7 @@
 
 ```
 git remote: https://github.com/happyrust/plant-collab-monitor.git
-上一次推送: 2026-09-21 晚 · fix(guide) 向导实跑（Site A / B 全程 3 → 8 步）后三处修正——探测结果记 sessionStorage 且 /topology 上测的也算（src/guide/probeMemory.ts）、「新建」预填补回 /assets/archives、第 6 步文案补 dev 下 200 误报（本条 HANDOFF 在这一提交里）
+上一次推送: 2026-09-21 晚 · f12a26d test(topology-deploy) LF full 对 Site A 复跑 9/9（脚本收紧后真站点上 DbOption.toml 自己写回、SHA 与跑前一致） · 5c7895d fix(guide) 向导实跑（Site A / B 全程 3 → 8 步）后三处修正——探测结果记 sessionStorage 且 /topology 上测的也算（src/guide/probeMemory.ts）、「新建」预填补回 /assets/archives、第 6 步文案补 dev 下 200 误报
                  ↑ 同日稍早已推：4395a43 live smoke 形状识别先认 pws + LF-08 写回 DbOption.toml · 214a7ad 删环境级联删站点收口——LF-08 改「直接删 env → 回查无孤儿」断言 + AGENTS §4.3.2 / CHANGELOG / 用例文档 / 教程附录对齐（配 pws afff42f，已推）
                  ↑ 同日更早已推：cce1e92 仓状态 · 4ccb8d5 feat(guide) 新视图 /guide「协同配置向导」+ 页面内高亮导览 · fca8a27 feat(auth) 开发态管理员默认自动登录
                  ↑ 2026-09-18 早已推：43cfcf5 docx 生成器排版五处修正（Word 版实操教程重出并逐页检查；usage-guide.docx 从此打得开）
@@ -45,10 +46,11 @@ git remote: https://github.com/happyrust/plant-collab-monitor.git
                  ↑ 2026-09-16 晚已推：1a9eb39 方案「后记」 · 0b2a1ee activate 应用 env（pws 581052a） · 0560f58 relay 单测 19/19（pws d8a9ca4） · dd0cd5d 台账读侧方案草案
                  ↑ 同日白天已推的 5 个提交：e36de79 后端建仓 · 3ad5f7b 中继搬进 plant-web-server · cabebd6 smoke 换后端三跑 24/24 · 5a18042 站点后端收敛 · 19e3e60 远端说明
                  ↑ 更早一推把 093ada9 之后积压的 13 个提交一次推完（2026-09-14 部署动作面、2026-09-15 中继模式 24/24、教程、.gitattributes 等）
-本地与 origin/main: 一致，工作树无待提交改动
-type-check: 0 errors（2026-09-21 晚 `npm run type-check` 实跑，5.7 s）；mock smoke `npm run smoke:topology-deploy -- --build` pmg 16/16 · pws 16/16
+本地领先 origin/main **2 个提交，尚未推**（2026-09-22 早）：feat(guide) 《协同配置向导 · 实操教程》35 图（scripts/collab-guide-live-tutorial.mjs，真后端两站照着 /guide 走完 8 步，跑完复原）+ 「去页面操作」把向导里选中的卡带去 /topology（?env=）先选中再起导览（本条 HANDOFF 在这一提交里） · 018d59d fix(guide) 第 8 步「文件是否被激活改过」改逐键对照表并识别后端太旧（配 pws ac299df，**pws 那条也未推**）
+工作树: 无其它待提交改动
+type-check: 0 errors（2026-09-22 早 `npm run type-check` 实跑）；mock smoke `npm run smoke:topology-deploy -- --build` pmg 16/16 · pws 16/16（同日实跑）
 
-站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = origin/main = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿），再前 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
+站点后端 ../plant-web-server: https://github.com/happyrust/plant-web-server（**私有**），HEAD = ac299df（2026-09-21 晚 site/info / site-config 五个连接键每次重读 DbOption.toml，**本地未推**），origin/main = afff42f（2026-09-21 DELETE envs/{id} 级联删站点 + 启动清孤儿），再前 7997ddd（2026-09-18 探测端点真探 + generated_id 不撞号；同日 d7da7b3 自带 db_options/DbOption.toml、--repo-root 缺省为自身；再前 b61b7ca 台账读侧 API）。**编译要钉 `cargo +nightly-2026-07-21`**：默认 nightly 2026-09-18 编 `diskann-wide 0.54.0`（surrealdb 传递依赖）报 E0283 ×6；两站进程占着 `D:\Rust\target\debug\plant-web-server.exe` 时 `build` 会在最后替换 exe 那步报「拒绝访问」，改 `check` 或先停两站
 旧后端 ../plant-model-gen:   2026-09-16 建的本地 git 仓，HEAD 76b39f6（2026-09-18 删掉本机双站点环境），**故意不建远端**——这个仓待废弃；工作树里只剩 sqlite_spatial_api.rs 那份与本线无关的 WIP
 ```
 

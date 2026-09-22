@@ -873,7 +873,10 @@ async function runSiteProbe(site: SiteLite): Promise<void> {
 
 function goWithTour(step: GuideStepDef): void {
   guideTour.stop();
-  router.push({ path: step.route ?? '/topology', query: { tour: step.id } }).catch((err: unknown) => {
+  // 把向导里正在看的那张卡带过去（?env=），/topology 会先选中它再起导览——否则导览可能指到列表第一张（多半是登记卡）
+  const query: Record<string, string> = { tour: step.id };
+  if (targetEnvId.value) query.env = targetEnvId.value;
+  router.push({ path: step.route ?? '/topology', query }).catch((err: unknown) => {
     console.error('跳转失败:', errText(err));
   });
 }

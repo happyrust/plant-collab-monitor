@@ -77,6 +77,7 @@ VITE_API_TARGET=http://staging.example.com:3100
 | `npm run smoke:topology-deploy:live` | 对真后端只读 smoke（LR-xx，安全闸拦写）；`-- --mode full --confirm-writes` 跑完整闭环（LF-xx）|
 | `npm run tutorial:topology-deploy` | 用与 DA 用例同一份 mock 驱动真实页面，重出《异地部署操作教程》的 19 张截图 + `docs/tutorials/topology-deploy-tutorial.md`；Word 版 `node scripts/generate-remote-collab-docx.mjs docs/tutorials/topology-deploy-tutorial.md` |
 | `npm run tutorial:topology-deploy:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` | **真浏览器 + 真后端**：把建环境 / 探测 / 激活 / 应用 / 站点改址 / 停止整条链真做一遍并逐步截图，出《异地部署操作教程 · 真实后端实操版》；跑完自动删测试数据、用开跑前的 DbOption 快照 apply 回去。**只对隔离环境跑**。Word 版 `npm run docx:topology-deploy:live` |
+| `npm run tutorial:collab-guide:live -- --api http://127.0.0.1:4100 --peer http://127.0.0.1:4101` | **真浏览器 + 真后端，走 `/guide` 向导**：照着「协同配置向导」从第 1 步（登录）走到第 8 步（停止 / 复原），每步先截向导页再点「去页面操作」在 `/topology` 的高亮导览里做真动作，回来截判定变绿；对端 Site B 也按自己身份建卡激活；出《协同配置向导 · 实操教程》（35 图）。跑完两站都自动复原（恢复卡写回 + 二次激活核 `changed=false` + 直接读文件核五键）。**只对隔离环境跑**。Word 版 `npm run docx:collab-guide:live`（2026-09-21） |
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-setup.ps1` | 生成本机双站点环境（`../plant-web-server/runtime/local-collab/`：site-a/site-b 隔离 `DbOption.toml`、启动器、Mosquitto 配置、文件服务 fixture；模板是 `../plant-web-server/db_options/DbOption.toml`，2026-09-18 起不再依赖 `plant-model-gen`）+ 前置检查 + 打印启动命令 |
 | `powershell -ExecutionPolicy Bypass -File scripts/local-remote-collab-smoke.ps1` | 双站点 API smoke（LS-01–22；需 Mosquitto + Site A `:4100` + Site B `:4101`）|
 
@@ -254,6 +255,7 @@ location /ws/ {
 | 异地协同使用教程 | `docs/tutorials/remote-collab-usage-guide.md` |
 | **异地部署操作教程（`/topology` 部署动作面，自动生成、每步对应 DA 用例）** | `docs/tutorials/topology-deploy-tutorial.md` · `scripts/topology-deploy-tutorial.mjs` |
 | **异地部署操作教程 · 真实后端实操版（真浏览器把操作做一遍后截图，跑完自动复原）** | `docs/tutorials/topology-deploy-live-tutorial.md` · `scripts/topology-deploy-live-tutorial.mjs` |
+| **协同配置向导 · 实操教程（照着 `/guide` 走完 8 步，真后端两站，跑完自动复原）** | `docs/tutorials/collab-guide-live-tutorial.md` · `scripts/collab-guide-live-tutorial.mjs` |
 | 异地站点 PRD | `docs/prd/2026-04-26-remote-site-prd.md` |
 | 整体能力规范 PRD | `docs/prd/2026-04-25-collab-monitor-prd.md` |
 | Gap 清单 | `docs/plans/2026-04-25-collab-monitor-completion-gap.md` |

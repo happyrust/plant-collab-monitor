@@ -195,6 +195,8 @@ Tailwind v4 的 PostCSS 插件已拆到 `@tailwindcss/postcss`：
 - 导览目标靠 **`data-tour="<name>"`** 定位：`TopologyView` 里页级元素直接标（`runtime-pill / stop-runtime / env-list / import-env / create-env / sites-panel / add-site`），卡片级按钮只标在**选中那张卡**上（`tourAnchor(env, name)`：`env-test-mqtt / env-test-http / env-apply / env-activate`），站点行只标第一行（`site-test-http / site-edit`）。`?tour=<步骤 id>` 进 `/topology` 时 `onMounted` 等 `loadEnvs()` 回来、没选中就替用户选一张（激活的优先），再 `guideTour.start()`，随后 `router.replace` 摘掉 query。
 - 遮罩 z-index **900–902**，故意压在 DaisyUI `.modal`（999）与 naive-ui 弹层之下：导览中点「新建 / 激活」弹出的表单、确认框浮在遮罩上面可操作。被高亮的目标本身留空不盖（四块遮罩），点它 → `advanceOnClick`（默认 true）自动 `next()`；目标不存在 → 说明卡居中 + `missingHint`。
 - 改 `TopologyView` 的按钮时**别丢 `data-tour`**；改向导文案只动 `collabGuide.ts`；加一步 = 在 `COLLAB_GUIDE_STEPS` 加一项 + 视图里 `完成判定` 那段按 `id` 加一个分支 + `checks` 加一条。
+- **导览指向哪张卡**：「去页面操作」跳 `/topology?tour=<步骤 id>&env=<向导里选中的 env id>`，`TopologyView.onMounted` 先 `selectEnv` 那张再起导览（没带 / 找不到才退回「激活的优先，否则第一张」）。导览遮罩挡着目标以外的区域，用户想换卡得先 Esc——所以一定要把向导正在看的那张带过去，否则卡片级目标会落在列表第一张（多半是 DbOption 登记卡）上。
+- **实操教程**：`scripts/collab-guide-live-tutorial.mjs`（`npm run tutorial:collab-guide:live -- --api … --peer …`）照着向导从第 1 步走到第 8 步，对真后端两站截图 35 张出 `docs/tutorials/collab-guide-live-tutorial.md`，跑完两站复原。改了向导页 / 导览 / TopologyView 的按钮之后重出一遍（要带 `--build`），文案改脚本不改 md。
 
 ---
 
